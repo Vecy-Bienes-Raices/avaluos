@@ -6,18 +6,21 @@
     <link rel="icon" href="public/logovecy.ico" type="image/x-icon" />
 
     <!-- Open Graph Meta Tags para compartir en redes sociales -->
-    <meta property="og:title" content="Avalúo Comercial - Casa Sotavento III" />
+    <meta
+      property="og:title"
+      content="ESTUDIO DE MERCADO CASA 109 - SOTAVENTO III"
+    />
     <meta
       property="og:description"
-      content="✨ Casa de 3 pisos con 3 hab/3 baños y parqueadero independiente. Disfruta de gimnasio, BBQ y zonas verdes. Ubicación estratégica cerca a comercio y colegios. ¡Documentación al día! Haz clic para descubrir el análisis completo y su valor comercial."
+      content="🏡 3 Pisos, 3 Hab/3 Baños. 🚗 Parqueadero indep. 📦 Bodega y zarzo. 📍 Ubicación Estratégica. 🏋️ Gimnasio y BBQ. 📄 Docs al día. ¡Haz clic para ver el análisis de precio!"
     />
     <meta
       property="og:image"
-      content="https://vecy-bienes-raices.github.io/avaluos/public/17.jpeg?v=3"
+      content="https://avaluo-casa-sotavento3.netlify.app/public/1.jpeg?v=6"
     />
     <meta
       property="og:url"
-      content="https://vecy-bienes-raices.github.io/avaluos/"
+      content="https://avaluo-casa-sotavento3.netlify.app/"
     />
     <meta property="og:type" content="website" />
     <!-- Fin de Meta Tags -->
@@ -671,16 +674,27 @@
 
       // --- LÓGICA PARA COMPARTIR ---
       function shareValuation() {
+        const url = "https://avaluo-casa-sotavento3.netlify.app/";
         const newText =
-          "✨ Casa de 3 pisos con 3 hab/3 baños y parqueadero independiente. Disfruta de gimnasio, BBQ y zonas verdes. Ubicación estratégica cerca a comercio y colegios. ¡Documentación al día! Haz clic para descubrir el análisis completo y su valor comercial.";
+          "ESTUDIO DE MERCADO CASA 109 - SOTAVENTO III\n\n" +
+          "🏡3 Pisos: 3 Habitaciones y 3 Baños.\n" +
+          "🚗 Parqueadero: Descubierto y con matrícula independiente.\n" +
+          "📦 Espacios Adicionales: Bodega, zarzo y tanques de reserva de agua.\n" +
+          "📍 Ubicación Estratégica: Cerca a clínicas, comercio, colegios y transporte.\n" +
+          "🏋️ Amenidades del Conjunto:Gimnasio, salones sociales, BBQ y zonas verdes.\n" +
+          "📄 Documentación al día: Libre de hipotecas y lista para escrituración.\n" +
+          "🍽️ Comodidades: Cocina integral con patio y calentador a gas.\n\n" +
+          "Para ver el precio sugerido ingresa al enlace: " +
+          url;
+
         const shareData = {
-          title: "Avalúo Comercial - Casa Sotavento III",
+          title: "ESTUDIO DE MERCADO CASA 109 - SOTAVENTO III",
           text: newText,
-          url: window.location.href,
+          url: url,
         };
 
         // 1. Copiar al portapapeles
-        navigator.clipboard.writeText(window.location.href).then(
+        navigator.clipboard.writeText(url).then(
           () => {
             alert("¡Enlace copiado!"); // Notificación visual
           },
