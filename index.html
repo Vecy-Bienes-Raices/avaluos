@@ -309,6 +309,16 @@
         font-weight: 700;
       }
 
+      #copyMessage {
+        color: var(--gold);
+        font-weight: 600;
+        margin-top: 10px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        height: 1em; /* Reservar espacio para evitar saltos */
+      }
+
       .share-button:hover {
         transform: translateY(-4px);
         box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4); /* Sombra dorada para un efecto de brillo */
@@ -614,9 +624,10 @@
           través de redes sociales o mensajería directa.
         </p>
         <div class="share-button-container">
-          <button class="share-button" onclick="shareValuation()">
+          <button class="share-button" id="shareBtn" onclick="shareValuation()">
             Compartir Ahora
           </button>
+          <p id="copyMessage">¡Enlace y datos copiados!</p>
         </div>
       </div>
 
@@ -674,42 +685,36 @@
 
       // --- LÓGICA PARA COMPARTIR ---
       function shareValuation() {
+        const shareBtn = document.getElementById("shareBtn");
+        const copyMessage = document.getElementById("copyMessage");
         const url = "https://avaluo-casa-sotavento3.netlify.app/";
         const newText =
           "ESTUDIO DE MERCADO CASA 109 - SOTAVENTO III\n\n" +
           "🏡3 Pisos: 3 Habitaciones y 3 Baños.\n" +
           "🚗 Parqueadero: Descubierto y con matrícula independiente.\n" +
-          "📦 Espacios Adicionales: Bodega, zarzo y tanques de reserva de agua.\n" +
-          "📍 Ubicación Estratégica: Cerca a clínicas, comercio, colegios y transporte.\n" +
-          "🏋️ Amenidades del Conjunto:Gimnasio, salones sociales, BBQ y zonas verdes.\n" +
-          "📄 Documentación al día: Libre de hipotecas y lista para escrituración.\n" +
-          "🍽️ Comodidades: Cocina integral con patio y calentador a gas.\n\n" +
+          "📦 Espacios Adicionales: Bodega, zarzo y tanques de reserva.\n" +
+          "📍 Ubicación Estratégica: Cerca a clínicas, comercio y colegios.\n" +
+          "🏋️ Amenidades: Gimnasio, salones sociales, BBQ y zonas verdes.\n" +
+          "📄 Documentación al día: Libre de hipotecas y lista para escrituras.\n" +
+          "️ Comodidades: Cocina integral con patio y calentador a gas.\n\n" +
           "Para ver el precio sugerido ingresa al enlace: " +
           url;
 
-        const shareData = {
-          title: "ESTUDIO DE MERCADO CASA 109 - SOTAVENTO III",
-          text: newText,
-          url: url,
-        };
-
-        // 1. Copiar al portapapeles
-        navigator.clipboard.writeText(url).then(
+        // Copiar el texto completo al portapapeles
+        navigator.clipboard.writeText(newText).then(
           () => {
-            alert("¡Enlace copiado!"); // Notificación visual
+            copyMessage.style.opacity = "1";
+            shareBtn.textContent = "✅ ¡Copiado!";
+
+            setTimeout(() => {
+              copyMessage.style.opacity = "0";
+              shareBtn.textContent = "Compartir Ahora";
+            }, 3000);
           },
           () => {
-            console.error("Error al copiar el enlace.");
+            alert("Error al copiar. Por favor, copia el texto manualmente.");
           }
         );
-
-        // 2. Intentar usar la API de compartir nativa
-        if (navigator.canShare && navigator.canShare(shareData)) {
-          navigator.share(shareData).catch((error) => {
-            if (error.name !== "AbortError")
-              console.error("Error al compartir:", error);
-          });
-        }
       }
 
       // --- ANIMACIÓN DE SCROLL CON INTERSECTION OBSERVER ---
