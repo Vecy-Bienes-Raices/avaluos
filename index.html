@@ -11,7 +11,14 @@
       property="og:description"
       content="¡Oportunidad en Sotavento! Casa de 3 pisos, 3 hab, 3 baños y parqueadero independiente. Cerca de clínicas, parques y comercio. ¡Descubre su valor comercial aquí!"
     />
-    <meta property="og:image" content="public/1.jpeg" />
+    <meta
+      property="og:image"
+      content="https://vecy-bienes-raices.github.io/avaluos/public/1.jpeg"
+    />
+    <meta
+      property="og:url"
+      content="https://vecy-bienes-raices.github.io/avaluos/"
+    />
     <meta property="og:type" content="website" />
     <!-- Fin de Meta Tags -->
 
@@ -31,20 +38,44 @@
 
       body {
         margin: 0;
-        padding: 40px;
+        padding: 40px 15px; /* Ajuste de padding para móviles */
         font-family: "Lato", sans-serif;
-        background: radial-gradient(
-          circle at center,
-          var(--bg-center) 0%,
-          var(--bg-edge) 100%
-        );
+        background-color: #1a0f0b; /* Fondo base oscuro */
         color: white;
         min-height: 100vh;
+        overflow-x: hidden; /* Prevenir scroll horizontal por las animaciones */
       }
 
+      /* --- FONDO DE AURORA ANIMADO --- */
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 80vmax;
+        height: 80vmax;
+        border-radius: 50%;
+        filter: blur(100px);
+        z-index: -1;
+        will-change: transform;
+      }
+
+      body::before {
+        background: rgba(212, 175, 55, 0.15); /* Tono dorado */
+        animation: move-aurora1 25s infinite linear alternate;
+      }
+
+      body::after {
+        background: rgba(93, 64, 55, 0.2); /* Tono café */
+        animation: move-aurora2 30s infinite linear alternate;
+      }
+
+      /* --- PERSPECTIVA 3D PARA EL CONTENEDOR --- */
       .container {
         max-width: 1000px;
         margin: 0 auto;
+        perspective: 1500px; /* Habilita el espacio 3D para elementos hijos */
       }
 
       /* --- HEADER --- */
@@ -57,9 +88,15 @@
         margin-bottom: 40px;
       }
 
+      .header-title {
+        text-align: right;
+      }
+
       .logo img {
         height: 90px;
-        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+        /* Sombra más pronunciada para el logo */
+        filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+        animation: logo-glow 4s ease-in-out infinite;
       }
 
       h1 {
@@ -67,20 +104,75 @@
         color: var(--gold);
         margin: 0;
         font-size: 2.2rem;
+        /* Efecto de sombra para dar profundidad y brillo */
+        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.6),
+          0 0 30px rgba(212, 175, 55, 0.6);
+      }
+
+      /* --- ANIMACIONES --- */
+      @keyframes logo-glow {
+        0%,
+        100% {
+          filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+        }
+        50% {
+          filter: drop-shadow(0 8px 25px rgba(212, 175, 55, 0.7));
+        }
+      }
+
+      @keyframes move-aurora1 {
+        from {
+          transform: translate(-50%, -50%) rotate(0deg) translateX(30%);
+        }
+        to {
+          transform: translate(-50%, -50%) rotate(360deg) translateX(30%);
+        }
+      }
+      @keyframes move-aurora2 {
+        from {
+          transform: translate(-50%, -50%) rotate(0deg) translateX(-30%);
+        }
+        to {
+          transform: translate(-50%, -50%) rotate(-360deg) translateX(-30%);
+        }
       }
 
       /* --- CARDS VIDRIO MARTILLADO --- */
       .glass-card {
-        background: var(--card-bg);
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.6);
+        background: rgba(
+          255,
+          255,
+          255,
+          0.65
+        ); /* Blanco glaseado para legibilidad */
+        backdrop-filter: blur(25px); /* Más blur para un efecto más suave */
+        border: 1px solid rgba(255, 255, 255, 0.2); /* Borde más claro */
         border-radius: 15px;
         padding: 30px;
         margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-        color: var(--text-dark);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); /* Sombra más sutil */
+        color: #3e2723; /* Texto oscuro para contraste sobre fondo claro */
         position: relative;
         overflow: hidden;
+        transition: transform 0.4s ease, box-shadow 0.4s ease; /* Transición suave para el hover */
+
+        /* Estilo inicial para la animación de scroll */
+        opacity: 0;
+        transform: translateY(40px) scale(0.98);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+      .glass-card.is-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      /* Efecto 3D al pasar el cursor */
+      .glass-card:hover {
+        transform: translateY(-8px) scale(1.01);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+      }
+      .glass-card:not(:hover) {
+        transition: transform 0.6s ease, box-shadow 0.6s ease; /* Transición más lenta al volver */
       }
 
       /* Efecto Martillado */
@@ -89,13 +181,13 @@
         position: absolute;
         inset: 0;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-        opacity: 0.08;
+        opacity: 0.04; /* Ruido más sutil */
         pointer-events: none;
       }
 
       .glass-card h2 {
         font-family: "Cinzel", serif;
-        color: #3e2723;
+        color: #3e2723; /* Asegura que el título también sea oscuro */
         border-bottom: 2px solid var(--gold);
         padding-bottom: 10px;
         margin-top: 0;
@@ -146,6 +238,11 @@
         cursor: pointer;
         font-size: 1.5rem;
         font-weight: bold;
+        transition: background 0.3s ease;
+      }
+
+      .slider-button:hover {
+        background: rgba(0, 0, 0, 0.8);
       }
 
       /* --- LISTA DE CARACTERÍSTICAS --- */
@@ -158,7 +255,7 @@
         gap: 15px;
       }
       .features-list li {
-        background: rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.6); /* Fondo de item más opaco */
         padding: 12px;
         border-radius: 8px;
         display: flex;
@@ -175,7 +272,7 @@
       }
 
       .comp-item {
-        background: rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.7); /* Fondo de item más opaco */
         padding: 15px;
         border-radius: 8px;
         font-size: 0.9rem;
@@ -189,6 +286,12 @@
       .comp-detail {
         font-size: 0.8rem;
         color: #555;
+      }
+
+      /* --- CONTENEDORES FLEXIBLES --- */
+      .flex-container {
+        display: flex;
+        gap: 20px;
       }
 
       /* --- TABLA FINAL --- */
@@ -250,6 +353,53 @@
           background: white;
         }
       }
+
+      /* --- MEDIA QUERIES PARA RESPONSIVE DESIGN --- */
+      @media (max-width: 768px) {
+        body {
+          padding: 20px 15px; /* Menos padding en tablets y móviles */
+        }
+        header {
+          flex-direction: column;
+          gap: 15px;
+          text-align: center;
+        }
+        .header-title {
+          text-align: center;
+        }
+        .slider-container {
+          max-width: 95%; /* Slider ocupa casi todo el ancho en móviles */
+        }
+        .slider-button {
+          padding: 8px 13px;
+          font-size: 1.2rem;
+        }
+        .comparables-grid {
+          grid-template-columns: 1fr; /* Una columna en móviles */
+        }
+        .flex-container {
+          flex-direction: column; /* Apila los elementos verticalmente */
+        }
+        .price-summary-item {
+          border-right: none !important; /* Elimina borde derecho en móviles */
+          padding-bottom: 15px;
+        }
+        /* --- TABLA RESPONSIVA --- */
+        .valuation-table,
+        .valuation-table tbody,
+        .valuation-table tr,
+        .valuation-table td {
+          display: block;
+        }
+        .valuation-table tr {
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 10px;
+          margin-bottom: 10px;
+        }
+        .valuation-table td {
+          text-align: center !important;
+        }
+      }
     </style>
   </head>
   <body>
@@ -258,7 +408,7 @@
         <div class="logo">
           <img src="public/logo-vecy.png" alt="Vecy Logo" />
         </div>
-        <div style="text-align: right">
+        <div class="header-title">
           <h1>ESTUDIO DE MERCADO</h1>
           <div style="color: var(--gold); letter-spacing: 2px">
             CASA 109 - SOTAVENTO III
@@ -388,7 +538,7 @@
       <!-- 2. GRÁFICAS ESTADÍSTICAS -->
       <div class="glass-card">
         <h2>2. Estadísticas Visuales</h2>
-        <div style="display: flex; gap: 20px">
+        <div class="flex-container">
           <div style="flex: 1">
             <h3 style="font-size: 1rem; text-align: center">
               Posición de Precio vs Competencia
@@ -454,20 +604,19 @@
         </table>
 
         <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            text-align: center;
-          "
+          class="flex-container"
+          style="margin-top: 20px; text-align: center"
         >
-          <div style="flex: 1; border-right: 1px solid #ccc">
+          <div
+            class="price-summary-item"
+            style="flex: 1; border-right: 1px solid #ccc"
+          >
             <div style="font-size: 0.8rem; color: #555">
               Precio Mínimo (Oportunidad)
             </div>
             <div style="font-weight: bold; font-size: 1.2rem">$360.000.000</div>
           </div>
-          <div style="flex: 1">
+          <div class="price-summary-item" style="flex: 1">
             <div style="font-size: 0.8rem; color: #555">
               Precio de Lista (Publicación)
             </div>
@@ -567,6 +716,23 @@
           );
         }
       }
+
+      // --- ANIMACIÓN DE SCROLL CON INTERSECTION OBSERVER ---
+      const cards = document.querySelectorAll(".glass-card");
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target); // Opcional: deja de observar una vez que es visible
+            }
+          });
+        },
+        { threshold: 0.1 } // La animación se dispara cuando el 10% de la tarjeta es visible
+      );
+
+      cards.forEach((card) => observer.observe(card));
 
       // Configuración de Gráficas
 
