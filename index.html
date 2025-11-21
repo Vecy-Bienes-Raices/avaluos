@@ -13,7 +13,7 @@
     />
     <meta
       property="og:image"
-      content="https://vecy-bienes-raices.github.io/avaluos/public/17.jpeg"
+      content="https://vecy-bienes-raices.github.io/avaluos/public/17.jpeg?v=3"
     />
     <meta
       property="og:url"
@@ -40,35 +40,15 @@
         margin: 0;
         padding: 40px 15px; /* Ajuste de padding para móviles */
         font-family: "Lato", sans-serif;
-        background-color: #1a0f0b; /* Fondo base oscuro */
+        /* Fondo de gradiente estático, mucho más ligero que la animación */
+        background: radial-gradient(
+          circle at center,
+          var(--bg-center) 0%,
+          var(--bg-edge) 100%
+        );
         color: white;
         min-height: 100vh;
         overflow-x: hidden; /* Prevenir scroll horizontal por las animaciones */
-      }
-
-      /* --- FONDO DE AURORA ANIMADO --- */
-      body::before,
-      body::after {
-        content: "";
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        width: 80vmax;
-        height: 80vmax;
-        border-radius: 50%;
-        filter: blur(100px);
-        z-index: -1;
-        will-change: transform;
-      }
-
-      body::before {
-        background: rgba(212, 175, 55, 0.15); /* Tono dorado */
-        animation: move-aurora1 25s infinite linear alternate;
-      }
-
-      body::after {
-        background: rgba(93, 64, 55, 0.2); /* Tono café */
-        animation: move-aurora2 30s infinite linear alternate;
       }
 
       /* --- PERSPECTIVA 3D PARA EL CONTENEDOR --- */
@@ -116,24 +96,7 @@
           filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
         }
         50% {
-          filter: drop-shadow(0 8px 25px rgba(212, 175, 55, 0.7));
-        }
-      }
-
-      @keyframes move-aurora1 {
-        from {
-          transform: translate(-50%, -50%) rotate(0deg) translateX(30%);
-        }
-        to {
-          transform: translate(-50%, -50%) rotate(360deg) translateX(30%);
-        }
-      }
-      @keyframes move-aurora2 {
-        from {
-          transform: translate(-50%, -50%) rotate(0deg) translateX(-30%);
-        }
-        to {
-          transform: translate(-50%, -50%) rotate(-360deg) translateX(-30%);
+          filter: drop-shadow(0 6px 20px rgba(212, 175, 55, 0.6));
         }
       }
 
@@ -429,21 +392,25 @@
           <div class="slider-wrapper">
             <img
               src="public/1.jpeg"
+              loading="lazy"
               alt="Foto 1 de la propiedad"
               class="slider-image active"
             />
             <img
               src="public/2.jpeg"
+              loading="lazy"
               alt="Foto 2 de la propiedad"
               class="slider-image"
             />
             <img
               src="public/3.jpeg"
+              loading="lazy"
               alt="Foto 3 de la propiedad"
               class="slider-image"
             />
             <img
               src="public/4.jpeg"
+              loading="lazy"
               alt="Foto 4 de la propiedad"
               class="slider-image"
             />
@@ -732,104 +699,14 @@
       }
 
       // --- ANIMACIÓN DE SCROLL CON INTERSECTION OBSERVER ---
-      const cards = document.querySelectorAll(".glass-card");
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("is-visible");
-              observer.unobserve(entry.target); // Opcional: deja de observar una vez que es visible
-            }
-          });
-        },
-        { threshold: 0.1 } // La animación se dispara cuando el 10% de la tarjeta es visible
-      );
-
-      cards.forEach((card) => observer.observe(card));
-
-      // --- LÓGICA DE GRÁFICAS ---
-      // Esta función se llamará cuando la tarjeta de gráficas sea visible
-      function createCharts() {
-        // 1. Gráfica de Precios Totales
-        const ctxPrice = document.getElementById("priceChart").getContext("2d");
-        new Chart(ctxPrice, {
-          type: "bar",
-          data: {
-            labels: ["Minimo Sector", "Promedio", "TU CASA", "Techo Máximo"],
-            datasets: [
-              {
-                label: "Millones de Pesos",
-                data: [325, 350, 370, 385],
-                backgroundColor: [
-                  "rgba(255, 159, 64, 0.7)", // Naranja
-                  "rgba(54, 162, 235, 0.7)", // Azul
-                  "rgba(16, 185, 129, 0.9)", // Verde Esmeralda (Tu casa)
-                  "rgba(255, 99, 132, 0.7)", // Rojo
-                ],
-                borderColor: [
-                  "rgba(255, 159, 64, 1)",
-                  "rgba(54, 162, 235, 1)",
-                  "rgba(16, 185, 129, 1)",
-                  "rgba(255, 99, 132, 1)",
-                ],
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: false, min: 300 } },
-          },
-        });
-
-        // 2. Gráfica de Valor m2
-        const ctxM2 = document.getElementById("m2Chart").getContext("2d");
-        new Chart(ctxM2, {
-          type: "doughnut",
-          data: {
-            labels: ["Valor Promedio m²", "Valor Agregado (Acabados)"],
-            datasets: [
-              {
-                data: [4.8, 0.4], // 4.8M base + 0.4M agregado = 5.2M aprox
-                backgroundColor: [
-                  "rgba(54, 162, 235, 0.8)", // Azul
-                  "rgba(255, 206, 86, 0.8)", // Dorado
-                ],
-                hoverOffset: 4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              title: { display: true, text: "Composición del Valor" },
-            },
-          },
-        });
-      }
-
-      // Modificamos el observer para que cree las gráficas cuando sea necesario
-      const chartCard = document.getElementById("chart-card");
-      let chartsCreated = false;
-
-      const fullObserver = new IntersectionObserver(
+      const animationObserver = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               // Animación de entrada para todas las tarjetas
               entry.target.classList.add("is-visible");
 
-              // Si la tarjeta visible es la de las gráficas y no se han creado aún
-              if (entry.target.id === "chart-card" && !chartsCreated) {
-                createCharts();
-                chartsCreated = true; // Marcamos como creadas para no repetir
-              }
-
-              fullObserver.unobserve(entry.target); // Dejar de observar una vez que es visible
+              animationObserver.unobserve(entry.target); // Dejar de observar una vez que es visible
             }
           });
         },
@@ -838,7 +715,68 @@
 
       document
         .querySelectorAll(".glass-card")
-        .forEach((card) => fullObserver.observe(card));
+        .forEach((card) => animationObserver.observe(card));
+
+      // --- LÓGICA DE GRÁFICAS (CARGA INMEDIATA) ---
+      // 1. Gráfica de Precios Totales
+      const ctxPrice = document.getElementById("priceChart").getContext("2d");
+      new Chart(ctxPrice, {
+        type: "bar",
+        data: {
+          labels: ["Minimo Sector", "Promedio", "TU CASA", "Techo Máximo"],
+          datasets: [
+            {
+              label: "Millones de Pesos",
+              data: [325, 350, 370, 385],
+              backgroundColor: [
+                "rgba(255, 159, 64, 0.7)", // Naranja
+                "rgba(54, 162, 235, 0.7)", // Azul
+                "rgba(16, 185, 129, 0.9)", // Verde Esmeralda (Tu casa)
+                "rgba(255, 99, 132, 0.7)", // Rojo
+              ],
+              borderColor: [
+                "rgba(255, 159, 64, 1)",
+                "rgba(54, 162, 235, 1)",
+                "rgba(16, 185, 129, 1)",
+                "rgba(255, 99, 132, 1)",
+              ],
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: false, min: 300 } },
+        },
+      });
+
+      // 2. Gráfica de Valor m2
+      const ctxM2 = document.getElementById("m2Chart").getContext("2d");
+      new Chart(ctxM2, {
+        type: "doughnut",
+        data: {
+          labels: ["Valor Promedio m²", "Valor Agregado (Acabados)"],
+          datasets: [
+            {
+              data: [4.8, 0.4], // 4.8M base + 0.4M agregado = 5.2M aprox
+              backgroundColor: [
+                "rgba(54, 162, 235, 0.8)", // Azul
+                "rgba(255, 206, 86, 0.8)", // Dorado
+              ],
+              hoverOffset: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: "Composición del Valor" },
+          },
+        },
+      });
     </script>
   </body>
 </html>
