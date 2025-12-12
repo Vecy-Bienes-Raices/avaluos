@@ -110,20 +110,64 @@ const NegotiationSimulator = () => {
                             <span className="text-amber-400">Lista $375M</span>
                         </div>
 
-                        <input
-                            type="range"
-                            id="priceSlider"
-                            min={minPrice}
-                            max={listPrice}
-                            step="1000000"
-                            value={price}
-                            onChange={(e) => setPrice(parseInt(e.target.value))}
-                            className="mb-2 w-full h-3 bg-slate-700/50 rounded-lg appearance-none cursor-pointer"
-                        />
+                        {/* Custom Slider Style */}
+                        <style>
+                            {`
+                                input[type=range]::-webkit-slider-thumb {
+                                    -webkit-appearance: none;
+                                    height: 24px;
+                                    width: 24px;
+                                    border-radius: 50%;
+                                    background: #D4AF37; /* Gold */
+                                    cursor: pointer;
+                                    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+                                    margin-top: -8px;
+                                }
+                                input[type=range]::-moz-range-thumb {
+                                    height: 24px;
+                                    width: 24px;
+                                    border-radius: 50%;
+                                    background: #D4AF37;
+                                    cursor: pointer;
+                                    border: none;
+                                    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+                                }
+                                input[type=range]::-webkit-slider-runnable-track {
+                                    width: 100%;
+                                    height: 8px;
+                                    cursor: pointer;
+                                    background: rgba(255,255,255,0.1);
+                                    border-radius: 5px;
+                                }
+                            `}
+                        </style>
+
+                        <div className="relative group mt-6">
+                            <input
+                                type="range"
+                                id="priceSlider"
+                                min={minPrice}
+                                max={listPrice}
+                                step="1000000"
+                                value={price}
+                                onChange={(e) => setPrice(parseInt(e.target.value))}
+                                className="mb-2 w-full bg-transparent appearance-none cursor-pointer relative z-10"
+                            />
+                            {/* Pulse Hint Animation - Centered above thumb */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-10 animate-bounce text-gold-400 text-xs font-bold flex items-center gap-1 pointer-events-none opacity-90 z-20">
+                                <span className="bg-brand-accent text-slate-900 px-3 py-1 rounded-full text-[0.6rem] uppercase tracking-wider shadow-lg border border-white/20">
+                                    <FontAwesomeIcon icon={faHandHoldingDollar} className="mr-1" />
+                                    ¡Desliza!
+                                </span>
+                            </div>
+                        </div>
 
                         <div className="flex justify-between text-[0.55rem] uppercase font-bold text-slate-300 mt-2 px-1 gap-1 text-shadow-black">
                             <span className="text-red-400">Oferta Baja</span>
-                            <span className="text-amber-400">Negociable</span>
+                            <span className="text-amber-400 flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
+                                Negociable
+                            </span>
                             <span className="text-emerald-400">Zona Segura</span>
                         </div>
                     </div>
