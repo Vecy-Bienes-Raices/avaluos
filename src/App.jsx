@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import Navbar from './components/VecyPhoenix/Navbar';
 import Hero from './components/VecyPhoenix/Hero';
 import PropertyDetails from './components/VecyPhoenix/PropertyDetails';
@@ -6,6 +6,9 @@ import MarketAnalysis from './components/VecyPhoenix/MarketAnalysis';
 import NegotiationSimulator from './components/VecyPhoenix/NegotiationSimulator';
 import SWOT from './components/VecyPhoenix/SWOT';
 import Footer from './components/VecyPhoenix/Footer';
+
+// Lazy Load Map
+const LocationMap = lazy(() => import('./components/VecyPhoenix/LocationMap'));
 
 function App() {
     return (
@@ -31,6 +34,9 @@ function App() {
                 <MarketAnalysis />
                 <NegotiationSimulator />
                 <SWOT />
+                <Suspense fallback={<div className="h-96 w-full glass-panel flex items-center justify-center text-stone-500 animate-pulse">Cargando Mapa...</div>}>
+                    <LocationMap />
+                </Suspense>
             </main>
 
             <Footer />
