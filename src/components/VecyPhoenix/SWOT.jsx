@@ -32,7 +32,7 @@ const SWOT = () => {
                         Debilidades (Objeciones)
                     </h4>
                     <ul className="text-sm text-stone-300 text-shadow-black space-y-3">
-                        <li className="flex items-start"><span className="mr-2 text-red-400 text-shadow-volcanic">•</span> Escalera tipo caracol (Puede dificultar acceso de muebles grandes).</li>
+                        <li className="flex items-start"><span className="mr-2 text-red-400 text-shadow-volcanic">•</span> Requiere mantenimiento de pintura locativa en áreas generales.</li>
                         <li className="flex items-start"><span className="mr-2 text-red-400 text-shadow-volcanic">•</span> Baño auxiliar con acabados estándar (Originales).</li>
                     </ul>
                 </div>
