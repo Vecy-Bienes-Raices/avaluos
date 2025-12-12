@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        /* Coffee Gradient: Light Coffee to Darkest Coffee (Radial) */
+        @apply bg-[#423229] text-stone-200 font-sans antialiased min-h-screen;
+        background-image: radial-gradient(circle at center, #7D6B65 0%, #4E3D32 40%, #423229 100%);
+        background-attachment: fixed;
+    }
+}
+
+@layer components {
+
+    /* White Glass Panel (Semi-Transparent White) */
+    .glass-panel {
+        @apply bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] text-stone-800 shadow-2xl;
+        /* Shadow for text on light backgrounds if needed */
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Inner Glass Cards */
+    .glass-inner {
+        @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-lg;
+    }
+
+    /* Volcanic Text Shadow (3D Effect) */
+    .text-shadow-volcanic {
+        text-shadow: 2px 2px 4px rgba(28, 25, 23, 0.9), 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Black Text Shadow (For light text 3D effect) */
+    .text-shadow-black {
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Dark Glass Panel (For contrast sections if needed) */
+    .glass-panel-dark {
+        @apply bg-brand-coffee-darkest/10 backdrop-blur-xl border border-white/5 rounded-[2rem] text-stone-200 shadow-2xl;
+    }
+
+    /* IOS Style Buttons */
+    .btn-ios {
+        @apply px-6 py-3 rounded-full font-bold transition-all transform active:scale-95 shadow-lg;
+    }
+
+    /* Gold Button (Primary Interaction) */
+    .btn-gold {
+        @apply btn-ios bg-brand-gold text-white border border-brand-gold/50;
+
+        /* Hover Electric Gold */
+        &:hover {
+            box-shadow: 0 0 15px #FFD700, 0 0 30px #CCAC4E;
+            background-color: #EAC968;
+            border-color: #FFF;
+        }
+    }
+
+    /* Emerald Button (Confirm actions) */
+    .btn-emerald {
+        @apply btn-ios text-white;
+        background: linear-gradient(135deg, #0DBB83 0%, #098A60 100%);
+
+        &:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 4px 15px rgba(13, 187, 131, 0.4);
+        }
+    }
+
+    /* Red Button (Cancel actions) */
+    .btn-red {
+        @apply btn-ios text-white;
+        background: linear-gradient(135deg, #E32527 0%, #B01214 100%);
+
+        &:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 4px 15px rgba(227, 37, 39, 0.4);
+        }
+    }
+
+
+    /* Range Slider Styling (iOS Style) */
+    input[type=range] {
+        -webkit-appearance: none;
+        @apply w-full bg-transparent;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        @apply h-7 w-7 rounded-full bg-white border border-stone-200 cursor-pointer -mt-2 transition-transform hover:scale-110;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    input[type=range]::-webkit-slider-runnable-track {
+        @apply w-full h-3 bg-white/50 backdrop-blur-sm rounded-full cursor-pointer border border-white/60;
+    }
+}
