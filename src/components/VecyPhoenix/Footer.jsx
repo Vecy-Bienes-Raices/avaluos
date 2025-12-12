@@ -36,15 +36,15 @@ const Footer = () => {
                         href={whatsappUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-green-400/30 px-4 py-2 rounded-full transition-all duration-300 hover:shadow-[0_0_15px_rgba(74,222,128,0.2)]"
+                        className="group flex items-center gap-3 bg-green-500/10 hover:bg-green-500/20 border border-white/5 hover:border-green-400/30 px-4 py-2 rounded-full transition-all duration-300 hover:shadow-[0_0_15px_rgba(74,222,128,0.2)]"
                     >
                         <div className="bg-green-500/10 p-1.5 rounded-full group-hover:bg-green-500/20 transition-colors">
                             <FontAwesomeIcon icon={faWhatsapp} className="text-[#00ff22] text-xl md:text-2xl drop-shadow-[0_0_5px_rgba(0,255,34,0.6)]" />
                         </div>
                         <div className="text-left leading-none">
                             <div className="text-[0.6rem] text-stone-400 uppercase tracking-wider font-bold mb-0.5 group-hover:text-stone-300 transition-colors">Contáctanos</div>
-                            <div className="text-[#00ff22] font-bold font-mono tracking-wide text-sm md:text-base group-hover:text-green-300 transition-colors text-shadow-black">
-                                +57 316 656 9719
+                            <div className="text-[#00ff22] font-bold font-mono tracking-wide text-xs md:text-sm group-hover:text-green-300 transition-colors text-shadow-black">
+                                +57 3166569719
                             </div>
                         </div>
                     </a>
