@@ -6,6 +6,7 @@ import MarketAnalysis from './components/VecyPhoenix/MarketAnalysis';
 import NegotiationSimulator from './components/VecyPhoenix/NegotiationSimulator';
 import SWOT from './components/VecyPhoenix/SWOT';
 import Footer from './components/VecyPhoenix/Footer';
+import FloatingConcierge from './components/VecyPhoenix/FloatingConcierge';
 
 // Lazy Load Map
 const LocationMap = lazy(() => import('./components/VecyPhoenix/LocationMap'));
@@ -40,6 +41,7 @@ function App() {
             </main>
 
             <Footer />
+            <FloatingConcierge />
         </div>
     )
 }
