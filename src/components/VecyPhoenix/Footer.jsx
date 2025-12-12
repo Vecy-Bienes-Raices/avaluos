@@ -3,8 +3,23 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 
 const Footer = () => {
-    const message = "👋 ¡Hola! Me gustaría que🫰evaluaran esta propiedad ... 🏠 . Mi nombre es ... 👤";
-    const whatsappUrl = `https://wa.me/573166569719?text=${encodeURIComponent(message)}`;
+    // Unicode Escape Sequences for Emojis to prevent encoding issues
+    // 👋 = \uD83D\uDC4B
+    // 🫶 = \uD83E\uDEF6 (Heart Hands) or 🫰 = \uD83E\uDEC0 (Hand Heart) - User had 🫰 in image? 
+    // Wait, previous code had "🫰" (snap) or "🫶" (heart hands)? Original code showed: "👋 ¡Hola! Me gustaría que🫰evaluaran..."
+    // Let's use standard ones:
+    // 👋 = \uD83D\uDC4B
+    // 🏠 = \uD83C\uDFE0
+    // 👤 = \uD83D\uDC64
+    // 🫰 = \uD83E\uDEC0 (Hand with Index Finger and Thumb Crossed) if that was the intent.
+    // Let's stick to safe ones or proper escapes.
+    // The user had: "👋 ¡Hola! Me gustaría que🫰evaluaran esta propiedad ... 🏠 . Mi nombre es ... 👤"
+
+    // JS String with Unicode Escapes:
+    // Pre-encoded message to bypass ANY encoding issues
+    // "👋 ¡Hola! Me gustaría que 🫰 evaluaran esta propiedad ... 🏠 . Mi nombre es ... 👤"
+    // Using %F0%9F%AB%B0 for 'Hand with Index Finger and Thumb Crossed' (Money/Love Snap)
+    const whatsappUrl = "https://wa.me/573166569719?text=%F0%9F%91%8B%20%C2%A1Hola!%20Me%20gustar%C3%ADa%20que%20%F0%9F%AB%B0%20evaluaran%20esta%20propiedad%20...%20%F0%9F%8F%A0%20.%20Mi%20nombre%20es%20...%20%F0%9F%91%A4";
 
     return (
         <footer className="mt-12 px-4 pb-8">

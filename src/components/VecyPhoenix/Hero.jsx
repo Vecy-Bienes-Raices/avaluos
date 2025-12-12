@@ -13,8 +13,11 @@ const Hero = () => {
 
 
                 <div className="relative z-10">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-stone-100 text-shadow-black uppercase bg-white/5 backdrop-blur-md rounded-full border border-white/10 shadow-inner">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]"></div>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 text-xs font-bold tracking-widest text-stone-100 text-shadow-black uppercase bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-lg">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff22] opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ff22] shadow-[0_0_8px_#00ff22]"></span>
+                        </span>
                         Concepto Técnico de Valoración
                     </div>
 
