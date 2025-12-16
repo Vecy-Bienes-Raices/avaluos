@@ -1,7 +1,9 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import JanIAAgent from './pages/JanIAAgent';
+import AvaluoPortales from './pages/AvaluoPortales';
+const JanIAAgent = lazy(() => import('./pages/JanIAAgent'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsAndConditions = lazy(() => import('./pages/Terms'));
 
 // Simple loading spinner for route transitions
 const LoadingSpinner = () => (
@@ -15,11 +17,15 @@ function App() {
         <Router>
             <Suspense fallback={<LoadingSpinner />}>
                 <Routes>
-                    {/* Main Landing Page (Report) */}
-                    <Route path="/" element={<Home />} />
+                    {/* Main Landing Page (JanIA Agent) */}
+                    <Route path="/" element={<JanIAAgent />} />
 
-                    {/* JanIA AI Agent Interface */}
-                    <Route path="/jania-agent" element={<JanIAAgent />} />
+                    {/* Report Page */}
+                    <Route path="/avaluo/portales" element={<AvaluoPortales />} />
+
+                    {/* Legal Pages */}
+                    <Route path="/privacidad" element={<PrivacyPolicy />} />
+                    <Route path="/terminos" element={<TermsAndConditions />} />
                 </Routes>
             </Suspense>
         </Router>

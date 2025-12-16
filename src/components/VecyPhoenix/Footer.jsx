@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 
@@ -65,6 +66,17 @@ const Footer = () => {
                     </a>
                 </div>
 
+            </div>
+
+            {/* Legal & Copyright Row */}
+            <div className="max-w-6xl mx-auto mt-6 px-6 md:px-12 flex flex-col md:flex-row justify-between items-center text-[0.65rem] text-stone-600 gap-2">
+                <div className="flex gap-4">
+                    <Link to="/privacidad" className="hover:text-brand-accent transition-colors">Política de Privacidad</Link>
+                    <Link to="/terminos" className="hover:text-brand-accent transition-colors">Términos y Condiciones</Link>
+                </div>
+                <div className="font-mono opacity-80">
+                    © 2025 Vecy Avalúos S.A.S.
+                </div>
             </div>
         </footer>
     );

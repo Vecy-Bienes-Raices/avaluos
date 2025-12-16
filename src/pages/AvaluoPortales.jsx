@@ -11,7 +11,7 @@ import FloatingConcierge from '../components/VecyPhoenix/FloatingConcierge';
 // Lazy Load Map
 const LocationMap = lazy(() => import('../components/VecyPhoenix/LocationMap'));
 
-const Home = () => {
+const AvaluoPortales = () => {
     return (
         <div className="text-slate-800 font-sans antialiased min-h-screen">
             <Navbar />
@@ -46,4 +46,4 @@ const Home = () => {
     );
 };
 
-export default Home;
+export default AvaluoPortales;

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faCheckCircle, faChartLine } from '@fortawesome/free-solid-svg-icons';
 
@@ -43,6 +44,17 @@ const Hero = () => {
                             </span>
                         </div>
                     </div>
+                </div>
+
+                {/* JanIA CTA Button */}
+                <div className="mt-8 relative z-20">
+                    <Link to="/" className="inline-flex items-center gap-3 px-8 py-4 bg-brand-accent text-black font-bold text-lg rounded-full shadow-[0_0_20px_rgba(217,119,6,0.4)] hover:shadow-[0_0_30px_rgba(217,119,6,0.6)] hover:scale-105 transition-all duration-300 group font-outfit">
+                        <span>Hablar con JanIA</span>
+                        <span className="bg-black/10 p-1 rounded-full group-hover:translate-x-1 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                        </span>
+                    </Link>
+                    <p className="mt-2 text-xs text-stone-400 font-light tracking-wide">Asistente IA disponible 24/7</p>
                 </div>
             </div>
         </header>
