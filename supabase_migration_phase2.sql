@@ -10,7 +10,7 @@ create table if not exists public.profiles (
     is_verified boolean default false,
     -- For Valuers (RAA Certification)
     avatar_url text,
-    created_at width_bucket timestamptz default now(),
+    created_at timestamptz default now(),
     updated_at timestamptz default now()
 );
 -- 2. Enable RLS (Row Level Security) on Profiles

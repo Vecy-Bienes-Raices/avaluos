@@ -12,7 +12,7 @@ const PrivacyPolicy = () => {
     const cardClass = theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white/10 border-white/20';
 
     return (
-        <div className={`min-h-screen font-sans selection:bg-brand-accent/30 selection:text-brand-accent transition-colors duration-500 ${bgClass}`}>
+        <div className={`min-h-screen flex flex-col font-sans selection:bg-brand-accent/30 selection:text-brand-accent transition-colors duration-500 ${bgClass}`}>
 
             {/* Background Ambience (Optional enhancement to body gradient) */}
             <div className={`fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 ${theme === 'dark' ? 'opacity-30' : 'opacity-100'}`}>
@@ -20,7 +20,7 @@ const PrivacyPolicy = () => {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px]"></div>
             </div>
 
-            <div className="relative z-10 max-w-4xl mx-auto px-6 py-12 md:py-20">
+            <div className="relative z-10 flex-grow max-w-4xl mx-auto px-6 py-12 md:py-20">
 
                 {/* Back Button */}
                 <Link to="/" className="inline-flex items-center gap-2 text-stone-400 hover:text-white mb-8 transition-colors">
@@ -89,10 +89,10 @@ const PrivacyPolicy = () => {
                         </section>
                     </div>
                 </div>
-
-                {/* Footer (Outside) */}
-                <Footer />
             </div>
+
+            {/* Footer (Outside content wrapper) */}
+            <Footer />
         </div>
     );
 };

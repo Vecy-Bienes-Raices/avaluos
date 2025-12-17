@@ -5,7 +5,7 @@ import { faGithub, faXTwitter, faFacebook, faInstagram, faLinkedin, faYoutube, f
 
 const Footer = () => {
     return (
-        <footer className="py-12 px-4 bg-transparent mt-12 border-t border-white/5">
+        <footer className="py-8 px-4 bg-transparent mt-8 border-t border-white/5">
             <div className="max-w-4xl mx-auto text-center">
 
                 {/* 1. Social Icons */}

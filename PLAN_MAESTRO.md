@@ -229,4 +229,27 @@ Guarda cada petición de avalúo que entra por el chat de JanIA.
 
 ---
 
+## 9. Refinamientos UI (Sesión Dic 2025)
+
+### A. JanIA Chat (`JanIAAgent.jsx`)
+
+* **Tema Global:** Selector Café/Oscuro funcional en sidebar.
+* **Greeting:** Avatar grande de JanIA (30vh), tarjetas de sugerencias horizontales con íconos circulares.
+* **Chat Avatar:** `perfil.png` (w-10 h-10) sin padding, ajustada al contenedor.
+* **Input Bar:** Clip 📎, Micrófono 🎙️ (w-6 h-6), Botón Enviar.
+* **Sin scroll en greeting:** `overflow-hidden` para pantalla inicial.
+
+### B. Footer Estandarizado (`Footer.jsx`)
+
+* **Padding:** `py-8 mt-8` consistente en todas las páginas.
+* **Posición:** Fuera de wrappers de contenido para evitar espacios extras.
+* **Páginas:** Privacidad, Términos, AvaluoPortales usan el mismo componente.
+
+### C. Autenticación Híbrida (Fase 2)
+
+* **AuthOptions.jsx:** Botones Google/Facebook/Correo embebidos en chat.
+* **Lógica:** Detección de "registrarme", URLs, y "subir fotos" para respuestas contextuales.
+
+---
+
 *Última actualización: Diciembre 2025 - Agente Gemini*
