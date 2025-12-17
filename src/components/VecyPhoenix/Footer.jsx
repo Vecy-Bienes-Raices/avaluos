@@ -24,7 +24,7 @@ const Footer = () => {
                             href={item.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-stone-500 hover:text-brand-accent transition-all duration-300 hover:scale-110"
+                            className="text-stone-400 hover:text-brand-accent transition-all duration-300 hover:scale-110"
                         >
                             <FontAwesomeIcon icon={item.icon} className="text-xl" />
                         </a>
@@ -32,14 +32,14 @@ const Footer = () => {
                 </div>
 
                 {/* 2. Copyright / Agent Info */}
-                <div className="mb-4 text-stone-400 font-medium text-sm tracking-wide">
+                <div className="mb-4 text-stone-300 font-medium text-sm tracking-wide">
                     Agente JanIA v2.0 © 2025 Vecy Avalúos
                 </div>
 
                 {/* 3. Legal Links */}
-                <div className="flex justify-center gap-6 text-xs text-stone-600 font-medium">
-                    <Link to="/privacidad" className="hover:text-stone-300 transition-colors">Política de Privacidad</Link>
-                    <Link to="/terminos" className="hover:text-stone-300 transition-colors">Términos y Condiciones</Link>
+                <div className="flex justify-center gap-6 text-xs text-stone-400 font-medium">
+                    <Link to="/privacidad" className="hover:text-brand-accent transition-colors">Política de Privacidad</Link>
+                    <Link to="/terminos" className="hover:text-brand-accent transition-colors">Términos y Condiciones</Link>
                 </div>
 
             </div>
