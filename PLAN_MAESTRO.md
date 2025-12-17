@@ -60,8 +60,8 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
 
 ## 3. Hoja de Ruta (Roadmap)
 
-1. **Fase 1 (Frontend & Legal):** UI "Premium Glass", JanIA Chat, Páginas Legales (Privacidad/Términos). **(ACTUAL)**
-2. **Fase 2 (Datos & IA):** Base de Datos (Supabase), Conexión a Google Vertex AI, RAG para investigación de precios.
+1. **Fase 1 (Frontend & Legal):** UI "Premium Glass", JanIA Chat, Páginas Legales (Privacidad/Términos). **(COMPLETADO)**
+2. **Fase 2 (Datos & IA):** Base de Datos (Supabase) **(EN PROCESO)**, Conexión a Google Vertex AI, RAG para investigación de precios.
 3. **Fase 3 (Avalúos Real):** Generación de PDFs, Panel de Avaluador, Firmas Digitales.
 4. **Fase 4 (Pagos):** Integración ePayco y pagos masivos semanales.
 
@@ -136,4 +136,26 @@ El proyecto está construido en **React + Vite**.
 * **Pagos:** ePayco.
 
 ---
+---
+
+## 8. Estructura de Base de Datos (Supabase)
+
+La "memoria" del proyecto. Todas las tablas deben usar `snake_case`.
+
+### Tabla: `solicitudes` (El corazón del negocio)
+
+Guarda cada petición de avalúo que entra por el chat de JanIA.
+
+* `id` (BigInt, PK): Identificador único.
+* `created_at` (Timestamp): Fecha de creación.
+* `cliente_nombre` (Text): Nombre del solicitante.
+* `direccion_inmueble` (Text): Ubicación exacta.
+* `tipo_inmueble` (Text): Casa, Apto, Bodega, etc.
+* `area_privada` (Numeric): Metraje en m2.
+* `estado` (Text): `pendiente`, `en_proceso`, `completado`.
+* `valor_estimado_ia` (Numeric): El pre-avalúo calculado por JanIA.
+* `valor_final_avaluador` (Numeric): El valor certificado por el humano.
+
+---
+
 *Última actualización: Diciembre 2025 - Agente Gemini*

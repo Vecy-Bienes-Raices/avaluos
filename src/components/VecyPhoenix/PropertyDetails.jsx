@@ -7,7 +7,7 @@ import { twMerge } from 'tailwind-merge';
 // Lazy Load Gallery
 const ImageGallery = lazy(() => import('./ImageGallery'));
 
-const PropertyDetails = () => {
+const PropertyDetails = ({ data }) => {
     const [activeTab, setActiveTab] = useState('physical');
 
     const TabButton = ({ id, label }) => (
@@ -44,10 +44,10 @@ const PropertyDetails = () => {
                     {/* Key Stats */}
                     <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-6 mb-2">
                         {[
-                            { icon: faRulerCombined, val: '72 m²', label: 'Construido' },
-                            { icon: faBed, val: '4', label: 'Habitaciones' },
-                            { icon: faBath, val: '2', label: 'Baños' },
-                            { icon: faCar, val: '1', label: 'Parqueadero' }
+                            { icon: faRulerCombined, val: `${data.area_privada} m²`, label: 'Construido' },
+                            { icon: faBed, val: data.habitaciones, label: 'Habitaciones' },
+                            { icon: faBath, val: data.banos, label: 'Baños' },
+                            { icon: faCar, val: data.parqueadero, label: 'Parqueadero' }
                         ].map((stat, i) => (
                             <div key={i} className="glass-panel bg-white/10 p-3 md:p-6 text-center transform hover:-translate-y-1 transition-transform duration-300">
                                 <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3 text-brand-accent text-shadow-volcanic shadow-inner">

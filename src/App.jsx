@@ -20,8 +20,8 @@ function App() {
                     {/* Main Landing Page (JanIA Agent) */}
                     <Route path="/" element={<JanIAAgent />} />
 
-                    {/* Report Page */}
-                    <Route path="/avaluo/portales" element={<AvaluoPortales />} />
+                    {/* Report Page (Dynamic: :id can be 'portales' or a DB ID) */}
+                    <Route path="/avaluo/:id" element={<AvaluoPortales />} />
 
                     {/* Legal Pages */}
                     <Route path="/privacidad" element={<PrivacyPolicy />} />

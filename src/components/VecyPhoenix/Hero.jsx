@@ -4,7 +4,12 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faCheckCircle, faChartLine } from '@fortawesome/free-solid-svg-icons';
 
-const Hero = () => {
+const Hero = ({ data }) => {
+    // Helper to format currency
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(price));
+    };
+
     return (
         <header id="hero" className="relative pt-8 pb-12 px-4">
             <div className="max-w-6xl mx-auto glass-panel bg-gradient-to-br from-white/10 via-white/5 to-transparent border-white/10 p-8 md:p-16 text-center relative overflow-hidden backdrop-blur-3xl shadow-2xl">
@@ -23,17 +28,17 @@ const Hero = () => {
                     </div>
 
                     <h1 className="text-3xl md:text-6xl font-extrabold mb-4 tracking-tight text-brand-accent text-shadow-volcanic drop-shadow-xl leading-tight">
-                        Casa Portales del Norte II
+                        {data.tipo_inmueble} {data.ciudad}
                     </h1>
 
                     <p className="text-stone-200 text-shadow-black text-lg md:text-xl mb-10 font-light flex items-center justify-center gap-2 opacity-90">
                         <FontAwesomeIcon icon={faLocationDot} className="text-brand-accent text-shadow-volcanic" />
-                        Carrera 65 # 167 - 18, Interior 6, Bogotá D.C.
+                        {data.direccion_inmueble}
                     </p>
 
                     <div className="glass-panel bg-gradient-to-br from-white/30 via-white/20 to-white/10 border-white/20 shadow-2xl max-w-2xl mx-auto p-8 backdrop-blur-2xl">
                         <p className="text-xs text-stone-900 font-bold uppercase tracking-[0.2em] mb-2">Precio Comercial Sugerido</p>
-                        <div className="text-3xl md:text-7xl font-bold text-brand-emerald text-shadow-volcanic mb-4 tracking-tighter" id="heroPrice"><span className="text-brand-accent">$</span>375.000.000</div>
+                        <div className="text-3xl md:text-7xl font-bold text-brand-emerald text-shadow-volcanic mb-4 tracking-tighter" id="heroPrice">{formatPrice(data.valor_final_avaluador)}</div>
 
                         <div className="flex flex-wrap justify-center gap-3">
                             <span className="bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-full border border-emerald-400 text-sm font-bold flex items-center backdrop-blur-sm shadow-[0_4px_15px_rgba(6,78,59,0.3)] hover:shadow-[0_6px_20px_rgba(6,78,59,0.4)] transition-all" style={{ textShadow: '1px 1px 3px rgba(6, 78, 59, 0.9)' }}>
