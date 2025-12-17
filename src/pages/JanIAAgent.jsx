@@ -1,30 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import AuthOptions from '../components/VecyPhoenix/AuthOptions'; // Import Auth Component
 
 const JanIAAgent = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const { theme, setTheme } = useTheme(); // Use global theme
+    const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
 
-    // Dynamic Background Classes based on Theme
-    const bgClass = theme === 'coffee'
-        ? 'bg-[#423229]'
-        : 'bg-[#0f0f0f]';
+    // Chat State
+    const [messages, setMessages] = useState([
+        { type: 'bot', text: 'Hola, soy JanIA. ¿Qué quieres valuar hoy?', component: 'greeting' }
+    ]);
+    const [inputValue, setInputValue] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const chatEndRef = useRef(null);
 
-    // Inline style for gradients
+    // Auto-scroll to bottom
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    // Themes
+    const bgClass = theme === 'coffee' ? 'bg-[#423229]' : 'bg-[#0f0f0f]';
     const bgStyle = theme === 'coffee'
         ? { backgroundImage: 'radial-gradient(circle at center, #7D6B65 0%, #4E3D32 40%, #423229 100%)' }
         : { background: '#0f0f0f' };
+
+    // Function to handle sending messages
+    const handleSendMessage = async (text) => {
+        if (!text.trim()) return;
+
+        // 1. Add User Message
+        const newMessages = [...messages, { type: 'user', text }];
+        setMessages(newMessages);
+        setInputValue('');
+        setIsTyping(true);
+
+        // 2. Simulate BI / Logic Response (Delay)
+        setTimeout(() => {
+            let botResponse = { type: 'bot', text: '' };
+
+            // Logic: URL Detection
+            if (text.includes('http') || text.includes('www.')) {
+                botResponse.text = "¡Entendido! He detectado un enlace. 🌐 Voy a ingresar a analizar la ficha técnica y extraer los datos del inmueble. Dame un momento...";
+            }
+            // Logic: Uploads / Clip
+            else if (text.toLowerCase().includes('subir') || text.toLowerCase().includes('adjuntar') || text.toLowerCase().includes('foto') || text.toLowerCase().includes('pdf')) {
+                botResponse.text = "Para analizar documentos (Escrituras, Predial) o fotos, por favor usa el ícono del clip 📎 que está en la barra de escritura. Yo los leeré automáticamente.";
+            }
+            // Logic: Register / Auth Trigger
+            else if (text.toLowerCase().includes('guardar') || text.toLowerCase().includes('registrar') || text.toLowerCase().includes('cuenta')) {
+                botResponse.text = "Para guardar tu progreso y asignarte un experto, necesito que te identifiques. ¿Cómo prefieres conectarte?";
+                botResponse.component = 'auth';
+            }
+            // Logic: Acabados (Context)
+            else if (text.toLowerCase().includes('acabados') || text.toLowerCase().includes('piso') || text.toLowerCase().includes('cocina')) {
+                botResponse.text = "Perfecto, el estado de los acabados es clave para el valor. ¿Dirías que son 'Originales', 'Remodelados hace poco' o 'Para remodelar'?";
+            }
+            // Default
+            else {
+                botResponse.text = "Entiendo. Cuéntame más detalles del inmueble o pégame el link de la publicación si la tienes.";
+            }
+
+            setMessages(prev => [...prev, botResponse]);
+            setIsTyping(false);
+        }, 1500);
+    };
+
+    const handleAuthSelect = (provider) => {
+        setMessages(prev => [...prev, { type: 'bot', text: `Excelente! Iniciando conexión segura con ${provider}... (Simulado)` }]);
+        // Here we will add actual Auth logic later
+    };
 
     return (
         <div
             className={`h-[100dvh] flex text-stone-200 font-sans overflow-hidden transition-colors duration-500 ease-in-out supports-[height:100dvh]:h-[100dvh] ${bgClass}`}
             style={bgStyle}
         >
-
-            {/* BACKGROUND DECOR (Adjust opacity based on theme) */}
+            {/* BACKGROUND DECOR */}
             <div className={`absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px] pointer-events-none z-0 ${theme === 'dark' ? 'opacity-20' : 'opacity-100'}`}></div>
 
             {/* SIDEBAR (Gemini Style) */}
@@ -44,7 +99,10 @@ const JanIAAgent = () => {
 
                 {/* New Chat Button */}
                 <div className={`px-4 mb-6 ${!sidebarOpen && 'flex justify-center px-0'}`}>
-                    <button className={`flex items-center gap-3 bg-white/10 hover:bg-white/20 border border-transparent rounded-full text-stone-200 transition-all shadow-md backdrop-blur-md ${sidebarOpen ? 'px-4 py-3 w-full' : 'p-3 rounded-full'}`}>
+                    <button
+                        onClick={() => setMessages([{ type: 'bot', text: 'Hola, soy JanIA. ¿Qué quieres valuar hoy?', component: 'greeting' }])}
+                        className={`flex items-center gap-3 bg-white/10 hover:bg-white/20 border border-transparent rounded-full text-stone-200 transition-all shadow-md backdrop-blur-md ${sidebarOpen ? 'px-4 py-3 w-full' : 'p-3 rounded-full'}`}
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                         {sidebarOpen && <span className="text-sm font-medium">Nuevo chat</span>}
                     </button>
@@ -56,11 +114,7 @@ const JanIAAgent = () => {
                         <div className="mb-2 px-4 text-xs font-medium text-stone-500">Recientes</div>
                     )}
                     <div className="space-y-1">
-                        {[
-                            'Avalúo Casa Portales',
-                            'Análisis Sector Norte',
-                            'Consulta Jurídica'
-                        ].map((chat, i) => (
+                        {['Avalúo Casa Portales', 'Análisis Sector Norte', 'Consulta Jurídica'].map((chat, i) => (
                             <button key={i} className={`flex items-center gap-3 p-2 rounded-full hover:bg-white/5 w-full text-left group ${!sidebarOpen && 'justify-center'}`}>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
                                 {sidebarOpen && <span className="text-sm text-stone-300 truncate group-hover:text-white">{chat}</span>}
@@ -90,14 +144,14 @@ const JanIAAgent = () => {
                     </button>
                 </div>
 
-                {/* Sidebar Footer (Only Configuración now - expands to others) */}
+                {/* Sidebar Footer (Settings) */}
                 <div className={`mt-auto p-2 space-y-1 border-t ${theme === 'dark' ? 'border-white/5 bg-[#181818]' : 'border-white/5 bg-brand-coffee-darkest/50'} relative`}>
 
                     {/* SETTINGS POPUP (Side Menu) */}
                     {settingsOpen && (
                         <div className={`absolute left-[105%] bottom-0 w-64 p-3 ${theme === 'dark' ? 'bg-[#1e1e1e] border-[#333]' : 'bg-[#4a3b32] border-white/10'} border rounded-2xl shadow-2xl backdrop-blur-xl z-[60] animate-in fade-in slide-in-from-left-2 duration-200 flex flex-col gap-1`}>
 
-                            {/* Menu Items (Moved from Footer) */}
+                            {/* Menu Items */}
                             {[
                                 { icon: 'activity', label: 'Actividad' },
                                 { icon: 'help', label: 'Ayuda' },
@@ -118,7 +172,7 @@ const JanIAAgent = () => {
 
                             <div className="my-1 border-t border-white/10 opacity-50"></div>
 
-                            {/* Theme Selector Section */}
+                            {/* Theme Selector */}
                             <div className="px-2.5 py-1.5">
                                 <div className="text-[10px] uppercase font-bold text-stone-500 tracking-wider mb-2 opacity-80 pl-1">Tema</div>
                                 <div className="bg-black/20 rounded-lg p-1 flex items-center gap-1">
@@ -143,7 +197,7 @@ const JanIAAgent = () => {
                         </div>
                     )}
 
-                    {/* Footer Trigger Button (Configuración) */}
+                    {/* Footer Trigger Button */}
                     <div className="relative">
                         <button
                             onClick={() => setSettingsOpen(!settingsOpen)}
@@ -168,15 +222,11 @@ const JanIAAgent = () => {
             {/* MAIN CONTENT AREA */}
             <main className="flex-1 flex flex-col relative z-0 overflow-hidden h-full">
 
-                {/* Top Nav (Mobile Menu Trigger + User Profile) */}
-                {/* Top Nav (Mobile Menu Trigger + User Profile) */}
+                {/* Top Nav */}
                 <header className="absolute top-0 left-0 w-full h-16 flex items-center justify-between px-4 md:px-6 pt-6 z-50 pointer-events-none">
                     <div className="flex items-center gap-3 pointer-events-auto">
                         {!sidebarOpen && (
-                            <button
-                                onClick={() => setSidebarOpen(true)}
-                                className="md:hidden p-2.5 rounded-full text-stone-200 hover:text-white transition-all focus:outline-none focus:ring-0 active:scale-95 backdrop-blur-md bg-white/10 border border-white/10 shadow-lg"
-                            >
+                            <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2.5 rounded-full text-stone-200 hover:text-white backdrop-blur-md bg-white/10 border border-white/10 shadow-lg">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
                             </button>
                         )}
@@ -199,89 +249,107 @@ const JanIAAgent = () => {
                     </div>
                 </header>
 
-                {/* Chat Stream / Welcome Area - Flexible & Scrollable if needed (Fail-safe) */}
-                {/* Chat Stream / Welcome Area - Flexible & Scrollable if needed (Fail-safe) */}
-                {/* Chat Stream / Welcome Area - Flexible & Scrollable if needed (Fail-safe) */}
-                {/* Chat Stream / Welcome Area - Flexible & Scrollable if needed (Fail-safe) */}
-                {/* Chat Stream / Welcome Area - Flexible & Scrollable if needed (Fail-safe) */}
-                <div className="flex-1 flex flex-col items-center justify-center px-4 w-full min-h-0 overflow-y-auto scrollbar-none pt-24 md:pt-0 no-scrollbar">
-                    <div className="flex flex-col items-center justify-center max-w-4xl mx-auto pb-4 md:pb-6 w-full">
+                {/* Chat Stream */}
+                <div className="flex-1 flex flex-col px-4 w-full min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent pt-20 pb-4">
+                    <div className="flex flex-col max-w-4xl mx-auto w-full space-y-6">
 
-                        {/* JanIA Avatar Pulse */}
-                        {/* JanIA Avatar Pulse - Responsive Height */}
-                        {/* JanIA Avatar - Smart Responsive Height */}
-                        {/* Shrinks more aggressively on short screens (min 120px) to prevent overlap */}
-                        {/* JanIA Avatar Pulse */}
-                        {/* JanIA Avatar Pulse - Responsive Height */}
-                        {/* JanIA Avatar - Smart Responsive Height */}
-                        {/* Shrinks more aggressively on short screens (min 120px) to prevent overlap */}
-                        <div className="relative flex-shrink-0 mb-4 transition-all duration-300" style={{ height: '28vh', maxHeight: '350px', minHeight: '140px' }}>
-                            <div className="h-full flex items-center justify-center">
-                                <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500" />
-                            </div>
-                        </div>
+                        {messages.map((msg, index) => (
+                            <div key={index} className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
 
-                        {/* Greeting Text */}
-                        <div className="text-center space-y-1 mb-6">
-                            <h1 className="text-3xl md:text-5xl font-medium bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent bg-[length:200%_auto] animate-shine">
-                                Hola, soy JanIA
-                            </h1>
-                            <p className="text-xl md:text-2xl text-stone-300 font-light">
-                                ¿Qué quieres valuar hoy?
-                            </p>
-                        </div>
+                                {/* Bot Avatar if Bot Message */}
+                                {msg.type === 'bot' && (
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 rounded-full bg-neutral-800/60 p-1 backdrop-blur-md border border-white/10">
+                                            <img src="/jania.png" alt="JanIA" className="w-full h-full object-contain" />
+                                        </div>
+                                        <span className="text-xs font-bold text-brand-accent">JanIA</span>
+                                    </div>
+                                )}
 
-                        {/* Suggestion Chips (Gemini Style) */}
-                        {/* Suggestion Chips (Square Grid for Mobile) */}
-                        {/* Suggestion Chips (Gemini Style) */}
-                        {/* Suggestion Chips (Square Grid for Mobile) */}
-                        <div className="grid grid-cols-3 gap-2 md:gap-3 w-full px-1 md:px-0">
-                            {[
-                                { icon: 'home', text: 'Avaluar Inmueble', sub: 'Valor comercial' },
-                                { icon: 'doc', text: 'Revisar Docs', sub: 'Libertad y tradición' },
-                                { icon: 'chart', text: 'Mercado', sub: 'Precios por zona' }
-                            ].map((chip, i) => (
-                                <button key={i} className="bg-white/10 hover:bg-white/20 p-3 md:p-4 rounded-xl text-left border border-white/20 hover:border-brand-accent/30 transition-all group shadow-lg backdrop-blur-md flex flex-col items-center justify-center md:items-start md:justify-center gap-1.5 h-24 md:h-full md:min-h-[80px]">
-                                    <div className="flex items-center justify-center md:justify-start mb-0 flex-shrink-0">
-                                        <div className={`p-1.5 rounded-full bg-black/40 text-brand-accent group-hover:scale-110 transition-transform`}>
-                                            {chip.icon === 'home' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
-                                            {chip.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
-                                            {chip.icon === 'chart' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" /></svg>}
+                                {/* Message Bubble */}
+                                {msg.component === 'greeting' ? (
+                                    // Special Greeting Layout (Centered)
+                                    <div className="w-full text-center mt-10 mb-10">
+                                        <div className="h-[20vh] max-h-[250px] min-h-[120px] flex items-center justify-center mb-6">
+                                            <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl animate-float" />
+                                        </div>
+                                        <h1 className="text-3xl md:text-5xl font-medium bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">Hola, soy JanIA</h1>
+                                        <p className="text-xl text-stone-300 font-light mb-8">{msg.text}</p>
+
+                                        {/* Suggestions */}
+                                        <div className="grid grid-cols-3 gap-2 md:gap-3 max-w-3xl mx-auto">
+                                            {[
+                                                { icon: 'home', text: 'Avaluar Inmueble', cmd: 'Quiero avaluar un inmueble' },
+                                                { icon: 'doc', text: 'Revisar Docs', cmd: 'Quiero revisar unos documentos' },
+                                                { icon: 'user', text: 'Registrarme', cmd: 'Quiero guardar mi progreso (Registrarme)' }
+                                            ].map((chip, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => handleSendMessage(chip.cmd)}
+                                                    className="bg-white/10 hover:bg-white/20 p-4 rounded-xl text-left border border-white/20 hover:border-brand-accent/30 transition-all group backdrop-blur-md flex flex-col items-center md:items-start gap-2"
+                                                >
+                                                    <span className="text-brand-accent text-lg">
+                                                        {chip.icon === 'home' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
+                                                        {chip.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+                                                        {chip.icon === 'user' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-stone-200">{chip.text}</span>
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-center md:items-start justify-center text-center md:text-left w-full">
-                                        <h4 className="font-medium text-stone-200 text-[10px] md:text-base leading-tight w-full truncate">{chip.text}</h4>
-                                        <p className="hidden md:block text-[10px] md:text-xs text-stone-400 mt-0.5 w-full truncate">{chip.sub}</p>
+                                ) : (
+                                    // Standard Bubble
+                                    <div className={`p-4 rounded-2xl max-w-[85%] md:max-w-[70%] shadow-lg backdrop-blur-sm ${msg.type === 'user'
+                                            ? 'bg-brand-accent text-black font-medium rounded-tr-sm'
+                                            : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
+                                        }`}>
+                                        {msg.text}
                                     </div>
-                                </button>
-                            ))}
-                        </div>
+                                )}
+
+                                {/* Render Components inside Chat (Auth Buttons, etc) */}
+                                {msg.component === 'auth' && (
+                                    <div className="mt-4 ml-2">
+                                        <AuthOptions onSelect={handleAuthSelect} />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {isTyping && (
+                            <div className="flex items-center gap-2 text-stone-400 text-xs ml-4 animate-pulse">
+                                <span className="w-2 h-2 bg-brand-accent rounded-full"></span>
+                                JanIA está analizando...
+                            </div>
+                        )}
+                        <div ref={chatEndRef} />
                     </div>
                 </div>
 
-                {/* Bottom Input Area (Fixed) */}
+                {/* Input Area */}
                 <div className="w-full p-4 flex justify-center bg-transparent flex-none z-10">
                     <div className="w-full max-w-3xl space-y-3">
-                        {/* Input Box */}
                         <div className="bg-white/10 border border-white/20 rounded-full px-4 py-3 md:py-4 flex items-center gap-4 transition-all shadow-lg backdrop-blur-md">
-                            <button className="p-2 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            <button className="p-2 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors" title="Adjuntar Documento">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                             </button>
 
                             <input
                                 type="text"
-                                placeholder="Escribe un mensaje a JanIA..."
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputValue)}
+                                placeholder="Pega un link, escribe un mensaje o sube un PDF..."
                                 className="flex-grow bg-transparent border-none focus:ring-0 outline-none text-stone-200 placeholder-stone-500 text-sm md:text-base px-0 shadow-none"
                             />
 
-                            <div className="flex items-center gap-2">
-                                <button className="p-2 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" /></svg>
-                                </button>
-                                <button className="p-2 rounded-full bg-white text-black hover:bg-stone-200 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
-                                </button>
-                            </div>
+                            <button
+                                onClick={() => handleSendMessage(inputValue)}
+                                className="p-2 rounded-full bg-white text-black hover:bg-stone-200 transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+                            </button>
                         </div>
 
                         {/* Disclaimer */}

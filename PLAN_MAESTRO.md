@@ -60,10 +60,48 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
 
 ## 3. Hoja de Ruta (Roadmap)
 
+* **Geolocalización:** Entiende mapas y coordenadas para saber si una zona se valorizará (ej. cerca a futuro metro).
+* **Memoria Infinita:** Recuerda a cada cliente, sus propiedades anteriores y preferencias.
+* **Adaptabilidad Emocional:** Detecta si el cliente está estresado o feliz y ajusta su tono.
+
+---
+
+## 3. Hoja de Ruta (Roadmap)
+
 1. **Fase 1 (Frontend & Legal):** UI "Premium Glass", JanIA Chat, Páginas Legales (Privacidad/Términos), **Tema Global (Claro/Oscuro)**. **(COMPLETADO 100%)**
-2. **Fase 2 (Datos & IA):** Base de Datos (Supabase) **(COMPLETADO)**, Reporte Dinámico **(COMPLETADO)**, Conexión a Google Vertex AI, RAG. **(EN PROCESO)**
-3. **Fase 3 (Avalúos Real):** Generación de PDFs, Panel de Avaluador, Firmas Digitales.
-4. **Fase 4 (Pagos):** Integración ePayco y pagos masivos semanales.
+
+## 3. Hoja de Ruta (Roadmap)
+
+2. **Fase 2 (Datos & IA - JanIA 2.0):**
+    * **Autenticación Híbrida:** Chat conversacional que deriva a Pop-Up/Botones (Google/Facebook/Correo) para registro seguro sin fricción.
+    * **Sistema de Roles:**
+        * **Cliente:** Solicita avalúo.
+        * **Socio Avaluador (Uber-Model):** Recibe notificaciones, revisa, certifica y gana tarifa por operación (dispersión semanal).
+    * **Ingesta Documental & Web:**
+        * **Archivos:** JanIA instruye usar el clip 📎 para subir PDFs, Fotos, Escrituras.
+        * **URLs:** Usuario pega links (Fichas Web, Portales, Landing Pages) y JanIA extrae la data automáticamente.
+    * **Datos Críticos:** Énfasis en "Tipos de Acabados" (Calidad, Estado, Materiales) para el cálculo de valor.
+    * **Búsqueda Web (CMA):** JanIA busca en portales inmobiliarios para crear comparativas de mercado en tiempo real.
+    * Base de Datos (Supabase) + Storage (Docs/Fotos). **(EN PROCESO)**
+3. **Fase 3 (Avalúos Real):** Generación de PDFs automáticos, firmas digitales, panel de gestión para Avaluadores.
+4. **Fase 4 (Pagos):** Integración ePayco y dispersión de fondos.
+
+---
+
+## 3.1. Arquitectura de Roles (Nuevo)
+
+### A. Socios Avaluadores (Certificadores)
+
+El modelo de negocio depende de la escalabilidad "Gig Economy" (tipo Uber).
+
+* **Función:** Validar lo que hizo JanIA y poner su firma RAA.
+* **Incentivo:** Ganan ~70% del valor del avalúo. Pagos, parafiscales y logística manejada por la plataforma.
+* **Interfaz:** Dashboard de tareas pendientes ("Nuevos Avalúos Disponibles").
+
+### B. Clientes (Usuarios Finales)
+
+* **Función:** Solicitar el servicio y pagar.
+* **Experiencia:** Conversacional + Dashboards simples de estado.
 
 ---
 
