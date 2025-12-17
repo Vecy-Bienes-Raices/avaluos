@@ -21,7 +21,7 @@ const AvaluoPortales = () => {
     const { theme } = useTheme();
     const { data, loading, error } = useAvaluo(id);
 
-    const bgClass = theme === 'dark' ? 'bg-[#0f0f0f] text-stone-200' : 'bg-stone-50 text-slate-800';
+    const bgClass = theme === 'dark' ? 'bg-[#0f0f0f] text-stone-200' : 'bg-[#423229] text-stone-200';
 
     if (loading) {
         return (

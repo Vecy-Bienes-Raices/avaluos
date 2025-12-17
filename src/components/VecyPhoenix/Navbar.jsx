@@ -2,10 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { useTheme } from '../../context/ThemeContext'; // Import Global Theme
 
 const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const { theme } = useTheme(); // Get current theme
+
+    // Navbar Container Style based on Theme
+    // Restored to Glass effect for both schemes as "Light Mode" is now Coffee (Dark).
+    const navClass = 'bg-white/10 border-white/20 shadow-lg';
 
     // Close menu on scroll to section
     const scrollToSection = (id) => {
@@ -37,7 +43,7 @@ const Navbar = () => {
 
     return (
         <nav className="sticky top-4 z-50 mx-auto max-w-7xl px-4">
-            <div className="glass-panel px-6 py-3 flex justify-between items-center shadow-lg hover:shadow-xl transition-shadow duration-300 relative bg-white/10 backdrop-blur-md border border-white/20">
+            <div className={`glass-panel px-6 py-3 flex justify-between items-center transition-all duration-300 relative backdrop-blur-md border rounded-full ${navClass} ${scrolled ? 'shadow-xl' : 'shadow-lg'}`}>
                 {/* Logo Section */}
                 <div className="flex items-center cursor-pointer" onClick={() => scrollToSection('hero')}>
                     <img src="/logovecy.ico" alt="Vecy Avalúos Logo" className="w-10 h-10 mr-3 object-contain drop-shadow-md" />

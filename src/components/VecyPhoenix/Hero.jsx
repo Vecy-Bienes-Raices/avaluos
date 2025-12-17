@@ -36,7 +36,7 @@ const Hero = ({ data }) => {
                         {data.direccion_inmueble}
                     </p>
 
-                    <div className="glass-panel bg-gradient-to-br from-white/30 via-white/20 to-white/10 border-white/20 shadow-2xl max-w-2xl mx-auto p-8 backdrop-blur-2xl">
+                    <div className="glass-panel bg-white/10 bg-gradient-to-br from-white/30 via-white/20 to-white/10 border-white/20 shadow-2xl max-w-2xl mx-auto p-8 backdrop-blur-2xl transition-colors duration-500">
                         <p className="text-xs text-stone-900 font-bold uppercase tracking-[0.2em] mb-2">Precio Comercial Sugerido</p>
                         <div className="text-3xl md:text-7xl font-bold text-brand-emerald text-shadow-volcanic mb-4 tracking-tighter" id="heroPrice">{formatPrice(data.valor_final_avaluador)}</div>
 
