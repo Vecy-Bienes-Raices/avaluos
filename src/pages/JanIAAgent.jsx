@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 
 const JanIAAgent = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const { theme, setTheme } = useTheme(); // Use global theme
     const navigate = useNavigate();
 
-    return (
-        <div className="h-[100dvh] flex text-stone-200 font-sans overflow-hidden bg-transparent supports-[height:100dvh]:h-[100dvh]">
+    // Dynamic Background Classes based on Theme
+    const bgClass = theme === 'coffee'
+        ? 'bg-[#423229]'
+        : 'bg-[#0f0f0f]';
 
-            {/* BACKGROUND: Global body gradient shines through. We add subtle noise/glows here if needed */}
-            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
+    // Inline style for gradients
+    const bgStyle = theme === 'coffee'
+        ? { backgroundImage: 'radial-gradient(circle at center, #7D6B65 0%, #4E3D32 40%, #423229 100%)' }
+        : { background: '#0f0f0f' };
+
+    return (
+        <div
+            className={`h-[100dvh] flex text-stone-200 font-sans overflow-hidden transition-colors duration-500 ease-in-out supports-[height:100dvh]:h-[100dvh] ${bgClass}`}
+            style={bgStyle}
+        >
+
+            {/* BACKGROUND DECOR (Adjust opacity based on theme) */}
+            <div className={`absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px] pointer-events-none z-0 ${theme === 'dark' ? 'opacity-20' : 'opacity-100'}`}></div>
 
             {/* SIDEBAR (Gemini Style) */}
             <aside
                 className={`${sidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full w-[280px] md:translate-x-0 md:w-[72px]'} 
-                bg-white/10 backdrop-blur-md flex flex-col transition-all duration-300 ease-in-out z-50 border-r border-white/10 absolute md:relative h-full shadow-xl overflow-hidden`}
+                bg-white/10 backdrop-blur-md flex flex-col transition-all duration-300 ease-in-out z-50 border-r border-white/10 absolute md:relative h-full shadow-xl overflow-visible`}
             >
                 {/* Sidebar Header */}
                 <div className="p-4 flex items-center justify-between">
@@ -35,7 +51,7 @@ const JanIAAgent = () => {
                 </div>
 
                 {/* Recent Chats List */}
-                <div className="flex-grow overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-white/10">
+                <div className="flex-grow overflow-y-auto px-2 no-scrollbar">
                     {sidebarOpen && (
                         <div className="mb-2 px-4 text-xs font-medium text-stone-500">Recientes</div>
                     )}
@@ -60,7 +76,7 @@ const JanIAAgent = () => {
                     )}
                     <button
                         onClick={() => navigate('/avaluo/portales')}
-                        className={`flex items-center gap-3 p-2 rounded-xl bg-brand-coffee-darkest/40 hover:bg-brand-accent/10 border border-white/5 hover:border-brand-accent/20 w-full text-left group transition-all ${!sidebarOpen && 'justify-center p-2'}`}
+                        className={`flex items-center gap-3 p-2 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-brand-coffee-darkest/40'} hover:bg-brand-accent/10 border border-white/5 hover:border-brand-accent/20 w-full text-left group transition-all ${!sidebarOpen && 'justify-center p-2'}`}
                     >
                         <div className={`p-1.5 rounded-full bg-brand-accent/10 text-brand-accent group-hover:bg-brand-accent group-hover:text-black transition-colors`}>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
@@ -68,34 +84,75 @@ const JanIAAgent = () => {
                         {sidebarOpen && (
                             <div className="flex flex-col min-w-0">
                                 <span className="text-sm font-medium text-stone-200 group-hover:text-brand-accent truncate transition-colors">Casa Portales II</span>
-                                <span className="text-[10px] text-stone-300 truncate opacity-80 group-hover:opacity-100">Ver informe completo</span>
+                                <span className="text-sm text-stone-300 truncate opacity-80 group-hover:opacity-100">Ver informe</span>
                             </div>
                         )}
                     </button>
                 </div>
 
-                {/* Sidebar Footer (Settings/Location) */}
-                <div className="mt-auto p-2 space-y-1 border-t border-white/5 bg-brand-coffee-darkest/50">
-                    {[
-                        { icon: 'help', label: 'Ayuda' },
-                        { icon: 'activity', label: 'Actividad' },
-                        { icon: 'settings', label: 'Configuración' },
-                        { icon: 'doc', label: 'Privacidad', link: '/privacidad' },
-                        { icon: 'doc', label: 'Términos', link: '/terminos' }
-                    ].map((item, i) => (
+                {/* Sidebar Footer (Only Configuración now - expands to others) */}
+                <div className={`mt-auto p-2 space-y-1 border-t ${theme === 'dark' ? 'border-white/5 bg-[#181818]' : 'border-white/5 bg-brand-coffee-darkest/50'} relative`}>
+
+                    {/* SETTINGS POPUP (Side Menu) */}
+                    {settingsOpen && (
+                        <div className={`absolute left-[105%] bottom-0 w-64 p-3 ${theme === 'dark' ? 'bg-[#1e1e1e] border-[#333]' : 'bg-[#4a3b32] border-white/10'} border rounded-2xl shadow-2xl backdrop-blur-xl z-[60] animate-in fade-in slide-in-from-left-2 duration-200 flex flex-col gap-1`}>
+
+                            {/* Menu Items (Moved from Footer) */}
+                            {[
+                                { icon: 'activity', label: 'Actividad' },
+                                { icon: 'help', label: 'Ayuda' },
+                                { icon: 'doc', label: 'Privacidad', link: '/privacidad' },
+                                { icon: 'doc', label: 'Términos', link: '/terminos' }
+                            ].map((item, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => item.link ? navigate(item.link) : null}
+                                    className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors"
+                                >
+                                    {item.icon === 'activity' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                    {item.icon === 'help' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>}
+                                    {item.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+                                    <span className="text-sm text-stone-300 group-hover:text-white font-medium">{item.label}</span>
+                                </button>
+                            ))}
+
+                            <div className="my-1 border-t border-white/10 opacity-50"></div>
+
+                            {/* Theme Selector Section */}
+                            <div className="px-2.5 py-1.5">
+                                <div className="text-[10px] uppercase font-bold text-stone-500 tracking-wider mb-2 opacity-80 pl-1">Tema</div>
+                                <div className="bg-black/20 rounded-lg p-1 flex items-center gap-1">
+                                    <button
+                                        onClick={() => setTheme('coffee')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-2 rounded-md text-xs transition-all ${theme === 'coffee' ? 'bg-brand-coffee-light/20 text-brand-gold shadow-sm border border-brand-gold/20 font-bold' : 'text-stone-500 hover:text-stone-300'}`}
+                                        title="Estilo Original Vecy"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
+                                        Claro
+                                    </button>
+                                    <button
+                                        onClick={() => setTheme('dark')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-2 rounded-md text-xs transition-all ${theme === 'dark' ? 'bg-white/10 text-white shadow-sm border border-white/10 font-bold' : 'text-stone-500 hover:text-stone-300'}`}
+                                        title="Estilo Oscuro Plano"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
+                                        Oscuro
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer Trigger Button (Configuración) */}
+                    <div className="relative">
                         <button
-                            key={i}
-                            onClick={() => item.link ? navigate(item.link) : null}
-                            className={`flex items-center gap-3 p-2 rounded-full hover:bg-white/5 w-full text-left group ${!sidebarOpen && 'justify-center'}`}
+                            onClick={() => setSettingsOpen(!settingsOpen)}
+                            className={`flex items-center gap-3 p-2 rounded-full hover:bg-white/5 w-full text-left group ${!sidebarOpen && 'justify-center'} ${settingsOpen ? 'bg-white/10 text-white' : ''}`}
                         >
-                            {/* Simple Icon Switcher based on label */}
-                            {item.icon === 'help' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>}
-                            {item.icon === 'activity' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                            {item.icon === 'settings' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400"><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" /></svg>}
-                            {item.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
-                            {sidebarOpen && <span className="text-sm text-stone-300 group-hover:text-white">{item.label}</span>}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white transition-transform duration-500 hover:rotate-90"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.581-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            {sidebarOpen && <span className="text-sm text-stone-300 group-hover:text-white">Configuración</span>}
                         </button>
-                    ))}
+                    </div>
 
                     {sidebarOpen && (
                         <div className="mt-2 px-3 py-2 text-[10px] text-stone-500 border-t border-white/5">

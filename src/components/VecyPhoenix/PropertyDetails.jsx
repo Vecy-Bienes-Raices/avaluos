@@ -44,7 +44,7 @@ const PropertyDetails = ({ data }) => {
                     {/* Key Stats */}
                     <div className="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-6 mb-2">
                         {[
-                            { icon: faRulerCombined, val: `${data.area_privada} m²`, label: 'Construido' },
+                            { icon: faRulerCombined, val: `${data.area_construida || data.area_privada} m²`, label: 'Construido' },
                             { icon: faBed, val: data.habitaciones, label: 'Habitaciones' },
                             { icon: faBath, val: data.banos, label: 'Baños' },
                             { icon: faCar, val: data.parqueadero, label: 'Parqueadero' }
@@ -63,19 +63,17 @@ const PropertyDetails = ({ data }) => {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
                         <h3 className="font-bold text-2xl mb-6 block text-brand-accent text-shadow-volcanic">Distribución Espacial</h3>
                         <ul className="space-y-4 text-slate-600">
-                            {[
-                                { bold: 'Lote:', text: '36.97 m² (huella primer piso). Propiedad Horizontal.' },
-                                { bold: 'Niveles:', text: 'Tres niveles distribuidos funcionalmente + Altillo/Zarzo adaptado.' },
-                                { bold: 'Zona Social:', text: 'Sala y comedor independientes, permitiendo mejor organización del mobiliario.' },
-                                { bold: 'Servicios:', text: 'Patio cubierto (zona de ropas) con ventilación e iluminación natural.' }
-                            ].map((item, i) => (
+                            {(data.distribucion_espacial || []).map((item, i) => (
                                 <li key={i} className="flex items-start bg-white/40 p-3 rounded-xl border border-white/60 shadow-sm">
                                     <div className="bg-green-100/80 p-1.5 rounded-full mr-3 text-green-600 shadow-sm mt-0.5">
                                         <FontAwesomeIcon icon={faCheck} className="text-xs drop-shadow-sm" />
                                     </div>
-                                    <span className="text-sm md:text-base text-stone-700"><strong>{item.bold}</strong> {item.text}</span>
+                                    <span className="text-sm md:text-base text-stone-700"><strong>{item.label}:</strong> {item.text}</span>
                                 </li>
                             ))}
+                            {(!data.distribucion_espacial || data.distribucion_espacial.length === 0) && (
+                                <p className="text-stone-500 italic">Información detallada de distribución pendiente.</p>
+                            )}
                         </ul>
                     </div>
                 </div>
@@ -91,9 +89,9 @@ const PropertyDetails = ({ data }) => {
                         </h3>
                         <div className="space-y-5">
                             {[
-                                { label: 'Propietario', val: 'Teresa del Carmen Rodríguez Muñoz' },
-                                { label: 'Matrícula', val: '050N-01075857' },
-                                { label: 'CHIP', val: 'AAA0128NTPA' }
+                                { label: 'Propietario', val: data.estado_juridico?.propietario || 'No registrado' },
+                                { label: 'Matrícula', val: data.estado_juridico?.matricula || '---' },
+                                { label: 'CHIP', val: data.estado_juridico?.chip || '---' }
                             ].map((row, i) => (
                                 <div key={i} className="flex justify-between items-center border-b border-white/10 pb-3 last:border-0">
                                     <span className="text-sm font-medium text-slate-400 uppercase tracking-wider text-shadow-black">{row.label}</span>
@@ -101,20 +99,20 @@ const PropertyDetails = ({ data }) => {
                                 </div>
                             ))}
                             <div className="bg-emerald-50/50 p-4 rounded-xl mt-4 border border-emerald-100">
-                                <span className="text-emerald-700 font-bold text-sm block mb-1"><FontAwesomeIcon icon={faShieldAlt} className="mr-1" /> SANEADO</span>
-                                <span className="text-emerald-600/80 text-xs font-medium"> Libre de hipotecas, embargos y limitaciones. Apto para venta inmediata.</span>
+                                <span className="text-emerald-700 font-bold text-sm block mb-1"><FontAwesomeIcon icon={faShieldAlt} className="mr-1" /> {data.estado_juridico?.saneado ? 'SANEADO' : 'OBSERVACIÓN'}</span>
+                                <span className="text-emerald-600/80 text-xs font-medium"> {data.estado_juridico?.saneado ? 'Libre de hipotecas y limitaciones. Apto venta.' : 'Requiere revisión jurídica adicional.'}</span>
                             </div>
                         </div>
                     </div>
                     <div className="glass-panel bg-white/10 p-5 md:p-8 border-l-[6px] border-l-blue-500">
                         <h3 className="font-bold text-xl mb-6 text-sky-400 flex items-center text-shadow-black">
                             <span className="bg-blue-100 p-2 rounded-lg mr-3 text-blue-600"><FontAwesomeIcon icon={faFileInvoiceDollar} /></span>
-                            Información Fiscal (2025)
+                            Información Fiscal ({new Date().getFullYear()})
                         </h3>
                         <div className="space-y-6">
                             <div className="flex justify-between items-end">
                                 <span className="text-sm font-medium text-slate-400 uppercase tracking-wider text-shadow-black">Avalúo Catastral</span>
-                                <span className="text-3xl font-extrabold text-sky-400 text-shadow-black"><span className="text-sky-400">$</span>193.726.000</span>
+                                <span className="text-3xl font-extrabold text-sky-400 text-shadow-black"><span className="text-sky-400">$</span>{new Intl.NumberFormat('es-CO').format(data.valor_avaluo_catastral || 0)}</span>
                             </div>
                             <div>
                                 <div className="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden shadow-inner">
@@ -122,12 +120,12 @@ const PropertyDetails = ({ data }) => {
                                         <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/30 animate-pulse"></div>
                                     </div>
                                 </div>
-                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider text-shadow-black">Catastral vs Comercial (45%)</p>
+                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider text-shadow-black">Catastral vs Comercial (Est. 40-50%)</p>
                             </div>
 
                             <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/10">
-                                <span className="text-sm text-slate-200 text-shadow-black">Impuesto Predial</span>
-                                <span className="font-bold text-slate-200 text-shadow-black"><span className="text-slate-200">$</span>1.015.000 (Aprox)</span>
+                                <span className="text-sm text-slate-200 text-shadow-black">Impuesto Predial (Aprox)</span>
+                                <span className="font-bold text-slate-200 text-shadow-black"><span className="text-slate-200">$</span>{new Intl.NumberFormat('es-CO').format((data.valor_avaluo_catastral || 0) * 0.006)} (Aprox)</span>
                             </div>
                         </div>
                     </div>
@@ -140,23 +138,19 @@ const PropertyDetails = ({ data }) => {
                     <div className="glass-panel bg-white/10 p-5 md:p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-xl text-stone-200 text-shadow-black">Estado de Conservación</h3>
-                            <span className="bg-brand-primary text-white text-[0.6rem] md:text-xs font-bold px-2 py-1 rounded-full shadow-lg shadow-brand-primary/20 whitespace-nowrap">8 / 10 Puntos</span>
+                            <span className="bg-brand-primary text-white text-[0.6rem] md:text-xs font-bold px-2 py-1 rounded-full shadow-lg shadow-brand-primary/20 whitespace-nowrap">{(data.acabados_estructura || []).length > 0 ? 'Analizado' : 'Pendiente'}</span>
                         </div>
                         <div className="space-y-6">
-                            {[
-                                { label: 'Cocina (Remodelada)', status: 'Excelente', color: 'bg-brand-accent', width: '95%', textClass: 'text-brand-accent text-shadow-black' },
-                                { label: 'Baño Principal (Remodelado)', status: 'Excelente', color: 'bg-brand-accent', width: '90%', textClass: 'text-brand-accent text-shadow-black' },
-                                { label: 'Pisos & Pintura', status: 'Bueno', color: 'bg-emerald-500', width: '80%', textClass: 'text-slate-600 text-shadow-black' },
-                                { label: 'Baño Auxiliar', status: 'Estándar', color: 'bg-yellow-400', width: '60%', textClass: 'text-slate-400 text-shadow-black' }
-                            ].map((item, i) => (
+                            {(data.acabados_estructura || []).map((item, i) => (
                                 <div key={i}>
                                     <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
                                         <span className="text-slate-500 text-shadow-black">{item.label}</span>
-                                        <span className={item.textClass}>{item.status}</span>
+                                        <span className={`text-shadow-black ${item.status === 'Excelente' ? 'text-brand-accent' : item.status === 'Bueno' ? 'text-emerald-500' : 'text-slate-400'}`}>{item.status}</span>
                                     </div>
                                     <div className="w-full bg-slate-100 rounded-full h-2.5 shadow-inner">
-                                        <div className={twMerge("h-2.5 rounded-full shadow-sm", item.color)} style={{ width: item.width }}></div>
+                                        <div className={`h-2.5 rounded-full shadow-sm ${item.status === 'Excelente' ? 'bg-brand-accent' : item.status === 'Bueno' ? 'bg-emerald-500' : 'bg-yellow-400'}`} style={{ width: item.status === 'Excelente' ? '95%' : item.status === 'Bueno' ? '80%' : '60%' }}></div>
                                     </div>
+                                    {item.detalle && <p className="text-[10px] text-stone-400 mt-1">{item.detalle}</p>}
                                 </div>
                             ))}
                         </div>
@@ -165,20 +159,18 @@ const PropertyDetails = ({ data }) => {
                         <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/40 rounded-full blur-3xl"></div>
                         <h3 className="font-bold text-xl mb-6 text-brand-accent relative z-10 text-shadow-black">Aspectos Destacados</h3>
                         <ul className="space-y-4 relative z-10">
-                            <li className="flex gap-4 items-start">
-                                <span className="bg-white p-3 rounded-2xl shadow-sm text-brand-accent h-12 w-12 flex items-center justify-center text-xl"><FontAwesomeIcon icon={faFireBurner} /></span>
-                                <div>
-                                    <span className="font-bold block text-slate-500 text-lg mb-1 text-shadow-black">Cocina Integral Moderna</span>
-                                    <span className="text-sm text-stone-200 leading-snug block text-shadow-black">Mobiliario madera laminada gris, mesón granito jaspeado, horno empotrado.</span>
-                                </div>
-                            </li>
-                            <li className="flex gap-4 items-start">
-                                <span className="bg-white p-3 rounded-2xl shadow-sm text-brand-accent h-12 w-12 flex items-center justify-center text-xl"><FontAwesomeIcon icon={faShower} /></span>
-                                <div>
-                                    <span className="font-bold block text-slate-500 text-lg mb-1 text-shadow-black">Baño Principal</span>
-                                    <span className="text-sm text-stone-200 leading-snug block text-shadow-black">División vidrio templado, enchape tipo metro B&N, grifería moderna.</span>
-                                </div>
-                            </li>
+                            {/* Mocking Highlights or using a new field 'amenidades_conjunto' if fitting */}
+                            {(data.amenidades_conjunto || []).map((amenity, i) => (
+                                <li key={i} className="flex gap-4 items-start">
+                                    <span className="bg-white p-3 rounded-2xl shadow-sm text-brand-accent h-10 w-10 flex items-center justify-center text-lg"><FontAwesomeIcon icon={faCheck} /></span>
+                                    <div>
+                                        <span className="font-bold block text-slate-500 text-lg mb-1 text-shadow-black">{amenity}</span>
+                                    </div>
+                                </li>
+                            ))}
+                            {(!data.amenidades_conjunto || data.amenidades_conjunto.length === 0) && (
+                                <p className="text-stone-400">Sin amenidades destacadas registradas.</p>
+                            )}
                         </ul>
                     </div>
                 </div>
@@ -188,7 +180,7 @@ const PropertyDetails = ({ data }) => {
             <div className="mt-16 animate-fade-in text-center relative z-10">
                 <h3 className="text-2xl md:text-3xl font-bold text-brand-accent mb-8 text-shadow-volcanic tracking-tight">Galería Fotográfica</h3>
                 <Suspense fallback={<div className="w-full h-[400px] bg-white/5 rounded-3xl animate-pulse flex flex-col items-center justify-center text-stone-400 font-medium border border-white/10"><div className="w-12 h-12 border-4 border-brand-accent border-t-transparent rounded-full animate-spin mb-4"></div>Cargando Experiencia Visual...</div>}>
-                    <ImageGallery />
+                    <ImageGallery images={data.galeria_imagenes} />
                 </Suspense>
             </div>
         </section>

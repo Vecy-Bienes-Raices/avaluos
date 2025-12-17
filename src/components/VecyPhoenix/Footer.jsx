@@ -12,12 +12,12 @@ const Footer = () => {
                 <div className="flex justify-center items-center gap-6 mb-6">
                     {[
                         { icon: faGithub, url: 'https://github.com/Vecy-Bienes-Raices' },
-                        { icon: faXTwitter, url: 'https://twitter.com/vecy_avaluos' },
-                        { icon: faFacebook, url: 'https://facebook.com/vecyavaluos' },
-                        { icon: faInstagram, url: 'https://instagram.com/vecy.avaluos' },
-                        { icon: faLinkedin, url: 'https://linkedin.com/company/vecy-avaluos' },
-                        { icon: faYoutube, url: 'https://youtube.com/@vecyavaluos' },
-                        { icon: faTiktok, url: 'https://tiktok.com/@vecyavaluos' }
+                        { icon: faXTwitter, url: 'https://x.com/BrokerVecy' },
+                        { icon: faFacebook, url: 'https://www.facebook.com/vecybienesraices' },
+                        { icon: faInstagram, url: 'https://www.instagram.com/vecybienesraices/' },
+                        { icon: faLinkedin, url: 'https://www.linkedin.com/company/vecy-bienes-ra%C3%ADces/' },
+                        { icon: faYoutube, url: 'https://www.youtube.com/@VecyBienesRaices' },
+                        { icon: faTiktok, url: 'https://www.tiktok.com/@vecybienesraices' }
                     ].map((item, i) => (
                         <a
                             key={i}

@@ -14,13 +14,18 @@ const LocationMap = lazy(() => import('../components/VecyPhoenix/LocationMap'));
 import { useParams } from 'react-router-dom';
 import { useAvaluo } from '../hooks/useAvaluo';
 
+import { useTheme } from '../context/ThemeContext';
+
 const AvaluoPortales = () => {
     const { id } = useParams();
+    const { theme } = useTheme();
     const { data, loading, error } = useAvaluo(id);
+
+    const bgClass = theme === 'dark' ? 'bg-[#0f0f0f] text-stone-200' : 'bg-stone-50 text-slate-800';
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-stone-900 text-stone-200">
+            <div className={`min-h-screen flex items-center justify-center ${bgClass}`}>
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                     <p className="animate-pulse">Cargando Avalúo...</p>
@@ -31,7 +36,7 @@ const AvaluoPortales = () => {
 
     if (error || !data) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-stone-900 text-stone-200">
+            <div className={`min-h-screen flex items-center justify-center ${bgClass}`}>
                 <div className="text-center p-8 glass-panel bg-red-500/10 border-red-500/20">
                     <h2 className="text-2xl font-bold text-red-400 mb-2">Avalúo No Encontrado</h2>
                     <p className="text-stone-400">{error || 'El reporte solicitado no existe o ha sido eliminado.'}</p>
@@ -41,7 +46,7 @@ const AvaluoPortales = () => {
     }
 
     return (
-        <div className="text-slate-800 font-sans antialiased min-h-screen">
+        <div className={`font-sans antialiased min-h-screen transition-colors duration-500 ${bgClass}`}>
             <Navbar />
             <Hero data={data} />
 
@@ -64,7 +69,7 @@ const AvaluoPortales = () => {
                 <NegotiationSimulator />
                 <SWOT />
                 <Suspense fallback={<div className="h-96 w-full glass-panel flex items-center justify-center text-stone-500 animate-pulse">Cargando Mapa...</div>}>
-                    <LocationMap />
+                    <LocationMap data={data} />
                 </Suspense>
             </main>
 

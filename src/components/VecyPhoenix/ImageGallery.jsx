@@ -14,16 +14,18 @@ import 'swiper/css/zoom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExpand, faDownload } from '@fortawesome/free-solid-svg-icons';
 
-const ImageGallery = () => {
+const ImageGallery = ({ images: sourceImages }) => {
     const [thumbsSwiper, setThumbsSwiper] = useState(null);
     const [openLightbox, setOpenLightbox] = useState(false);
     const [photoIndex, setPhotoIndex] = useState(0);
 
-    // Generate array of 30 images
-    const images = Array.from({ length: 30 }, (_, i) => ({
-        src: `/${i + 1}.jpeg`,
-        alt: `Foto Propiedad ${i + 1}`
-    }));
+    // Process external images or fallback to placeholders if empty
+    const images = (sourceImages && sourceImages.length > 0)
+        ? sourceImages.map((src, i) => ({ src, alt: `Foto Propiedad ${i + 1}` }))
+        : Array.from({ length: 5 }, (_, i) => ({ // Fallback to 5 placeholders if no images
+            src: `/${i + 1}.jpeg`,
+            alt: `Foto Representativa ${i + 1}`
+        }));
 
     return (
         <section id="gallery" className="py-12 px-4 max-w-6xl mx-auto">

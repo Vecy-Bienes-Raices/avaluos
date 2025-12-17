@@ -2,12 +2,20 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/VecyPhoenix/Footer';
 
+import { useTheme } from '../context/ThemeContext';
+
 const PrivacyPolicy = () => {
+    const { theme } = useTheme();
+
+    // Theme Classes
+    const bgClass = theme === 'dark' ? 'bg-[#0f0f0f] text-stone-200' : 'bg-[#423229] text-stone-200';
+    const cardClass = theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white/10 border-white/20';
+
     return (
-        <div className="min-h-screen bg-transparent text-stone-200 font-sans selection:bg-brand-accent/30 selection:text-brand-accent">
+        <div className={`min-h-screen font-sans selection:bg-brand-accent/30 selection:text-brand-accent transition-colors duration-500 ${bgClass}`}>
 
             {/* Background Ambience (Optional enhancement to body gradient) */}
-            <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+            <div className={`fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 ${theme === 'dark' ? 'opacity-30' : 'opacity-100'}`}>
                 <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px]"></div>
                 <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px]"></div>
             </div>
@@ -23,7 +31,7 @@ const PrivacyPolicy = () => {
                 </Link>
 
                 {/* Glass Card Container (Dark Glass) */}
-                <div className="glass-panel bg-white/10 backdrop-blur-md border border-white/20 shadow-lg p-8 md:p-12 rounded-3xl">
+                <div className={`glass-panel backdrop-blur-md shadow-lg p-8 md:p-12 rounded-3xl border transition-colors duration-500 ${cardClass}`}>
 
                     {/* Header */}
                     <header className="mb-10 border-b border-white/10 pb-8">

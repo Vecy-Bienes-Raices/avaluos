@@ -54,17 +54,13 @@ export const useAvaluo = (id) => {
 
                 if (dbData) {
                     // Normalize DB data to match Template expectations
-                    // We fill missing specific fields with defaults or placeholders
                     setData({
                         ...dbData,
                         cliente_fecha: new Date(dbData.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
                         valor_final_avaluador: dbData.valor_final_avaluador || dbData.valor_estimado_ia,
-                        // Defaults for fields not yet in DB schema
-                        habitaciones: 3, // Default
-                        banos: 2,        // Default
-                        parqueadero: 1,  // Default
-                        lat: 4.7110,     // Default Bogota
-                        lng: -74.0721
+                        // Ensure numeric fields are numbers (Supabase might return strings for numeric types sometimes, but usually fine)
+                        lat: dbData.latitud || 4.6097, // Fallback to Bogotá center if missing
+                        lng: dbData.longitud || -74.0817
                     });
                 } else {
                     throw new Error('Avalúo no encontrado');

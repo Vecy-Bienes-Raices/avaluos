@@ -60,8 +60,8 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
 
 ## 3. Hoja de Ruta (Roadmap)
 
-1. **Fase 1 (Frontend & Legal):** UI "Premium Glass", JanIA Chat, Páginas Legales (Privacidad/Términos). **(COMPLETADO)**
-2. **Fase 2 (Datos & IA):** Base de Datos (Supabase) **(EN PROCESO)**, Conexión a Google Vertex AI, RAG para investigación de precios.
+1. **Fase 1 (Frontend & Legal):** UI "Premium Glass", JanIA Chat, Páginas Legales (Privacidad/Términos), **Tema Global (Claro/Oscuro)**. **(COMPLETADO 100%)**
+2. **Fase 2 (Datos & IA):** Base de Datos (Supabase) **(COMPLETADO)**, Reporte Dinámico **(COMPLETADO)**, Conexión a Google Vertex AI, RAG. **(EN PROCESO)**
 3. **Fase 3 (Avalúos Real):** Generación de PDFs, Panel de Avaluador, Firmas Digitales.
 4. **Fase 4 (Pagos):** Integración ePayco y pagos masivos semanales.
 
@@ -111,7 +111,7 @@ El proyecto está construido en **React + Vite**.
     ├── index.css           # Estilos Globales (Tailwind imports + custom classes)
     ├── components/         # Componentes Reutilizables
     └── pages/              # Vistas Principales
-        ├── Home.jsx        # Landing Page / Reporte Avalúo
+        ├── AvaluoPortales.jsx        # Reporte Dinámico de Avalúo (Portales/DB)
         ├── JanIAAgent.jsx  # INTERFAZ PRINCIPAL DEL CHAT (La Joya de la Corona)
         ├── PrivacyPolicy.jsx # Página Legal
         └── Terms.jsx       # Página Legal
@@ -148,13 +148,46 @@ Guarda cada petición de avalúo que entra por el chat de JanIA.
 
 * `id` (BigInt, PK): Identificador único.
 * `created_at` (Timestamp): Fecha de creación.
-* `cliente_nombre` (Text): Nombre del solicitante.
-* `direccion_inmueble` (Text): Ubicación exacta.
-* `tipo_inmueble` (Text): Casa, Apto, Bodega, etc.
-* `area_privada` (Numeric): Metraje en m2.
 * `estado` (Text): `pendiente`, `en_proceso`, `completado`.
-* `valor_estimado_ia` (Numeric): El pre-avalúo calculado por JanIA.
-* `valor_final_avaluador` (Numeric): El valor certificado por el humano.
+
+**Datos Principales (Header):**
+
+* `cliente_nombre` (Text): Solicitante.
+* `direccion_inmueble` (Text): Dirección completa.
+* `ciudad` (Text): Ciudad.
+* `barrio` (Text): Barrio.
+* `tipo_inmueble` (Text): Casa, Apartamento, Of, etc.
+* `latitud` (Float): Coordenada GPS.
+* `longitud` (Float): Coordenada GPS.
+
+**Físico & Métricas:**
+
+* `area_privada` (Numeric): Área Privada (m2).
+* `area_construida` (Numeric): Área Construida (m2).
+* `habitaciones` (Int): Número de alcobas.
+* `banos` (Int): Número de baños.
+* `parqueadero` (Int): Número de garajes.
+* `estrato` (Int): Estrato socioeconómico.
+* `edad_inmueble` (Int): Años de antigüedad.
+* `valor_administracion` (Numeric): Costo mensual de admin.
+
+**Valores & Financiero:**
+
+* `valor_oferta_propietario` (Numeric): Cuánto pide el dueño.
+* `valor_avaluo_catastral` (Numeric): Valor en recibo predial.
+* `valor_estimado_ia` (Numeric): Pre-cálculo de JanIA.
+* `valor_final_avaluador` (Numeric): Valor certificado final.
+* `rentabilidad_estimada` (Numeric): % Rentabilidad anual estimada.
+* `rango_valor_mercado_min` (Numeric): Rango bajo CMA.
+* `rango_valor_mercado_max` (Numeric): Rango alto CMA.
+
+**Detalles Complejos (JSONB):**
+
+* `distribucion_espacial` (JSONB): Array de objetos `[{ label: 'Lote', text: '36m2' }, ...]`.
+* `estado_juridico` (JSONB): Objeto `{ propietario, matricula, chip, anotaciones }`.
+* `acabados_estructura` (JSONB): Array `[{ zona: 'Cocina', estado: 'Excelente' }, ...]`.
+* `amenidades_conjunto` (JSONB): Array de strings `['Piscina', 'Gym']`.
+* `galeria_imagenes` (JSONB): Array de URLs `['/img1.jpg', '/img2.jpg']`.
 
 ---
 
