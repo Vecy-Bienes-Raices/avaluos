@@ -1,5 +1,13 @@
 # PLAN MAESTRO: VECY AVALÚOS (Proyecto JanIA)
 
+> [!IMPORTANT]
+> **META-INSTRUCCIÓN PARA CUALQUIER AGENTE IA:**
+>
+> 1. **ESTE ARCHIVO ES LA LEY.** Antes de escribir una sola línea de código, DEBES leer y entender este documento completo.
+> 2. **NO IMPROVISES.** Si tu tarea contradice este plan, DETENTE y pide confirmación al usuario.
+> 3. **MANTÉN EL RUMBO.** Verifica en qué Fase estamos (Sección 3) y no saltes a tareas futuras sin completar las actuales.
+> 4. **ACTUALIZA.** Si logras un hito importante, marca el checklist aquí. Mantén este archivo vivo.
+
 **Ubicación de este documento:** Raíz del Proyecto (`/PLAN_MAESTRO.md`).
 **Propósito:** Guía central para cualquier Agente IA o Desarrollador que trabaje en el proyecto. **LECTURA OBLIGATORIA.**
 
@@ -9,18 +17,38 @@
 
 El objetivo es transformar la industria de avalúos inmobiliarios mediante una plataforma híbrida **IA + Humana**.
 
+### El Ecosistema Vecy (La Tríada)
+
+Este proyecto es parte de un ecosistema mayor de agentes especializados:
+
+1. **Vecy Phoenix:** Agente Inmobiliario (Gestión de Matches Compra/Venta). *Proyecto Precursor.*
+2. **Vecy Avalúos (JanIA):** Agente Avaluadora (Foco de este repo).
+3. **Vecy Jurídico (Eddu):** Asesor Legal.
+
+Este repositorio corresponde exclusivamente a **Vecy Avalúos**.
+
 * **La Plataforma (Vecy):** Intermediaria tecnológica (Marketplace).
 * **JanIA (La Agente IA):** Realiza el trabajo operativo, investigativo y de atención.
 * **El Avaluador (Humano Certificado):** Valida, corrige y **firma** el avalúo. Su rol es de supervisión experta.
-* **Modelo "Uber":**
-  * **Captación:** JanIA vende y cierra el servicio con el cliente.
-  * **Asignación:** El avalúo pre-procesado se ofrece a avaluadores certificados (Gig Economy).
-  * **Monetización:** Cobramos el 100% al cliente. Retenemos **20-30% de comisión** por tecnología/plataforma.
-  * **Dispersión:** Pago del remanente (70-80%) al avaluador mediante **pagos masivos semanales** (vía ePayco/Pasarela).
+* **Modelo "Uber" (Evolucionado):**
+* **Captación:** JanIA vende y cierra el servicio con el cliente.
+* **Niveles de Servicio:**
+      1. **Gratuito (Enganche):** Estimación rápida en chat (solo texto). Basada en comparación básica (tipo Habi).
+      2. **Estándar (100% IA):** Informe Técnico Completo (`/avaluo/portales`) generado por JanIA sin certificador. Cobro 100% para la plataforma.
+      3. **Certificado (Premium):** Informe Técnico revisado y firmado por Socio Avaluador. Cobro al cliente, pago al avaluador (70%) y retención plataforma (30%).
+* **Pagos:** Integración obligatoria con **ePayco** para los niveles pagos.
+* **Dispersión:** Pagos a avaluadores gestionados por la plataforma (retención en la fuente aplicada).
 
 ---
 
 ## 2. Perfil y Capacidades de JanIA (Super Agente)
+
+### Implementación Técnica (Actualizado Dic 2025)
+
+* **Motor de IA:** Google Gemini Flash (`gemini-flash-latest`). (Modelo estándar verificado).
+* **Conexión:** Directa vía API Key (`VITE_GEMINI_API_KEY`) en `src/services/janiaService.js`.
+* **System Prompt:** Incrustado en el servicio. Define personalidad "Experta Avaluadora", persuasiva y orientada a vender.
+* **Gestión de Chat:** Historial de sesión mantenido en cliente (`chatSession`).
 
 JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguientes capacidades mandatorias:
 
@@ -83,8 +111,11 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
     * **Datos Críticos:** Énfasis en "Tipos de Acabados" (Calidad, Estado, Materiales) para el cálculo de valor.
     * **Búsqueda Web (CMA):** JanIA busca en portales inmobiliarios para crear comparativas de mercado en tiempo real.
     * Base de Datos (Supabase) + Storage (Docs/Fotos). **(EN PROCESO)**
-3. **Fase 3 (Avalúos Real):** Generación de PDFs automáticos, firmas digitales, panel de gestión para Avaluadores.
-4. **Fase 4 (Pagos):** Integración ePayco y dispersión de fondos.
+3. **Fase 3 (Monetización y Niveles):**
+    * **Nivel Gratuito:** Lógica de comparación rápida en chat.
+    * **Plantilla Maestra (`/avaluo/portales`):** Conexión de variables de chat a la plantilla real.
+    * **Pasarela de Pagos:** Implementación de ePayco antes de mostrar el informe final.
+4. **Fase 4 (Uber-Dispatch):** Lógica de "Llamado a Avaluadores" para el nivel Certificado.
 
 ---
 
@@ -178,54 +209,86 @@ El proyecto está construido en **React + Vite**.
 
 ## 8. Estructura de Base de Datos (Supabase)
 
-La "memoria" del proyecto. Todas las tablas deben usar `snake_case`.
+**ESTADO ACTUAL: IMPLEMENTADO (Dic 2025)**
+Las tablas `solicitudes` y `profiles` ya han sido ejecutadas en Supabase.
 
-### Tabla: `solicitudes` (El corazón del negocio)
+### Tabla: `solicitudes`
 
-Guarda cada petición de avalúo que entra por el chat de JanIA.
+* **Propósito:** Guarda cada petición de avalúo que entra por el chat.
+* **Schema:**
 
-* `id` (BigInt, PK): Identificador único.
-* `created_at` (Timestamp): Fecha de creación.
-* `estado` (Text): `pendiente`, `en_proceso`, `completado`.
+```sql
+create table public.solicitudes (
+  id bigint generated by default as identity not null,
+  created_at timestamp with time zone null default now(),
+  cliente_nombre text not null,
+  cliente_email text null,
+  cliente_telefono text null,
+  direccion_inmueble text not null,
+  ciudad text null default 'Bogotá'::text,
+  tipo_inmueble text null,
+  estrato text null,
+  area_privada numeric null,
+  estado text null default 'pendiente'::text,
+  valor_estimado_ia numeric null,
+  valor_final_avaluador numeric null,
+  notas_adicionales text null,
+  barrio text null default 'N/A'::text,
+  latitud double precision null default 4.6097,
+  longitud double precision null default '-74.0817'::numeric,
+  area_construida numeric null default 0,
+  habitaciones integer null default 0,
+  banos integer null default 0,
+  parqueadero integer null default 0,
+  edad_inmueble integer null default 0,
+  valor_administracion numeric null default 0,
+  valor_oferta_propietario numeric null default 0,
+  valor_avaluo_catastral numeric null default 0,
+  rentabilidad_estimada numeric null default 0,
+  rango_valor_mercado_min numeric null default 0,
+  rango_valor_mercado_max numeric null default 0,
+  distribucion_espacial jsonb null default '[]'::jsonb,
+  estado_juridico jsonb null default '{}'::jsonb,
+  acabados_estructura jsonb null default '[]'::jsonb,
+  amenidades_conjunto jsonb null default '[]'::jsonb,
+  galeria_imagenes jsonb null default '[]'::jsonb,
+  source_url text null,
+  acabados_detalles jsonb null default '{}'::jsonb,
+  documentos_estado jsonb null default '{"predial": false, "escrituras": false, "certificado_libertad": false}'::jsonb,
+  avaluador_asignado_id uuid null,
+  comision_plataforma numeric null default 30.0,
+  constraint solicitudes_pkey primary key (id),
+  constraint solicitudes_avaluador_asignado_id_fkey foreign KEY (avaluador_asignado_id) references profiles (id)
+) TABLESPACE pg_default;
+```
 
-**Datos Principales (Header):**
+### Tabla: `profiles`
 
-* `cliente_nombre` (Text): Solicitante.
-* `direccion_inmueble` (Text): Dirección completa.
-* `ciudad` (Text): Ciudad.
-* `barrio` (Text): Barrio.
-* `tipo_inmueble` (Text): Casa, Apartamento, Of, etc.
-* `latitud` (Float): Coordenada GPS.
-* `longitud` (Float): Coordenada GPS.
+* **Propósito:** Gestión de usuarios con roles (Cliente, Avaluador, Admin).
+* **Schema:**
 
-**Físico & Métricas:**
-
-* `area_privada` (Numeric): Área Privada (m2).
-* `area_construida` (Numeric): Área Construida (m2).
-* `habitaciones` (Int): Número de alcobas.
-* `banos` (Int): Número de baños.
-* `parqueadero` (Int): Número de garajes.
-* `estrato` (Int): Estrato socioeconómico.
-* `edad_inmueble` (Int): Años de antigüedad.
-* `valor_administracion` (Numeric): Costo mensual de admin.
-
-**Valores & Financiero:**
-
-* `valor_oferta_propietario` (Numeric): Cuánto pide el dueño.
-* `valor_avaluo_catastral` (Numeric): Valor en recibo predial.
-* `valor_estimado_ia` (Numeric): Pre-cálculo de JanIA.
-* `valor_final_avaluador` (Numeric): Valor certificado final.
-* `rentabilidad_estimada` (Numeric): % Rentabilidad anual estimada.
-* `rango_valor_mercado_min` (Numeric): Rango bajo CMA.
-* `rango_valor_mercado_max` (Numeric): Rango alto CMA.
-
-**Detalles Complejos (JSONB):**
-
-* `distribucion_espacial` (JSONB): Array de objetos `[{ label: 'Lote', text: '36m2' }, ...]`.
-* `estado_juridico` (JSONB): Objeto `{ propietario, matricula, chip, anotaciones }`.
-* `acabados_estructura` (JSONB): Array `[{ zona: 'Cocina', estado: 'Excelente' }, ...]`.
-* `amenidades_conjunto` (JSONB): Array de strings `['Piscina', 'Gym']`.
-* `galeria_imagenes` (JSONB): Array de URLs `['/img1.jpg', '/img2.jpg']`.
+```sql
+create table public.profiles (
+  id uuid not null,
+  email text null,
+  full_name text null,
+  phone text null,
+  role text null default 'client'::text,
+  is_verified boolean null default false,
+  avatar_url text null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint profiles_pkey primary key (id),
+  constraint profiles_id_fkey foreign KEY (id) references auth.users (id) on delete CASCADE,
+  constraint profiles_role_check check (
+    (
+      role = any (
+        array['client'::text, 'valuer'::text, 'admin'::text]
+      )
+    )
+  )
+) TABLESPACE pg_default;
+```
 
 ---
 

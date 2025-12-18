@@ -2,24 +2,34 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import AuthOptions from '../components/VecyPhoenix/AuthOptions'; // Import Auth Component
+// import { sendMessageToJanIA, analyzeAndExtractData } from '../services/janiaService'; // Legacy Service - Commented out
+import { janIACore } from '../services/janIACore'; // New Autonomous Core
+import { crearSolicitud } from '../services/solicitudesService'; // Import Database Service
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const JanIAAgent = () => {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar closed by default
     const [settingsOpen, setSettingsOpen] = useState(false);
     const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
 
     // Chat State
     const [messages, setMessages] = useState([
-        { type: 'bot', text: 'Hola, soy JanIA. ¿Qué quieres valuar hoy?', component: 'greeting' }
+        { type: 'bot', text: 'Soy JanIA, tu experta en análisis inmobiliario. ¿Qué quieres descubrir hoy?', component: 'greeting' }
     ]);
-    const [inputValue, setInputValue] = useState('');
+    const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const chatEndRef = useRef(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false); // New State: Background Analysis
+    const messagesEndRef = useRef(null);
 
     // Auto-scroll to bottom
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        scrollToBottom();
     }, [messages]);
 
     // Themes
@@ -29,54 +39,75 @@ const JanIAAgent = () => {
         : { background: '#0f0f0f' };
 
     // Function to handle sending messages
-    const handleSendMessage = async (text) => {
+    const handleSendMessage = async (text = input) => {
         if (!text.trim()) return;
 
         // 1. Add User Message
-        const newMessages = [...messages, { type: 'user', text }];
-        setMessages(newMessages);
-        setInputValue('');
+        const newMsg = { type: 'user', text };
+        setMessages(prev => [...prev, newMsg]);
+        setInput('');
         setIsTyping(true);
+        setIsAnalyzing(true);
 
-        // 2. Simulate BI / Logic Response (Delay)
-        setTimeout(() => {
-            let botResponse = { type: 'bot', text: '' };
+        // --- COGNITIVE LOOP EXECUTION ---
+        try {
+            // Callback to update UI with "Looking at norms", "Thinking", etc.
+            const onThinkingStep = (stepDescription) => {
+                // Determine if this is a "Thinking" step or "Action" step for UI coloring
+                // We'll just show the text for now in the small indicator
+                // You could add a specialized state for the text content
+                console.log(`🧠 [JanIA Core]: ${stepDescription}`);
+            };
 
-            // Logic: URL Detection
-            if (text.includes('http') || text.includes('www.')) {
-                botResponse.text = "¡Entendido! He detectado un enlace. 🌐 Voy a ingresar a analizar la ficha técnica y extraer los datos del inmueble. Dame un momento...";
-            }
-            // Logic: Uploads / Clip
-            else if (text.toLowerCase().includes('subir') || text.toLowerCase().includes('adjuntar') || text.toLowerCase().includes('foto') || text.toLowerCase().includes('pdf')) {
-                botResponse.text = "Para analizar documentos (Escrituras, Predial) o fotos, por favor usa el ícono del clip 📎 que está en la barra de escritura. Yo los leeré automáticamente.";
-            }
-            // Logic: Register / Auth Trigger
-            else if (text.toLowerCase().includes('guardar') || text.toLowerCase().includes('registrar') || text.toLowerCase().includes('cuenta')) {
-                botResponse.text = "Para guardar tu progreso y asignarte un experto, necesito que te identifiques. ¿Cómo prefieres conectarte?";
-                botResponse.component = 'auth';
-            }
-            // Logic: Acabados (Context)
-            else if (text.toLowerCase().includes('acabados') || text.toLowerCase().includes('piso') || text.toLowerCase().includes('cocina')) {
-                botResponse.text = "Perfecto, el estado de los acabados es clave para el valor. ¿Dirías que son 'Originales', 'Remodelados hace poco' o 'Para remodelar'?";
-            }
-            // Default
-            else {
-                botResponse.text = "Entiendo. Cuéntame más detalles del inmueble o pégame el link de la publicación si la tienes.";
+            let response;
+            try {
+                response = await janIACore.processUserMessage(text, onThinkingStep);
+            } catch (coreError) {
+                console.error("JanIA Core Critical Failure:", coreError);
+                response = {
+                    text: "⚠️ Desconexión neuronal. Intentando reconectar... (Por favor envía tu mensaje de nuevo).",
+                    plan: null
+                };
             }
 
-            setMessages(prev => [...prev, botResponse]);
+            // Add Bot Message
+            const botMsg = {
+                type: 'bot',
+                text: response.text,
+                memory_debug: response.plan // Optional: Store for debug view
+            };
+
+            // Post-processing triggers
+            if (response.plan && response.plan.next_step.name === 'trigger_auth') {
+                botMsg.component = 'auth';
+            } else if (response.plan && response.plan.next_step.name === 'ask_policy') {
+                botMsg.component = 'policy_consent';
+            } else if (response.text.toLowerCase().includes('registrar')) {
+                // Fallback legacy detection
+                botMsg.component = 'auth';
+            }
+
+            setMessages(prev => [...prev, botMsg]);
+
+        } catch (error) {
+            console.error("JanIA Core Critical Error:", error);
+            setMessages(prev => [...prev, {
+                type: 'bot',
+                text: "Lo siento, mis circuitos de razonamiento están sobrecargados. Intenta de nuevo. 🧠🔥"
+            }]);
+        } finally {
             setIsTyping(false);
-        }, 1500);
+            setIsAnalyzing(false);
+        }
     };
 
     const handleAuthSelect = (provider) => {
         setMessages(prev => [...prev, { type: 'bot', text: `Excelente! Iniciando conexión segura con ${provider}... (Simulado)` }]);
-        // Here we will add actual Auth logic later
     };
 
     return (
         <div
-            className={`h-[100dvh] flex text-stone-200 font-sans overflow-hidden transition-colors duration-500 ease-in-out supports-[height:100dvh]:h-[100dvh] ${bgClass}`}
+            className={`h-[100dvh] w-full flex text-stone-200 font-sans overflow-hidden transition-colors duration-500 ease-in-out ${bgClass}`}
             style={bgStyle}
         >
             {/* BACKGROUND DECOR */}
@@ -249,81 +280,137 @@ const JanIAAgent = () => {
                     </div>
                 </header>
 
-                {/* Chat Stream */}
-                <div className="flex-1 flex flex-col px-4 w-full min-h-0 overflow-hidden pt-20 pb-4">
-                    <div className="flex flex-col max-w-4xl mx-auto w-full space-y-6">
+                {/* Chat Stream with Fixed Scroll */}
+                <div className="flex-1 flex flex-col w-full min-h-0 relative overflow-hidden">
+                    <div className={`flex-1 px-4 pt-4 pb-0 scroll-smooth custom-scrollbar ${messages.length > 1 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+                        <div className="flex flex-col max-w-4xl mx-auto w-full space-y-2 pb-0 min-h-full">
+                            {/* Header Spacer - Ensures JanIA is never beheaded */}
+                            <div className="h-14 md:h-16 w-full flex-shrink-0" aria-hidden="true" />
 
-                        {messages.map((msg, index) => (
-                            <div key={index} className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
+                            {messages.filter(m => !(messages.length > 1 && m.component === 'greeting')).map((msg, index) => (
+                                <div key={index} className={`flex flex-col ${msg?.type === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
 
-                                {/* Bot Avatar if Bot Message (NOT for greeting) */}
-                                {msg.type === 'bot' && msg.component !== 'greeting' && (
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-10 h-10 rounded-full bg-neutral-800/60 backdrop-blur-md border border-white/10 overflow-hidden">
-                                            <img src="/perfil.png" alt="JanIA" className="w-full h-full object-cover" />
+                                    {/* Bot Avatar if Bot Message (NOT for greeting) */}
+                                    {msg?.type === 'bot' && msg?.component !== 'greeting' && (
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-10 h-10 rounded-full bg-neutral-800/60 backdrop-blur-md border border-white/10 overflow-hidden flex-shrink-0">
+                                                <img src="/perfil.png" alt="JanIA" className="w-full h-full object-cover" />
+                                            </div>
+                                            <span className="text-xs font-bold text-brand-accent">JanIA</span>
                                         </div>
-                                        <span className="text-xs font-bold text-brand-accent">JanIA</span>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Message Bubble */}
-                                {msg.component === 'greeting' ? (
-                                    // Special Greeting Layout (Centered)
-                                    <div className="w-full text-center mt-10 mb-10">
-                                        <div className="h-[30vh] max-h-[350px] min-h-[180px] flex items-center justify-center mb-6">
-                                            <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl animate-float" />
+                                    {/* Greetings / Hero Section - ONLY SHOW IF MESSAGES EMPTY (or only 1 greeting) AND LAST MESSAGE IS NOT USER */}
+                                    {messages.length <= 1 && msg?.component === 'greeting' ? (
+                                        // Special Greeting Layout (Centered)
+                                        <div className={`flex flex-col items-center w-full text-center mt-2 mb-0 ${messages.length === 1 ? 'flex-1 justify-between' : 'hidden'}`}>
+                                            {/* Top Section: JanIA & Greeting Text */}
+                                            <div className="flex flex-col items-center w-full">
+                                                <div className="h-[20vh] md:h-[30vh] max-h-[350px] min-h-[150px] flex items-center justify-center mb-4">
+                                                    <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl" />
+                                                </div>
+                                                <h1 className="text-3xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">Hola, soy JanIA</h1>
+                                                <p className="text-lg md:text-xl text-stone-300 font-light max-w-2xl mx-auto px-4">Tu avaluadora experta ¿Qué inmueble quieres avaluar?</p>
+                                            </div>
+
+                                            {/* Bottom Section: Suggestions (Smashed to bottom) */}
+                                            <div className="w-full pt-8 pb-4">
+                                                <div className="grid grid-cols-3 gap-2 md:gap-4 max-w-3xl mx-auto px-0">
+                                                    {[
+                                                        { icon: 'home', text: 'Avaluar Inmueble', cmd: 'Quiero avaluar un inmueble' },
+                                                        { icon: 'doc', text: 'Revisar Docs', cmd: 'Quiero revisar unos documentos' },
+                                                        { icon: 'user', text: 'Registrarme', cmd: 'Quiero guardar mi progreso (Registrarme)' }
+                                                    ].map((chip, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => handleSendMessage(chip.cmd)}
+                                                            className="bg-white/10 hover:bg-white/20 p-2 md:p-4 rounded-xl md:rounded-2xl border border-white/20 hover:border-brand-accent/30 transition-all group backdrop-blur-md flex flex-row items-center gap-2 md:gap-3 justify-start overflow-hidden w-full"
+                                                        >
+                                                            <span className="p-1 md:p-2 rounded-full bg-neutral-800/60 text-brand-accent flex-shrink-0" style={{ filter: 'sepia(0.3)' }}>
+                                                                {chip.icon === 'home' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
+                                                                {chip.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+                                                                {chip.icon === 'user' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>}
+                                                            </span>
+                                                            <span className="text-[9px] md:text-sm font-medium text-stone-200 leading-tight flex-grow text-center">{chip.text}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <h1 className="text-3xl md:text-5xl font-medium bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">Hola, soy JanIA</h1>
-                                        <p className="text-xl text-stone-300 font-light mb-8">{msg.text}</p>
+                                    ) : (
+                                        // STANDARD BUBBLE WITH MARKDOWN
+                                        <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-lg backdrop-blur-sm ${msg?.type === 'user'
+                                            ? 'bg-brand-accent text-black font-bold rounded-tr-sm' // High contrast: Pure Black on Gold
+                                            : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
+                                            }`}>
 
-                                        {/* Suggestions */}
-                                        <div className="grid grid-cols-3 gap-2 md:gap-3 max-w-3xl mx-auto">
-                                            {[
-                                                { icon: 'home', text: 'Avaluar Inmueble', cmd: 'Quiero avaluar un inmueble' },
-                                                { icon: 'doc', text: 'Revisar Docs', cmd: 'Quiero revisar unos documentos' },
-                                                { icon: 'user', text: 'Registrarme', cmd: 'Quiero guardar mi progreso (Registrarme)' }
-                                            ].map((chip, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => handleSendMessage(chip.cmd)}
-                                                    className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg border border-white/20 hover:border-brand-accent/30 transition-all group backdrop-blur-md flex flex-row items-center gap-3"
-                                                >
-                                                    <span className="p-2 rounded-full bg-neutral-800/60 text-brand-accent" style={{ filter: 'sepia(0.3)' }}>
-                                                        {chip.icon === 'home' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
-                                                        {chip.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
-                                                        {chip.icon === 'user' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>}
-                                                    </span>
-                                                    <span className="text-sm font-medium text-stone-200">{chip.text}</span>
-                                                </button>
-                                            ))}
+                                            {/* MARKDOWN RENDERING SAFEGUARD - Simplified to avoid plugin crashes */}
+                                            {/* MARKDOWN RENDERING SAFEGUARD */}
+                                            {msg?.text ? (
+                                                <div className={`prose prose-sm max-w-none ${msg?.type === 'user' ? 'text-black prose-p:text-black prose-headings:text-black prose-strong:text-black' : 'prose-invert'}`}>
+                                                    <ReactMarkdown
+                                                        components={{
+                                                            strong: ({ children }) => <span className="font-bold text-brand-accent">{children}</span>,
+                                                            strong: ({ children }) => <span className="font-bold text-brand-accent">{children}</span>,
+                                                            a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-accent border-b border-brand-accent/50 hover:text-white hover:border-white transition-all cursor-pointer no-underline">{children}</a>,
+                                                            ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>,
+                                                            ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>,
+                                                            li: ({ children }) => <li className="text-stone-300">{children}</li>,
+                                                            p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                                                        }}
+                                                    >
+                                                        {String(msg.text)}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            ) : (
+                                                <p className="text-stone-400 italic">Mensaje sin contenido</p>
+                                            )}
                                         </div>
-                                    </div>
-                                ) : (
-                                    // Standard Bubble
-                                    <div className={`p-4 rounded-2xl max-w-[85%] md:max-w-[70%] shadow-lg backdrop-blur-sm ${msg.type === 'user'
-                                        ? 'bg-brand-accent text-black font-medium rounded-tr-sm'
-                                        : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
-                                        }`}>
-                                        {msg.text}
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Render Components inside Chat (Auth Buttons, etc) */}
-                                {msg.component === 'auth' && (
-                                    <div className="mt-4 ml-2">
-                                        <AuthOptions onSelect={handleAuthSelect} />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                    {/* Render Components inside Chat (Auth Buttons, Policies, etc) */}
+                                    {msg?.component === 'auth' && (
+                                        <div className="mt-4 ml-2">
+                                            <AuthOptions onSelect={handleAuthSelect} />
+                                        </div>
+                                    )}
 
-                        {isTyping && (
-                            <div className="flex items-center gap-2 text-stone-400 text-xs ml-4 animate-pulse">
-                                <span className="w-2 h-2 bg-brand-accent rounded-full"></span>
-                                JanIA está analizando...
-                            </div>
-                        )}
-                        <div ref={chatEndRef} />
+                                    {msg?.component === 'policy_consent' && (
+                                        <div className="mt-4 ml-2 flex gap-3 animate-fade-in-up">
+                                            <button
+                                                onClick={() => handleSendMessage("Sí acepto las políticas y condiciones")}
+                                                className="bg-brand-emerald/20 hover:bg-brand-emerald text-brand-emerald hover:text-white border border-brand-emerald px-6 py-2 rounded-full font-bold transition-all shadow-lg backdrop-blur-md flex items-center gap-2"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                                Sí acepto
+                                            </button>
+                                            <button
+                                                onClick={() => handleSendMessage("No acepto")}
+                                                className="bg-red-500/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/50 px-6 py-2 rounded-full font-bold transition-all shadow-lg backdrop-blur-md flex items-center gap-2"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                No acepto
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {isTyping && (
+                                <div className="flex items-center gap-2 text-stone-400 text-xs ml-4 animate-pulse">
+                                    <span className="w-2 h-2 bg-brand-accent rounded-full"></span>
+                                    JanIA está pensando...
+                                </div>
+                            )}
+
+                            {!isTyping && isAnalyzing && (
+                                <div className="flex items-center gap-2 text-brand-gold/70 text-[10px] ml-4 animate-pulse transition-opacity duration-500">
+                                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Memorizando detalles...
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} className="h-4" />
+                        </div>
                     </div>
                 </div>
 
@@ -337,9 +424,9 @@ const JanIAAgent = () => {
 
                             <input
                                 type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputValue)}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(input)}
                                 placeholder="Pega un link, escribe un mensaje o sube un PDF..."
                                 className="flex-grow bg-transparent border-none focus:ring-0 outline-none text-stone-200 placeholder-stone-500 text-sm md:text-base px-0 shadow-none"
                             />
@@ -349,7 +436,7 @@ const JanIAAgent = () => {
                             </button>
 
                             <button
-                                onClick={() => handleSendMessage(inputValue)}
+                                onClick={() => handleSendMessage(input)}
                                 className="p-2 rounded-full bg-white text-black hover:bg-stone-200 transition-colors"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
