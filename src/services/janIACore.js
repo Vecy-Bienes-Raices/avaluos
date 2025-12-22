@@ -6,8 +6,8 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
-const CORTEX_MODEL = "gemini-2.0-flash-lite-preview-02-05"; // Lite model for faster/cheaper reasoning
-const REFLEX_MODEL = "gemini-flash-latest";     // Canonical alias for the latest stable flash model
+const CORTEX_MODEL = "gemini-3-pro-image-preview"; // Advanced reasoning with vision
+const REFLEX_MODEL = "gemini-2.5-flash"; // Fast conversational responses
 
 // --- INITIAL STATES ---
 const INITIAL_MEMORY = {
@@ -36,10 +36,8 @@ FLUJO DE ENGANCHE (SECUENCIA ESTRICTA):
    - TOOL OBLIGATORIO: "name": "ask_policy"
    - SI DICE NO: Despídete y cierra.
 3. **VALOR:** Si aceptó, PREGUNTA qué necesita.
-4. **REGISTRO (Late-Game):**
-   - Solo después de avanzar.
-   - "Oye [Nombre], para no perder esto, ¿te registras?".
-   - TOOL: "trigger_auth".
+4. **UPSELL (PROACTIVO):** Si menciona "legal", "banco", "oficial" o "certificado", usa TOOL: "offer_upgrade".
+5. **REGISTRO (Late-Game):** Solo después de avanzar pide registro con TOOL: "trigger_auth".
 
 MEMORIA:
 {{MEMORY_STATE}}
@@ -57,7 +55,7 @@ SALIDA JSON:
     "update_memory": { "user_name": "...", "policies_accepted": true/false },
     "next_step": {
         "type": "tool" | "response",
-        "name": "ask_policy" | "trigger_auth" | null,
+        "name": "ask_policy" | "trigger_auth" | "offer_upgrade" | null,
         "args": { }
     },
     "suggested_response_tone": "warm_concise"
@@ -170,6 +168,8 @@ export class JanIACore {
                 return "Botones de Políticas (Sí/No) mostrados al usuario.";
             case 'calculate_value':
                 return "Valor estimado: $450M - $480M COP based on Area * MarketRate";
+            case 'offer_upgrade':
+                return "Catálogo de planes Oro y Esmeralda mostrado. El usuario puede ver las ventajas de cada uno.";
             default:
                 return "Herramienta no encontrada";
         }

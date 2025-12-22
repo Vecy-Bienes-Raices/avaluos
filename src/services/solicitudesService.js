@@ -24,3 +24,26 @@ export const crearSolicitud = async (datos) => {
         return null;
     }
 };
+
+export const obtenerMisSolicitudes = async (userId) => {
+    if (!userId) return [];
+    try {
+        const { data, error } = await supabase
+            .from('solicitudes')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            console.error('Error al obtener solicitudes:', error);
+            return [];
+        }
+
+        return data;
+    } catch (err) {
+        console.error('Error inesperado al obtener solicitudes:', err);
+        return [];
+    }
+};
+

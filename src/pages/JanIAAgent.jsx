@@ -1,36 +1,77 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import AuthOptions from '../components/VecyPhoenix/AuthOptions'; // Import Auth Component
-// import { sendMessageToJanIA, analyzeAndExtractData } from '../services/janiaService'; // Legacy Service - Commented out
 import { janIACore } from '../services/janIACore'; // New Autonomous Core
+import { supabase } from '../lib/supabaseClient'; // Import Supabase Client
 import { crearSolicitud } from '../services/solicitudesService'; // Import Database Service
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import AuthOptions from '../components/VecyPhoenix/AuthOptions';
 
 const JanIAAgent = () => {
+    // Auth & Identity State
+    const [user, setUser] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar closed by default
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false); // New State: Profile Popup
+    const [authModalOpen, setAuthModalOpen] = useState(false); // New State: Auth Modal
     const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
 
     // Chat State
-    const [messages, setMessages] = useState([
-        { type: 'bot', text: 'Soy JanIA, tu experta en análisis inmobiliario. ¿Qué quieres descubrir hoy?', component: 'greeting' }
-    ]);
+    const [messages, setMessages] = useState(() => {
+        try {
+            const saved = localStorage.getItem('janIA_chat_messages');
+            if (saved && saved !== 'undefined') {
+                return JSON.parse(saved);
+            }
+        } catch (e) {
+            console.warn("Error cargando mensajes de JanIA:", e);
+        }
+        return [
+            { type: 'bot', text: 'Soy JanIA, tu experta en análisis inmobiliario. ¿Qué quieres descubrir hoy?', component: 'greeting' }
+        ];
+    });
+
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false); // New State: Background Analysis
+    const [attachments, setAttachments] = useState([]); // NEW: Store selected files
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null); // NEW: Ref for hidden input
 
-    // Auto-scroll to bottom
+    // Supabase Auth Listener
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUser(session.user);
+                janIACore.updateUserIdentity(session.user);
+                localStorage.setItem('janIA_has_logged_in', 'true');
+            }
+        };
+
+        checkUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const currentUser = session?.user || null;
+            setUser(currentUser);
+            janIACore.updateUserIdentity(currentUser);
+            if (currentUser) localStorage.setItem('janIA_has_logged_in', 'true');
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Auto-scroll and Persistence
+    useEffect(() => {
+        scrollToBottom();
+        localStorage.setItem('janIA_chat_messages', JSON.stringify(messages));
+    }, [messages]);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
 
     // Themes
     const bgClass = theme === 'coffee' ? 'bg-[#423229]' : 'bg-[#0f0f0f]';
@@ -39,13 +80,18 @@ const JanIAAgent = () => {
         : { background: '#0f0f0f' };
 
     // Function to handle sending messages
-    const handleSendMessage = async (text = input) => {
-        if (!text.trim()) return;
+    const handleSendMessage = async (text, files = []) => {
+        if (!text.trim() && files.length === 0) return;
 
         // 1. Add User Message
-        const newMsg = { type: 'user', text };
+        const newMsg = {
+            type: 'user',
+            text,
+            attachments: files.map(f => ({ name: f.name, type: f.type, preview: f.preview }))
+        };
         setMessages(prev => [...prev, newMsg]);
         setInput('');
+        setAttachments([]); // Clear attachments after sending
         setIsTyping(true);
         setIsAnalyzing(true);
 
@@ -61,7 +107,16 @@ const JanIAAgent = () => {
 
             let response;
             try {
-                response = await janIACore.processUserMessage(text, onThinkingStep);
+                // Prepare file data for Gemini
+                const fileDatas = await Promise.all(files.map(async (file) => {
+                    const base64 = await fileToBase64(file);
+                    return {
+                        mimeType: file.type,
+                        data: base64.split(',')[1]
+                    };
+                }));
+
+                response = await janIACore.processUserMessage(text, onThinkingStep, fileDatas);
             } catch (coreError) {
                 console.error("JanIA Core Critical Failure:", coreError);
                 response = {
@@ -71,20 +126,36 @@ const JanIAAgent = () => {
             }
 
             // Add Bot Message
-            const botMsg = {
+            let botMsg = {
                 type: 'bot',
                 text: response.text,
                 memory_debug: response.plan // Optional: Store for debug view
             };
 
-            // Post-processing triggers
-            if (response.plan && response.plan.next_step.name === 'trigger_auth') {
-                botMsg.component = 'auth';
-            } else if (response.plan && response.plan.next_step.name === 'ask_policy') {
-                botMsg.component = 'policy_consent';
-            } else if (response.text.toLowerCase().includes('registrar')) {
-                // Fallback legacy detection
-                botMsg.component = 'auth';
+            // Post-processing triggers based on the plan or tool execution
+            if (response.plan && response.plan.next_step?.type === 'tool') {
+                const toolName = response.plan.next_step.name;
+                // Execute tool if needed, though processUserMessage should handle it
+                // For component mapping, we just need the tool name
+
+                // --- CUSTOM COMPONENT MAPPING ---
+                if (toolName === 'auth_gate') {
+                    botMsg.component = 'auth_gate';
+                } else if (toolName === 'trigger_auth') {
+                    botMsg.component = 'auth_options';
+                }
+                // Note: 'ask_policy' is now integrated into 'auth_gate'
+            } else {
+                // --- KEYWORD DETECTION ---
+                const lowerText = response.text.toLowerCase();
+
+                if (lowerText.includes('registrar')) {
+                    // Fallback legacy detection for 'registrar' if not caught by tool
+                    botMsg.component = 'auth_options';
+                } else if (lowerText.includes('plan') || lowerText.includes('precio') || lowerText.includes('costo') || lowerText.includes('tarifa') || lowerText.includes('comprar')) {
+                    // Detect intent to view pricing/plans
+                    botMsg.component = 'plan_card';
+                }
             }
 
             setMessages(prev => [...prev, botMsg]);
@@ -101,8 +172,50 @@ const JanIAAgent = () => {
         }
     };
 
-    const handleAuthSelect = (provider) => {
-        setMessages(prev => [...prev, { type: 'bot', text: `Excelente! Iniciando conexión segura con ${provider}... (Simulado)` }]);
+    // Helper: Convert File to Base64
+    const fileToBase64 = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    const handleFileSelect = (e) => {
+        const files = Array.from(e.target.files);
+        const newAttachments = files.map(file => ({
+            file,
+            name: file.name,
+            type: file.type,
+            preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+        }));
+        setAttachments(prev => [...prev, ...newAttachments]);
+    };
+
+    const removeAttachment = (index) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAuthSelect = async (provider) => {
+        if (provider === 'email') {
+            setMessages(prev => [...prev, {
+                type: 'bot',
+                text: '¡Perfecto! Escribe tu correo electrónico a continuación y te enviaré un **Enlace Mágico** 🪄 para entrar sin contraseña.'
+            }]);
+            return;
+        }
+
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: provider,
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) throw error;
+        } catch (error) {
+            console.error("Auth Loop Error:", error);
+            setMessages(prev => [...prev, { type: 'bot', text: 'Hubo un error al intentar conectar. ¿Podemos intentar con otro método?' }]);
+        }
     };
 
     return (
@@ -115,7 +228,7 @@ const JanIAAgent = () => {
 
             {/* SIDEBAR (Gemini Style) */}
             <aside
-                className={`${sidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full w-[280px] md:translate-x-0 md:w-[72px]'} 
+                className={`${sidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full w-[280px] md:translate-x-0 md:w-[72px]'}
                 bg-white/10 backdrop-blur-md flex flex-col transition-all duration-300 ease-in-out z-50 border-r border-white/10 absolute md:relative h-full shadow-xl overflow-visible`}
             >
                 {/* Sidebar Header */}
@@ -154,29 +267,112 @@ const JanIAAgent = () => {
                     </div>
                 </div>
 
-                {/* Realized Appraisals Section */}
-                <div className="flex-none px-4 mb-4">
-                    {sidebarOpen && (
-                        <div className="mb-2 text-xs font-bold text-brand-accent uppercase tracking-wider drop-shadow-sm">Avalúos Realizados</div>
-                    )}
-                    <button
-                        onClick={() => navigate('/avaluo/portales')}
-                        className={`flex items-center gap-3 p-2 rounded-xl ${theme === 'dark' ? 'bg-white/5' : 'bg-brand-coffee-darkest/40'} hover:bg-brand-accent/10 border border-white/5 hover:border-brand-accent/20 w-full text-left group transition-all ${!sidebarOpen && 'justify-center p-2'}`}
-                    >
-                        <div className={`p-1.5 rounded-full bg-brand-accent/10 text-brand-accent group-hover:bg-brand-accent group-hover:text-black transition-colors`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
-                        </div>
-                        {sidebarOpen && (
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-medium text-stone-200 group-hover:text-brand-accent truncate transition-colors">Casa Portales II</span>
-                                <span className="text-sm text-stone-300 truncate opacity-80 group-hover:opacity-100">Ver informe</span>
+                {/* Sidebar Footer */}
+                <div className={`mt-auto p-2 space-y-1 border-t ${theme === 'dark' ? 'border-white/5 bg-[#181818]' : 'border-white/5 bg-brand-coffee-darkest/50'} relative`}>
+
+                    {/* User Profile Section (Integrated in Footer) */}
+                    <div className="relative">
+                        <button
+                            onClick={() => {
+                                setProfileOpen(!profileOpen);
+                                setSettingsOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 p-2 rounded-full transition-all group hover:bg-white/5 ${profileOpen ? 'bg-white/10' : ''} ${!sidebarOpen && 'justify-center'}`}
+                        >
+                            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+                                {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture) ? (
+                                    <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="User" className="w-full h-full object-cover rounded-full transition-transform duration-500 hover:rotate-12" />
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-stone-400 group-hover:text-white transition-transform duration-500 hover:rotate-90">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                    </svg>
+                                )}
+                            </div>
+                            {sidebarOpen && (
+                                <div className="flex items-center justify-between flex-1 min-w-0">
+                                    <div className="flex flex-col text-left min-w-0">
+                                        <span className="text-xs font-bold text-white truncate">
+                                            {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Invitado'}
+                                        </span>
+                                        <span className="text-[10px] text-stone-400 font-medium">
+                                            {user ? 'Plan Activo' : 'Plan Invitado'}
+                                        </span>
+                                    </div>
+                                    <div
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!user) setAuthModalOpen(true);
+                                            else navigate('/planes');
+                                        }}
+                                        className="bg-white/5 border border-white/10 px-2 py-1 rounded-full text-[9px] font-bold text-stone-300 hover:bg-brand-accent hover:text-black transition-all cursor-pointer"
+                                    >
+                                        {user ? 'Mejorar' : 'Acceder'}
+                                    </div>
+                                </div>
+                            )}
+                        </button>
+
+                        {/* PROFILE POPUP (Side Menu) */}
+                        {profileOpen && (
+                            <div className={`absolute left-[105%] bottom-0 w-64 p-3 ${theme === 'dark' ? 'bg-[#1e1e1e] border-[#333]' : 'bg-[#4a3b32] border-white/10'} border rounded-2xl shadow-2xl backdrop-blur-xl z-[60] animate-in fade-in slide-in-from-left-2 duration-200 flex flex-col gap-1`}>
+                                {/* Profile Header content... */}
+                                <div className="px-3 py-3 border-b border-white/10 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-brand-accent/20 border border-brand-accent/30 overflow-hidden flex-shrink-0">
+                                        {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture) ? (
+                                            <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-brand-accent font-bold">
+                                                {user?.user_metadata?.full_name
+                                                    ? user.user_metadata.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                                                    : user?.email ? user.email.substring(0, 2).toUpperCase() : 'ER'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-sm font-bold text-white truncate">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Invitado'}</span>
+                                        <span className="text-[10px] text-stone-500 truncate">{user?.email || 'Regístrate hoy'}</span>
+                                    </div>
+                                </div>
+                                <div className="px-3 py-2">
+                                    <div className={`text-[10px] px-2 py-1 rounded-md font-bold text-center uppercase tracking-wider ${theme === 'dark' ? 'bg-white/5 text-brand-accent' : 'bg-brand-coffee-light/20 text-brand-gold'}`}>
+                                        {user ? 'Plan Café' : 'Plan Invitado'}
+                                    </div>
+                                </div>
+                                {!user ? (
+                                    <button onClick={() => setAuthModalOpen(true)} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors">
+                                        {localStorage.getItem('janIA_has_logged_in') ? (
+                                            <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
+                                                <span className="text-sm text-stone-300 group-hover:text-white font-medium">Iniciar sesión</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
+                                                <span className="text-sm text-stone-300 group-hover:text-white font-medium">Registrarse</span>
+                                            </>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <button onClick={async () => {
+                                        await supabase.auth.signOut();
+                                        janIACore.reset();
+                                        localStorage.removeItem('janIA_chat_messages');
+                                        setMessages([{ type: 'bot', text: 'Soy JanIA, tu experta en análisis inmobiliario. ¿Qué quieres descubrir hoy?', component: 'greeting' }]);
+                                        setProfileOpen(false);
+                                    }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-500/10 text-red-400 text-left group transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
+                                        <span className="text-sm font-bold">Cerrar sesión</span>
+                                    </button>
+                                )}
+                                {user && (
+                                    <button onClick={() => { setProfileOpen(false); navigate('/perfil'); }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors border-t border-white/5 mt-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+                                        <span className="text-sm text-stone-300 group-hover:text-white font-medium">Editar perfil</span>
+                                    </button>
+                                )}
                             </div>
                         )}
-                    </button>
-                </div>
-
-                {/* Sidebar Footer (Settings) */}
-                <div className={`mt-auto p-2 space-y-1 border-t ${theme === 'dark' ? 'border-white/5 bg-[#181818]' : 'border-white/5 bg-brand-coffee-darkest/50'} relative`}>
+                    </div>
 
                     {/* SETTINGS POPUP (Side Menu) */}
                     {settingsOpen && (
@@ -191,7 +387,12 @@ const JanIAAgent = () => {
                             ].map((item, i) => (
                                 <button
                                     key={i}
-                                    onClick={() => item.link ? navigate(item.link) : null}
+                                    onClick={() => {
+                                        if (item.link) {
+                                            setSettingsOpen(false);
+                                            navigate(item.link);
+                                        }
+                                    }}
                                     className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors"
                                 >
                                     {item.icon === 'activity' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
@@ -234,7 +435,7 @@ const JanIAAgent = () => {
                             onClick={() => setSettingsOpen(!settingsOpen)}
                             className={`flex items-center gap-3 p-2 rounded-full hover:bg-white/5 w-full text-left group ${!sidebarOpen && 'justify-center'} ${settingsOpen ? 'bg-white/10 text-white' : ''}`}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white transition-transform duration-500 hover:rotate-90"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.581-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-stone-400 group-hover:text-white transition-transform duration-500 hover:rotate-90"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.581-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             {sidebarOpen && <span className="text-sm text-stone-300 group-hover:text-white">Configuración</span>}
                         </button>
                     </div>
@@ -269,7 +470,7 @@ const JanIAAgent = () => {
                             <span className="text-[10px] md:text-xs font-bold text-brand-accent tracking-wider">VECY AVALÚOS</span>
                             <span className="text-[8px] md:text-[10px] text-[#00ff22] animate-pulse">● Conectado</span>
                         </div>
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-neutral-800/60 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-brand-accent/50 transition-all overflow-hidden p-1.5 backdrop-blur-md border border-white/10">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-neutral-900/80 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-brand-accent/50 transition-all overflow-hidden p-1.5 backdrop-blur-md border border-white/10 shadow-lg">
                             <img
                                 src="/animacion-vecy-blanco.gif"
                                 alt="User"
@@ -300,6 +501,22 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
+                                    {/* User Avatar if User Message */}
+                                    {msg?.type === 'user' && (
+                                        <div className="flex items-center gap-3 mb-2 flex-row-reverse">
+                                            <div className="w-10 h-10 rounded-full bg-brand-accent/20 backdrop-blur-md border border-brand-accent/30 overflow-hidden flex-shrink-0">
+                                                {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture) ? (
+                                                    <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="Tú" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-brand-accent font-bold">
+                                                        {user?.email ? user.email.substring(0, 2).toUpperCase() : 'A'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="text-xs font-bold text-white/50">Tú</span>
+                                        </div>
+                                    )}
+
                                     {/* Greetings / Hero Section - ONLY SHOW IF MESSAGES EMPTY (or only 1 greeting) AND LAST MESSAGE IS NOT USER */}
                                     {messages.length <= 1 && msg?.component === 'greeting' ? (
                                         // Special Greeting Layout (Centered)
@@ -309,88 +526,137 @@ const JanIAAgent = () => {
                                                 <div className="h-[20vh] md:h-[30vh] max-h-[350px] min-h-[150px] flex items-center justify-center mb-4">
                                                     <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl" />
                                                 </div>
-                                                <h1 className="text-3xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">Hola, soy JanIA</h1>
+                                                <h1 className="text-3xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">
+                                                    Hola{user ? `, ${user.user_metadata?.full_name?.split(' ')[0] || user.email.split('@')[0]}` : ''}, soy JanIA
+                                                </h1>
                                                 <p className="text-lg md:text-xl text-stone-300 font-light max-w-2xl mx-auto px-4">Tu avaluadora experta ¿Qué inmueble quieres avaluar?</p>
                                             </div>
 
-                                            {/* Bottom Section: Suggestions (Smashed to bottom) */}
-                                            <div className="w-full pt-8 pb-4">
-                                                <div className="grid grid-cols-3 gap-2 md:gap-4 max-w-3xl mx-auto px-0">
+                                            <div className="w-full pt-4 pb-4">
+                                                <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 max-w-4xl mx-auto px-4">
                                                     {[
-                                                        { icon: 'home', text: 'Avaluar Inmueble', cmd: 'Quiero avaluar un inmueble' },
-                                                        { icon: 'doc', text: 'Revisar Docs', cmd: 'Quiero revisar unos documentos' },
-                                                        { icon: 'user', text: 'Registrarme', cmd: 'Quiero guardar mi progreso (Registrarme)' }
+                                                        { icon: 'home', text: 'Avaluar Propiedad', cmd: 'Quiero un avalúo profesional' },
+                                                        { icon: 'doc', text: 'Cargar Archivos', cmd: 'Necesito procesar archivos' },
+                                                        { icon: 'user', text: localStorage.getItem('janIA_has_logged_in') ? 'Iniciar sesión' : 'Registrarse', cmd: 'AUTH_TRIGGER' }
                                                     ].map((chip, i) => (
                                                         <button
                                                             key={i}
-                                                            onClick={() => handleSendMessage(chip.cmd)}
-                                                            className="bg-white/10 hover:bg-white/20 p-2 md:p-4 rounded-xl md:rounded-2xl border border-white/20 hover:border-brand-accent/30 transition-all group backdrop-blur-md flex flex-row items-center gap-2 md:gap-3 justify-start overflow-hidden w-full"
+                                                            onClick={() => {
+                                                                if (chip.cmd === 'AUTH_TRIGGER') {
+                                                                    setAuthModalOpen(true);
+                                                                } else {
+                                                                    handleSendMessage(chip.cmd);
+                                                                }
+                                                            }}
+                                                            className="group flex items-center gap-3 bg-white/[0.05] hover:bg-white/[0.12] py-2.5 px-6 rounded-full border border-white/10 hover:border-brand-accent/50 transition-all duration-300 backdrop-blur-md shadow-lg w-[240px] md:w-auto min-w-[180px]"
                                                         >
-                                                            <span className="p-1 md:p-2 rounded-full bg-neutral-800/60 text-brand-accent flex-shrink-0" style={{ filter: 'sepia(0.3)' }}>
-                                                                {chip.icon === 'home' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
-                                                                {chip.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
-                                                                {chip.icon === 'user' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>}
-                                                            </span>
-                                                            <span className="text-[9px] md:text-sm font-medium text-stone-200 leading-tight flex-grow text-center">{chip.text}</span>
+                                                            <div className="w-8 h-8 rounded-full bg-neutral-900/80 flex items-center justify-center text-brand-accent group-hover:bg-brand-accent group-hover:text-black transition-all duration-300 flex-shrink-0">
+                                                                {chip.icon === 'home' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
+                                                                {chip.icon === 'doc' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+                                                                {chip.icon === 'user' && <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>}
+                                                            </div>
+                                                            <span className="text-sm font-bold text-white group-hover:text-brand-accent transition-colors truncate">{chip.text}</span>
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
                                         </div>
                                     ) : (
-                                        // STANDARD BUBBLE WITH MARKDOWN
-                                        <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-lg backdrop-blur-sm ${msg?.type === 'user'
-                                            ? 'bg-brand-accent text-black font-bold rounded-tr-sm' // High contrast: Pure Black on Gold
-                                            : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
-                                            }`}>
-
-                                            {/* MARKDOWN RENDERING SAFEGUARD - Simplified to avoid plugin crashes */}
-                                            {/* MARKDOWN RENDERING SAFEGUARD */}
-                                            {msg?.text ? (
-                                                <div className={`prose prose-sm max-w-none ${msg?.type === 'user' ? 'text-black prose-p:text-black prose-headings:text-black prose-strong:text-black' : 'prose-invert'}`}>
-                                                    <ReactMarkdown
-                                                        components={{
-                                                            strong: ({ children }) => <span className="font-bold text-brand-accent">{children}</span>,
-                                                            strong: ({ children }) => <span className="font-bold text-brand-accent">{children}</span>,
-                                                            a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-accent border-b border-brand-accent/50 hover:text-white hover:border-white transition-all cursor-pointer no-underline">{children}</a>,
-                                                            ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>,
-                                                            ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>,
-                                                            li: ({ children }) => <li className="text-stone-300">{children}</li>,
-                                                            p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
-                                                        }}
-                                                    >
-                                                        {String(msg.text)}
-                                                    </ReactMarkdown>
+                                        <>
+                                            {/* User Message Attachments Preview */}
+                                            {msg?.type === 'user' && msg?.attachments?.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mb-2 justify-end">
+                                                    {msg.attachments.map((att, i) => (
+                                                        <div key={i} className="bg-white/10 p-2 rounded-xl border border-white/20 flex items-center gap-2 max-w-[200px]">
+                                                            {att.preview ? (
+                                                                <img src={att.preview} className="w-8 h-8 rounded object-cover" alt="prev" />
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded bg-brand-accent/20 flex items-center justify-center text-brand-accent">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                                                </div>
+                                                            )}
+                                                            <span className="text-[10px] text-stone-200 truncate font-medium">{att.name}</span>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ) : (
-                                                <p className="text-stone-400 italic">Mensaje sin contenido</p>
                                             )}
+
+                                            {/* Facade Visualization Component */}
+                                            {msg?.text?.includes('[VISIÓN DE FACHADA]:') && (
+                                                <div className="mt-3 rounded-2xl overflow-hidden border border-brand-accent/30 shadow-2xl animate-glow">
+                                                    <img
+                                                        src={msg.text.split('[VISIÓN DE FACHADA]:')[1].trim()}
+                                                        alt="Fachada del inmueble"
+                                                        className="w-full h-auto object-cover"
+                                                    />
+                                                    <div className="bg-black/60 backdrop-blur-md p-2 text-[10px] text-brand-accent font-bold text-center">
+                                                        VISTA SATELITAL Y DE CALLE - VECY INTELLIGENCE 🔍🌐
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* STANDARD BUBBLE WITH MARKDOWN */}
+                                            <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-lg backdrop-blur-sm ${msg?.type === 'user'
+                                                ? 'bg-brand-accent text-black font-bold rounded-tr-sm' // High contrast: Pure Black on Gold
+                                                : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
+                                                }`}>
+
+                                                {/* MARKDOWN RENDERING SAFEGUARD - Simplified to avoid plugin crashes */}
+                                                {/* MARKDOWN RENDERING SAFEGUARD */}
+                                                {msg?.text ? (
+                                                    <div className={`prose prose-sm max-w-none ${msg?.type === 'user' ? 'text-black prose-p:text-black prose-headings:text-black prose-strong:text-black' : 'prose-invert'}`}>
+                                                        <ReactMarkdown
+                                                            components={{
+                                                                strong: ({ children }) => <span className="font-bold text-brand-accent">{children}</span>,
+                                                                a: ({ node, ...props }) => <a {...props} className="text-brand-accent underline hover:text-brand-gold" target="_blank" rel="noopener noreferrer" />,
+                                                                ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>,
+                                                                li: ({ children }) => <li className="text-stone-300">{children}</li>,
+                                                                p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                                                            }}
+                                                        >
+                                                            {String(msg.text)}
+                                                        </ReactMarkdown>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-stone-400 italic">Mensaje sin contenido</p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Policy & Auth Gate Component */}
+                                    {msg?.component === 'auth_gate' && (
+                                        <div className="mt-4 ml-2 flex flex-col gap-4 animate-fade-in-up max-w-[90%]">
+                                            <div className={`p-4 rounded-2xl border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-brand-coffee-darkest/10 border-brand-coffee-darkest/20'} backdrop-blur-xl shadow-2xl`}>
+                                                <div className="flex items-center gap-3 mb-3 text-brand-accent">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.744c0 5.548 4.076 10.21 9 11.109 4.924-.899 9-5.561 9-11.109 0-1.292-.204-2.536-.582-3.704A11.959 11.959 0 0112 2.714z" /></svg>
+                                                    <span className="font-bold uppercase tracking-widest text-xs">Portal de Seguridad & Identidad</span>
+                                                </div>
+                                                <p className="text-stone-300 text-sm mb-4 leading-relaxed">
+                                                    Para garantizar la **precisión técnica** y proteger tu información, por favor acepta mis <Link to="/privacidad" className="underline hover:text-brand-accent">Políticas de Privacidad</Link> y <Link to="/terminos" className="underline hover:text-brand-accent">Términos</Link> antes de iniciar el registro. 🤝✨
+                                                </p>
+                                                <div className="flex flex-col gap-3">
+                                                    <button
+                                                        onClick={() => {
+                                                            janIACore.memory.policies_accepted = true;
+                                                            janIACore.saveState();
+                                                            // Logic: Accept triggers AuthOptions
+                                                            const notifyMsg = { id: Date.now(), type: 'bot', text: '¡Excelente! Ahora elige cómo prefieres guardar tu progreso en la nube:', component: 'auth_options' };
+                                                            setMessages(prev => [...prev, notifyMsg]);
+                                                        }}
+                                                        className="bg-brand-emerald hover:bg-emerald-400 text-black px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2"
+                                                    >
+                                                        SÍ, ACEPTO Y QUIERO REGISTRARME 💎
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
-                                    {/* Render Components inside Chat (Auth Buttons, Policies, etc) */}
-                                    {msg?.component === 'auth' && (
-                                        <div className="mt-4 ml-2">
+                                    {/* Legacy Component Support / Specific Auth Options */}
+                                    {msg?.component === 'auth_options' && (
+                                        <div className="mt-4 ml-2 animate-fade-in-up">
                                             <AuthOptions onSelect={handleAuthSelect} />
-                                        </div>
-                                    )}
-
-                                    {msg?.component === 'policy_consent' && (
-                                        <div className="mt-4 ml-2 flex gap-3 animate-fade-in-up">
-                                            <button
-                                                onClick={() => handleSendMessage("Sí acepto las políticas y condiciones")}
-                                                className="bg-brand-emerald/20 hover:bg-brand-emerald text-brand-emerald hover:text-white border border-brand-emerald px-6 py-2 rounded-full font-bold transition-all shadow-lg backdrop-blur-md flex items-center gap-2"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                                                Sí acepto
-                                            </button>
-                                            <button
-                                                onClick={() => handleSendMessage("No acepto")}
-                                                className="bg-red-500/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/50 px-6 py-2 rounded-full font-bold transition-all shadow-lg backdrop-blur-md flex items-center gap-2"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                                No acepto
-                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -417,8 +683,44 @@ const JanIAAgent = () => {
                 {/* Input Area */}
                 <div className="w-full p-4 flex justify-center bg-transparent flex-none z-10">
                     <div className="w-full max-w-3xl space-y-3">
+                        {/* Attachments Preview Area */}
+                        {attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-2 px-4 pb-2">
+                                {attachments.map((att, i) => (
+                                    <div key={i} className="relative group bg-white/5 border border-white/10 rounded-xl p-2 pr-8 flex items-center gap-2 animate-fade-in">
+                                        {att.preview ? (
+                                            <img src={att.preview} alt="prev" className="w-8 h-8 rounded object-cover" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                            </div>
+                                        )}
+                                        <span className="text-[10px] text-stone-300 truncate max-w-[100px]">{att.name}</span>
+                                        <button
+                                            onClick={() => removeAttachment(i)}
+                                            className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="bg-white/10 border border-white/20 rounded-full px-4 py-3 md:py-4 flex items-center gap-4 transition-all shadow-lg backdrop-blur-md">
-                            <button className="p-2 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors" title="Adjuntar Documento">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileSelect}
+                                multiple
+                                className="hidden"
+                                accept="image/*,.pdf"
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="p-2 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors"
+                                title="Adjuntar (PDF/Imágenes)"
+                            >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                             </button>
 
@@ -426,20 +728,17 @@ const JanIAAgent = () => {
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(input)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(input, attachments.map(a => a.file))}
                                 placeholder="Pega un link, escribe un mensaje o sube un PDF..."
-                                className="flex-grow bg-transparent border-none focus:ring-0 outline-none text-stone-200 placeholder-stone-500 text-sm md:text-base px-0 shadow-none"
+                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm"
                             />
 
-                            <button className="p-2 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors" title="Enviar Audio">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" /></svg>
-                            </button>
-
                             <button
-                                onClick={() => handleSendMessage(input)}
-                                className="p-2 rounded-full bg-white text-black hover:bg-stone-200 transition-colors"
+                                onClick={() => handleSendMessage(input, attachments.map(a => a.file))}
+                                disabled={!input.trim() && attachments.length === 0}
+                                className={`p-2 rounded-full transition-all ${input.trim() || attachments.length > 0 ? 'bg-brand-accent text-black scale-110 shadow-lg' : 'text-stone-500'}`}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
                             </button>
                         </div>
 
@@ -451,6 +750,50 @@ const JanIAAgent = () => {
                 </div>
 
             </main>
+
+            {/* AUTH MODAL OVERLAY */}
+            {authModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="relative w-full max-w-sm">
+                        <button
+                            onClick={() => setAuthModalOpen(false)}
+                            className="absolute -top-12 right-0 p-2 text-stone-400 hover:text-white transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        <div className="bg-gradient-to-br from-[#2c2420] to-[#1a1512] border border-brand-gold/20 rounded-3xl shadow-2xl overflow-hidden p-6 relative">
+                            {/* Background Decor */}
+                            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.05),_transparent_60%)] pointer-events-none" />
+
+                            <div className="text-center mb-6 relative z-10">
+                                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#4a3b32] to-[#2c2420] rounded-full flex items-center justify-center border border-brand-gold/30 mb-4 shadow-xl shadow-black/30">
+                                    <img src="/perfil.png" alt="JanIA" className="w-full h-full object-cover rounded-full" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-1 tracking-wide">Únete a Vecy Avalúos</h3>
+                                <p className="text-xs text-brand-gold/80 font-medium">Guarda tus chats y gestiona tus avalúos</p>
+                            </div>
+
+                            <AuthOptions onSelect={(provider) => {
+                                if (provider === 'email') {
+                                    setAuthModalOpen(false);
+                                    handleAuthSelect('email'); // Triggers chat flow for email
+                                } else {
+                                    handleAuthSelect(provider); // Handles OAuth redirect
+                                }
+                            }} />
+
+                            <div className="mt-6 text-center">
+                                <p className="text-[10px] text-stone-500">
+                                    Al continuar, aceptas nuestros <Link to="/terminos" onClick={() => setAuthModalOpen(false)} className="underline hover:text-white">Términos</Link> y <Link to="/privacidad" onClick={() => setAuthModalOpen(false)} className="underline hover:text-white">Política de Privacidad</Link>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

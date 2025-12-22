@@ -2,6 +2,8 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AvaluoPortales from './pages/AvaluoPortales';
 const JanIAAgent = lazy(() => import('./pages/JanIAAgent'));
+const Planes = lazy(() => import('./pages/Planes'));
+const Perfil = lazy(() => import('./pages/Perfil'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsAndConditions = lazy(() => import('./pages/Terms'));
 
@@ -22,6 +24,10 @@ function App() {
 
                     {/* Report Page (Dynamic: :id can be 'portales' or a DB ID) */}
                     <Route path="/avaluo/:id" element={<AvaluoPortales />} />
+
+                    {/* Navigation Pages */}
+                    <Route path="/planes" element={<Planes />} />
+                    <Route path="/perfil" element={<Perfil />} />
 
                     {/* Legal Pages */}
                     <Route path="/privacidad" element={<PrivacyPolicy />} />
