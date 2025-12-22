@@ -40,24 +40,32 @@ const JanIAAgent = () => {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null); // NEW: Ref for hidden input
 
-    // Supabase Auth Listener
+    // Supabase Auth Listener & Persistence Fix
     useEffect(() => {
         const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                setUser(session.user);
-                janIACore.updateUserIdentity(session.user);
-                localStorage.setItem('janIA_has_logged_in', 'true');
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) console.warn("Session check error:", error);
+
+                if (session?.user) {
+                    setUser(session.user);
+                    janIACore.updateUserIdentity(session.user);
+                    localStorage.setItem('janIA_has_logged_in', 'true');
+                }
+            } catch (err) {
+                console.error("Auth check failed:", err);
             }
         };
 
         checkUser();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             const currentUser = session?.user || null;
             setUser(currentUser);
-            janIACore.updateUserIdentity(currentUser);
-            if (currentUser) localStorage.setItem('janIA_has_logged_in', 'true');
+            if (currentUser) {
+                janIACore.updateUserIdentity(currentUser);
+                localStorage.setItem('janIA_has_logged_in', 'true');
+            }
         });
 
         return () => subscription.unsubscribe();
