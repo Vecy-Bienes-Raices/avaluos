@@ -73,6 +73,17 @@ export class JanIACore {
     }
 
     /**
+     * Updates the agent's memory with the user's identity
+     */
+    updateUserIdentity(user) {
+        if (!user) return;
+        this.memory.user_name = user.user_metadata?.full_name || user.email?.split('@')[0];
+        this.memory.user_id = user.id;
+        this.memory.user_email = user.email;
+        this.memory.policies_accepted = true; // Assume accepted if logged in/registered
+    }
+
+    /**
      * The Main Cognitive Loop: Observe -> Think -> Act -> Respond
      */
     /**

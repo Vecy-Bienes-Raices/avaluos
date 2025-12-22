@@ -11,10 +11,12 @@ import AuthOptions from '../components/VecyPhoenix/AuthOptions';
 const JanIAAgent = () => {
     // Auth & Identity State
     const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true); // Prevent flicker
     const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar closed by default
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false); // New State: Profile Popup
     const [authModalOpen, setAuthModalOpen] = useState(false); // New State: Auth Modal
+    const [avatarError, setAvatarError] = useState(false); // Handle broken profile images
     const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
 
@@ -40,33 +42,55 @@ const JanIAAgent = () => {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null); // NEW: Ref for hidden input
 
-    // Supabase Auth Listener & Persistence Fix
+    // Reset avatar error when user changes
     useEffect(() => {
-        const checkUser = async () => {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) console.warn("Session check error:", error);
+        setAvatarError(false);
+    }, [user]);
 
+    // Supabase Auth Listener (Robust Persistence)
+    useEffect(() => {
+        // 1. Setup Listener First (Catch all events)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            // console.log("Auth Event:", event); // Debug
+
+            if (session?.user) {
+                setUser(session.user);
+                janIACore.updateUserIdentity(session.user); // Sync Brain
+                localStorage.setItem('janIA_has_logged_in', 'true');
+
+                // Close modal if open
+                setAuthModalOpen(false);
+            } else {
+                // Only clear if explicitly signed out or no session
+                if (event === 'SIGNED_OUT') {
+                    setUser(null);
+                }
+            }
+            setAuthLoading(false); // Stop loading once we have a definitive answer
+        });
+
+        // 2. Initial Check (Only if not handling a redirect)
+        const checkCurrentSession = async () => {
+            // If handling an OAuth redirect, let onAuthStateChange handle it to avoid race
+            if (window.location.hash && window.location.hash.includes('access_token')) {
+                return;
+            }
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
                 if (session?.user) {
                     setUser(session.user);
                     janIACore.updateUserIdentity(session.user);
                     localStorage.setItem('janIA_has_logged_in', 'true');
                 }
-            } catch (err) {
-                console.error("Auth check failed:", err);
+            } catch (e) {
+                console.warn("Auth init error:", e);
+            } finally {
+                setAuthLoading(false);
             }
         };
 
-        checkUser();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            const currentUser = session?.user || null;
-            setUser(currentUser);
-            if (currentUser) {
-                janIACore.updateUserIdentity(currentUser);
-                localStorage.setItem('janIA_has_logged_in', 'true');
-            }
-        });
+        checkCurrentSession();
 
         return () => subscription.unsubscribe();
     }, []);
@@ -288,23 +312,45 @@ const JanIAAgent = () => {
                             className={`w-full flex items-center gap-3 p-2 rounded-full transition-all group hover:bg-white/5 ${profileOpen ? 'bg-white/10' : ''} ${!sidebarOpen && 'justify-center'}`}
                         >
                             <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
-                                {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture) ? (
-                                    <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="User" className="w-full h-full object-cover rounded-full transition-transform duration-500 hover:rotate-12" />
+                                {(!avatarError && (user?.user_metadata?.avatar_url || user?.user_metadata?.picture)) ? (
+                                    <img
+                                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                                        alt="User"
+                                        onError={() => setAvatarError(true)}
+                                        className="w-full h-full object-cover rounded-full transition-transform duration-500 hover:rotate-12 aspect-square"
+                                    />
                                 ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-stone-400 group-hover:text-white transition-transform duration-500 hover:rotate-90">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                    </svg>
+                                    <div className="w-full h-full flex items-center justify-center bg-brand-accent/20 rounded-full">
+                                        {user?.user_metadata?.full_name ? (
+                                            <span className="text-[10px] font-bold text-brand-accent">
+                                                {user.user_metadata.full_name.charAt(0).toUpperCase()}
+                                            </span>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white transition-transform duration-500 hover:rotate-90">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                            </svg>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                             {sidebarOpen && (
                                 <div className="flex items-center justify-between flex-1 min-w-0">
                                     <div className="flex flex-col text-left min-w-0">
-                                        <span className="text-xs font-bold text-white truncate">
-                                            {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Invitado'}
-                                        </span>
-                                        <span className="text-[10px] text-stone-400 font-medium">
-                                            {user ? 'Plan Activo' : 'Plan Invitado'}
-                                        </span>
+                                        {authLoading ? (
+                                            <div className="h-8 flex flex-col justify-center gap-1">
+                                                <div className="h-2 w-20 bg-white/10 rounded animate-pulse"></div>
+                                                <div className="h-2 w-12 bg-white/10 rounded animate-pulse"></div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="text-xs font-bold text-white truncate">
+                                                    {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Invitado'}
+                                                </span>
+                                                <span className="text-[10px] text-stone-400 font-medium">
+                                                    {user ? 'Plan Activo' : 'Plan Invitado'}
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                     <div
                                         onClick={(e) => {
