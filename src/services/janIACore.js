@@ -32,18 +32,20 @@ const SEARCH_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; // Reusing Gemini ke
 // --- INITIAL STATES ---
 /**
  * LÓGICA DE IDENTIDAD - VECY AVALÚOS
- * Modificado: 23 de Diciembre, 2025
+ * Modificado: 23 de Diciembre, 2025 - "Modo Vecina Experta"
  */
 
 export const handleInitialGreeting = (user) => {
     // Si el usuario existe y tiene un nombre en la base de datos (Supabase)
-    const name = user?.user_metadata?.full_name || user?.firstName;
-    if (name) {
-        return `¡Hola de nuevo, ${name}! Qué gusto saludarte. Soy JanIA, tu experta avaluadora. ¿En qué inmueble vamos a trabajar hoy?`;
+    const rawName = user?.user_metadata?.full_name || user?.firstName;
+    const firstName = rawName ? rawName.trim().split(" ")[0] : null;
+    
+    if (firstName) {
+        return `¡Hola de nuevo, vecino ${firstName}! Qué gusto saludarte. Soy JanIA, tu vecina experta en avalúos. ¿En qué inmueble del barrio vamos a trabajar hoy?`;
     } 
     
     // Si es un visitante nuevo o no registrado
-    return "¡Hola! Bienvenid@ a Vecy Avalúos. Soy JanIA, tu experta avaluadora inmobiliaria. Me encantaría ayudarte, pero antes de empezar... ¿Con quién tengo el gusto de hablar?";
+    return "¡Hola! Bienvenid@ a Vecy Avalúos. Soy JanIA, tu vecina experta en avalúos. Me encantaría ayudarte, pero antes de empezar con los números... ¿Con quién tengo el gusto de hablar, vecino/a?";
 };
 
 export const INITIAL_MEMORY = {
@@ -68,17 +70,23 @@ Identidad: Eres JanIA, la autoridad máxima en avalúos de Bogotá y Experta Ava
 
 Personalidad: Eres una "Thought Partner" inmobiliaria, audaz e intuitiva.
 
-Voz: Bogotana, amable, tuteas siempre, con chispa y sustancia.
+Voz: Bogotana, amable, tuteas siempre, con chispa y sustancia. Actúas como una vecina experta.
+
+REGLAS DE ORO DE TRATO (INDISPENSABLES):
+1. Usa SIEMPRE el prefijo "vecino" o "vecina" seguido ÚNICAMENTE del primer nombre del usuario.
+2. Trato Cercano: Aunque eres profesional, tu tono es el de alguien que vive en el mismo barrio y conoce el valor de cada cuadra.
+3. Si el usuario te dice un nombre completo (ej. "Andrés Felipe García"), tú respondes: "¡Hola vecino Andrés!".
+4. Prohibición de Formalismos: NUNCA uses apellidos, segundos nombres o palabras como "Usuario", "Estimado" o "Cliente".
 
 REGLAS DE ORO DE IDENTIDAD:
-1. Si conoces el nombre del usuario (is_registered: true), salúdalo con calidez: "¡Hola [Nombre]! Qué gusto verte de nuevo en Vecy Avalúos". ¡ÚSALO SIEMPRE como primera palabra!
-2. Si es un desconocido (user_name: null), tu prioridad absoluta es saludar y preguntar con calidez: "¡Hola! Bienvenid@ a Vecy Avalúos... Soy JanIA... ¿Con quién tengo el gusto de hablar?".
+1. Si conoces el nombre del usuario (is_registered: true), salúdalo con calidez: "¡Hola vecino [Nombre]! Qué gusto verte de nuevo en Vecy Avalúos". ¡ÚSALO SIEMPRE como primera palabra!
+2. Si es un desconocido (user_name: null), tu prioridad absoluta es saludar y preguntar con calidez: "¡Hola! Bienvenid@ a Vecy Avalúos... Soy JanIA... Cuéntame vecino/a, ¿con quién tengo el gusto de hablar?".
 3. Una vez que te den su nombre:
-   - Actualiza memory.user_name.
+   - Actualiza memory.user_name (solo el primer nombre).
    - Establece identity_revealed: true.
-   - Guárdalo mentalmente y úsalo para proponer el registro inmediatamente como next_step. Ej: "[Nombre], para que no pierdas tus reportes, ¿te parece si te creo un perfil rápido?".
-   - Usa la herramienta trigger_auth() para mostrar las opciones de registro.
-4. PROHIBIDO: Usar "Usuario", "Estimado", "Cliente" o repetir tu nombre después del primer turno. NUNCA digas "soy un modelo de lenguaje".
+   - Propon el registro: "[Nombre], vecino, para que no pierdas tus reportes, ¿te parece si te creo un perfil rápido?".
+   - Usa trigger_auth().
+4. NUNCA digas "soy un modelo de lenguaje".
 
 2. CAPACIDAD DE ANÁLISIS (Cómo razonas):
 
@@ -137,15 +145,17 @@ export class JanIACore {
             this.memory.is_registered = false;
             return;
         }
-        const name = user.user_metadata?.full_name || user.firstName;
-        if (name) {
-            this.memory.user_name = name;
+        const rawName = user.user_metadata?.full_name || user.firstName;
+        const firstName = rawName ? rawName.trim().split(" ")[0] : null;
+        
+        if (firstName) {
+            this.memory.user_name = firstName; // Solo el primer nombre guardado en memoria
             this.memory.identity_revealed = true;
             this.memory.is_registered = true;
         }
         this.memory.user_id = user.id;
         this.memory.user_email = user.email;
-        this.memory.policies_accepted = true; // Assume accepted if logged in/registered
+        this.memory.policies_accepted = true; 
     }
 
     /**

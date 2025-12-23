@@ -600,9 +600,9 @@ const JanIAAgent = () => {
                                                     <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl" />
                                                 </div>
                                                 <h1 className="text-3xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">
-                                                    Hola{user ? `, ${user.user_metadata?.full_name?.split(' ')[0] || user.email.split('@')[0]}` : ''}, soy JanIA
+                                                    Hola{user ? `, vecino ${user.user_metadata?.full_name?.trim().split(' ')[0] || user.email.split('@')[0]}` : ', vecino/a'}
                                                 </h1>
-                                                <p className="text-lg md:text-xl text-stone-300 font-light max-w-2xl mx-auto px-4">Tu avaluadora experta ¿Qué inmueble quieres avaluar?</p>
+                                                <p className="text-lg md:text-xl text-stone-300 font-light max-w-2xl mx-auto px-4">Soy JanIA, tu vecina experta ¿Qué inmueble vamos a avaluar hoy?</p>
                                             </div>
 
                                             <div className="w-full pt-4 pb-4">
