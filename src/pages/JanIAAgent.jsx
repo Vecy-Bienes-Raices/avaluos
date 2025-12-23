@@ -818,7 +818,7 @@ const JanIAAgent = () => {
                             </svg>
                         </button>
 
-                        <div className="bg-gradient-to-br from-[#2c2420] to-[#1a1512] border border-brand-gold/20 rounded-3xl shadow-2xl overflow-hidden p-6 relative">
+                        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-lg overflow-hidden p-6 relative">
                             {/* Background Decor */}
                             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.05),_transparent_60%)] pointer-events-none" />
 
