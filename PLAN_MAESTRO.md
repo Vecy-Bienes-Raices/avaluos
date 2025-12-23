@@ -349,10 +349,20 @@ Esta lista representa los modelos disponibles y soportados para diversas tareas 
 * **Glassmorphism Pro:** Aplicado efecto `bg-white/10 backdrop-blur-md` al Modal de Registro en `JanIAAgent.jsx` siguiendo especificaciones de diseño Apple-style.
 * **Branding Phoenix:** Refinamiento de logos y avatares en el Header.
 
-### D. SEO y Visibilidad
+### E. Personalidad de Vecindad y Trato Cercano (JanIA 3.0)
 
-* **Sitemap & Robots:** Archivos generados en `public/`.
-* **JSON-LD:** Datos estructurados inyectados en `index.html` para mejor indexación de Google.
+* **Regla de Oro de Trato:** Implementado el prefijo mandatory **"vecino"** o **"vecina"** seguido solo por el primer nombre del usuario.
+* **Detección de Género:** Creación de `getNeighborGreeting` en `janIACore.js` que utiliza el razonamiento de la Serie 3 para determinar el trato correcto según el nombre.
+* **Limpieza de Identidad:** El sistema ahora realiza un split del nombre completo para evitar saludos con apellidos o formalismos notariales innecesarios.
+* **Hero Section Dinámico:** Saludo en la UI sincronizado con el trato dinámico para romper el hielo instantáneamente.
+
+### F. Flujo de Avalúo 2.0 (Fase de Confianza y Captura)
+
+* **Paso 1: Autoridad Bogotá/Políticas:** JanIA ahora establece autoridad técnica explicando el uso de datos del **POT (Plan de Ordenamiento Territorial)** y **Catastro Distrital** antes de iniciar el proceso.
+* **Paso 2: Bifurcación de Ingreso:** Implementadas dos rutas de captura:
+  * **Avalúo Asistido:** Conversación guiada para quienes no tienen documentos.
+  * **Avalúo Documental:** Uso de visión multimodal (Gemini Vision) para leer datos técnicos de fotos de Impuesto Predial o Certificado de Tradición.
+* **Gatillos de Workflow:** Soporte para `trigger_file_upload` (abre el selector de archivos automáticamente) y renderizado de componentes `options` interactivos en el chat.
 
 ---
-Última actualización: 23 de Diciembre, 2025 - Agente Antigravity (Dual Brain Logic)
+Última actualización: 23 de Diciembre, 2025 - Agente Antigravity (JanIA 3.0 Authority & Soul Logic)
