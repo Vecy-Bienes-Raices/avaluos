@@ -38,5 +38,24 @@ export const workflowService = {
             options: ["Ver Políticas", "Aceptar y Continuar"],
             nextStep: "legal_consent"
         };
+    },
+
+    /**
+     * FASE 2: SELECCIÓN DE MÉTODO
+     * Bifurca el flujo entre Asistido (Conversación) y Documental (Visión).
+     */
+    handleEntrySelection: (option) => {
+        if (option.toLowerCase().includes('documental') || option.toLowerCase().includes('papeles')) {
+            return {
+                text: "¡Perfecto! Dale al botón del clip (📎) y sube el **Impuesto Predial** o el **Certificado de Tradición**. Yo usaré mi visión experta para extraer los datos técnicos en un segundo. 💎🔍",
+                action: "trigger_file_upload", 
+                nextStep: "processing_document"
+            };
+        }
+        
+        return {
+            text: "¡Súper! Empecemos con lo básico para que no se nos escape nada: ¿En qué **barrio** de Bogotá se encuentra tu inmueble? 🏠📍",
+            nextStep: "assisted_flow_location"
+        };
     }
 };

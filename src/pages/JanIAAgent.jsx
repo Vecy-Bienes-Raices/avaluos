@@ -187,10 +187,9 @@ const JanIAAgent = () => {
             };
 
             // Post-processing triggers based on the plan or tool execution
-            if (response.plan && response.plan.next_step?.type === 'tool') {
-                const toolName = response.plan.next_step.name;
-                // Execute tool if needed, though processUserMessage should handle it
-                // For component mapping, we just need the tool name
+            if (response.plan) {
+                const step = response.plan.next_step;
+                const toolName = step?.type === 'tool' ? step.name : null;
 
                 // --- CUSTOM COMPONENT MAPPING ---
                 if (toolName === 'auth_gate' || toolName === 'trigger_auth') {
@@ -199,15 +198,22 @@ const JanIAAgent = () => {
                     botMsg.component = 'options';
                     botMsg.options = ["Ver Políticas", "Aceptar y Continuar"];
                 }
+
+                // Handle Workflow Actions - Step 2: Documental
+                const action = response.plan.update_memory?.last_action || step?.name;
+                if (action === 'trigger_file_upload') {
+                    // Trigger the hidden file input ref with a small delay for UI smoothness
+                    setTimeout(() => {
+                        fileInputRef.current?.click();
+                    }, 500);
+                }
             } else {
-                // --- KEYWORD DETECTION ---
+                // --- KEYWORD DETECTION (Fallback) ---
                 const lowerText = response.text.toLowerCase();
 
                 if (lowerText.includes('registrar')) {
-                    // Fallback legacy detection for 'registrar' if not caught by tool
                     botMsg.component = 'auth_options';
                 } else if (lowerText.includes('plan') || lowerText.includes('precio') || lowerText.includes('costo') || lowerText.includes('tarifa') || lowerText.includes('comprar')) {
-                    // Detect intent to view pricing/plans
                     botMsg.component = 'plan_card';
                 }
             }
