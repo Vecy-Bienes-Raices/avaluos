@@ -364,5 +364,12 @@ Esta lista representa los modelos disponibles y soportados para diversas tareas 
   * **Avalúo Documental:** Uso de visión multimodal (Gemini Vision) para leer datos técnicos de fotos de Impuesto Predial o Certificado de Tradición.
 * **Gatillos de Workflow:** Soporte para `trigger_file_upload` (abre el selector de archivos automáticamente) y renderizado de componentes `options` interactivos en el chat.
 
+### G. Registro Híbrido y Transición a Planes (Paso 3)
+
+* **Auth UI "Liquid Glass":** Rediseño de `AuthOptions.jsx` con ancho de **260px**, botones de **13px** y gap-4. Fondo con desenfoque profundo.
+* **Iconos Vectoriales:** Implementación de SVGs nativos para Google y Facebook, eliminando dependencias de imágenes externas.
+* **Brain Sync:** JanIA ahora utiliza la memoria de captura (barrio/documentos) para invitar al registro de forma persuasiva y personalizada.
+* **Auto-Workflow:** Se añadió un disparador en el frontend que, tras detectar un registro exitoso, salta automáticamente al **Paso 4 (Planes)** para agilizar el cierre de venta.
+
 ---
 Última actualización: 23 de Diciembre, 2025 - Agente Antigravity (JanIA 3.0 Authority & Soul Logic)

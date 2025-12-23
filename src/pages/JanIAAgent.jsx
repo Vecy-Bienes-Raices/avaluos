@@ -63,6 +63,18 @@ const JanIAAgent = () => {
 
                 // Close modal if open
                 setAuthModalOpen(false);
+
+                // --- AUTO-TRANSITION TO STEP 4 (PLANES) ---
+                // If the user just registered/logged in from the registration step
+                const currentStep = janIACore.memory.step;
+                const hasLoggedInBefore = localStorage.getItem('janIA_has_logged_in') === 'true';
+
+                if (currentStep === 'registration' || !hasLoggedInBefore) {
+                    console.log("🚀 [Workflow Sync]: Transición automática a Paso 4 (Planes)");
+                    setTimeout(() => {
+                        handleSendMessage("¡Listo, ya tengo mi cuenta! Ahora muéstrame los planes para terminar mi avalúo profesional. 💎🚀");
+                    }, 1000);
+                }
             } else {
                 // Only clear if explicitly signed out or no session
                 if (event === 'SIGNED_OUT') {
