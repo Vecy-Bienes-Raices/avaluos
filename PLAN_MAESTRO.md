@@ -64,19 +64,19 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
 
 ### B. Interacción Humana (Ventas y Servicio)
 
-8. **Amable y Cordial:** Servicio al cliente impecable, empático y paciente.
-9. **Persuasiva y Estratégica:** Enfocada en **VENDER**. Presenta valores y beneficios antes de hablar de costos. Cierra la venta.
-10. **Profesionalismo:** Tono serio pero accesible. Transmite confianza absoluta.
-11. **Interacción por Voz:** Escucha audios de usuarios y responde con **voz humanizada** (Text-to-Speech neuronal de alta calidad), con entonación natural.
-12. **Registro Conversacional:** Registra usuarios (Google, Facebook, Email) fluidamente dentro de la charla, sin formularios aburridos.
+1. **Amable y Cordial:** Servicio al cliente impecable, empático y paciente.
+2. **Persuasiva y Estratégica:** Enfocada en **VENDER**. Presenta valores y beneficios antes de hablar de costos. Cierra la venta.
+3. **Profesionalismo:** Tono serio pero accesible. Transmite confianza absoluta.
+4. **Interacción por Voz:** Escucha audios de usuarios y responde con **voz humanizada** (Text-to-Speech neuronal de alta calidad), con entonación natural.
+5. **Registro Conversacional:** Registra usuarios (Google, Facebook, Email) fluidamente dentro de la charla, sin formularios aburridos.
 
 ### C. Capacidades Técnicas e Investigativas (Las Herramientas)
 
-13. **Navegación Web (Real-Time):** Busca en internet precios de la zona, noticias del sector e índices económicos actuales.
-14. **Lectura Multimodal:** Lee y extrae datos de **URLs, PDFs, Word, Excel** y fotos/videos del inmueble.
-15. **Visión Computarizada:** Analiza fotos para detectar acabados, daños o características (pisos, iluminación) que valorizan el predio.
-16. **Recopilación de Datos:** Organiza toda la evidencia (fotos, documentos) en el expediente digital.
-17. **Velocidad y Eficiencia:** Procesa en segundos lo que a un humano le toma días.
+1. **Navegación Web (Real-Time):** Busca en internet precios de la zona, noticias del sector e índices económicos actuales.
+2. **Lectura Multimodal:** Lee y extrae datos de **URLs, PDFs, Word, Excel** y fotos/videos del inmueble.
+3. **Visión Computarizada:** Analiza fotos para detectar acabados, daños o características (pisos, iluminación) que valorizan el predio.
+4. **Recopilación de Datos:** Organiza toda la evidencia (fotos, documentos) en el expediente digital.
+5. **Velocidad y Eficiencia:** Procesa en segundos lo que a un humano le toma días.
 
 ### D. Adiciones "Vecy" (El Toque Extra)
 
@@ -88,18 +88,7 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
 
 ## 3. Hoja de Ruta (Roadmap)
 
-* **Geolocalización:** Entiende mapas y coordenadas para saber si una zona se valorizará (ej. cerca a futuro metro).
-* **Memoria Infinita:** Recuerda a cada cliente, sus propiedades anteriores y preferencias.
-* **Adaptabilidad Emocional:** Detecta si el cliente está estresado o feliz y ajusta su tono.
-
----
-
-## 3. Hoja de Ruta (Roadmap)
-
 1. **Fase 1 (Frontend & Legal):** UI "Premium Glass", JanIA Chat, Páginas Legales (Privacidad/Términos), **Tema Global (Claro/Oscuro)**. **(COMPLETADO 100%)**
-
-## 3. Hoja de Ruta (Roadmap)
-
 2. **Fase 2 (Datos & IA - JanIA 2.0):**
     * **Autenticación Híbrida:** Chat conversacional que deriva a Pop-Up/Botones (Google/Facebook/Correo) para registro seguro sin fricción.
     * **Sistema de Roles:**
@@ -315,4 +304,31 @@ create table public.profiles (
 
 ---
 
-*Última actualización: Diciembre 2025 - Agente Gemini*
+## 10. Bitácora de Cambios (Dic 23, 2025)
+
+### A. Re-arquitectura Técnica y Cognitiva (JanIA 3.0)
+
+* **GEMINI-MIRROR Prompt:** Reescritura total de `janIACore.js`. JanIA ya no es un bot, es una **"Thought Partner"** con personalidad bogotana, asertiva y concisa.
+* **Identidad Forzada:** Se bloqueó la respuesta de "modelo de lenguaje". JanIA tiene prohibido el lenguaje genérico. Si no conoce el nombre, lo pregunta. Si lo conoce, lo usa como primera palabra.
+* **Sincronización de Memoria:** Implementado `updateUserIdentity` en `handleSendMessage` para asegurar que el perfil de Supabase llegue a las neuronas de la IA en tiempo real.
+* **Debug Logs:** Se añadieron consolas `[DEBUG]` en frontend y backend para rastrear la inyección de memoria.
+
+### B. Infraestructura y Routing
+
+* **Auth Dynamics:** Corregido `redirectTo` para soportar `localhost:5701` y producción dinámicamente.
+* **Rutas de Pago:** Restauradas `/payment-response` y `/payment-confirmation` en `App.jsx`.
+* **SPA Fix (Netlify):** Creación de `public/_redirects` para evitar errores 404 al recargar rutas profundas (como `/planes`).
+* **Auth Callback:** Nueva página `src/pages/AuthCallback.jsx` para procesar el retorno de OAuth y redirigir al Home.
+
+### C. UI/UX y Estética
+
+* **Glassmorphism Pro:** Aplicado efecto `bg-white/10 backdrop-blur-md` al Modal de Registro en `JanIAAgent.jsx` siguiendo especificaciones de diseño Apple-style.
+* **Branding Phoenix:** Refinamiento de logos y avatares en el Header.
+
+### D. SEO y Visibilidad
+
+* **Sitemap & Robots:** Archivos generados en `public/`.
+* **JSON-LD:** Datos estructurados inyectados en `index.html` para mejor indexación de Google.
+
+---
+Última actualización: 23 de Diciembre, 2025 - Agente Antigravity (Dual Brain Logic)
