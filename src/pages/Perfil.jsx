@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { supabase } from '../services/supabase';
+import { supabase } from '../lib/supabaseClient';
 
 const Perfil = () => {
     const { theme } = useTheme();

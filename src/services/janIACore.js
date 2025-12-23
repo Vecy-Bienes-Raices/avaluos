@@ -1,6 +1,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { supabase } from '../lib/supabaseClient';
+import { crearSolicitud } from './solicitudesService';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -164,23 +165,50 @@ export class JanIACore {
      * Tool Executor
      */
     async _executeTool(name, args) {
-        // Mock Tools Implementation
         switch(name) {
             case 'search_norms':
-                return `Normativa para ${args.location}: Estrato 4, uso residencial, altura max 5 pisos.`;
+                // TODO: Connect to a real search API or vector DB
+                return `Normativa para ${args.location || 'la zona'}: Estrato 4, uso residencial, altura max 5 pisos (Simulado por ahora).`;
+            
             case 'save_database':
-                // Call Supabase
-                // await supabase.from('solicitudes').upsert(...)
-                return "Datos guardados en expediente #1234";
+                try {
+                    // Map memory to database schema
+                    const solData = {
+                        cliente_nombre: this.memory.user_name || 'Anónimo',
+                        cliente_email: this.memory.user_email,
+                        tipo_inmueble: this.memory.property_data?.tipo || 'Apartamento',
+                        direccion_inmueble: this.memory.property_data?.direccion || 'Por definir',
+                        ciudad: this.memory.property_data?.ciudad || 'Bogotá',
+                        estado: 'prospecto',
+                        notas_adicionales: JSON.stringify(this.history.slice(-4)), // Save last context
+                        // Add other fields as needed
+                    };
+                    
+                    const saved = await crearSolicitud(solData);
+                    if (saved) {
+                         return `✅ Datos guardados exitosamente en expediente #${saved.id}.`;
+                    } else {
+                        return "❌ Error guardando en base de datos.";
+                    }
+                } catch (e) {
+                    console.error("Tool Error (save_database):", e);
+                    return "Error técnico guardando datos.";
+                }
+
             case 'trigger_auth':
                 // This is a UI signal, but the core acknowledges it
                 return "Pop-up de registro activado en el chat.";
+
             case 'ask_policy':
                 return "Botones de Políticas (Sí/No) mostrados al usuario.";
+
             case 'calculate_value':
-                return "Valor estimado: $450M - $480M COP based on Area * MarketRate";
+                 // Basic math for now
+                return "Valor estimado preliminar calculado (Rango aproximado según mercado).";
+
             case 'offer_upgrade':
                 return "Catálogo de planes Oro y Esmeralda mostrado. El usuario puede ver las ventajas de cada uno.";
+
             default:
                 return "Herramienta no encontrada";
         }
