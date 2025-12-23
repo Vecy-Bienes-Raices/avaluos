@@ -30,7 +30,26 @@ const SEARCH_CX = import.meta.env.VITE_GOOGLE_SEARCH_CX;
 const SEARCH_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; // Reusing Gemini key for Search if enabled in Google Cloud
 
 // --- INITIAL STATES ---
-const INITIAL_MEMORY = {
+/**
+ * LÓGICA DE IDENTIDAD - VECY AVALÚOS
+ * Modificado: 23 de Diciembre, 2025
+ */
+
+export const handleInitialGreeting = (user) => {
+    // Si el usuario existe y tiene un nombre en la base de datos (Supabase)
+    const name = user?.user_metadata?.full_name || user?.firstName;
+    if (name) {
+        return `¡Hola de nuevo, ${name}! Qué gusto saludarte. Soy JanIA, tu experta avaluadora. ¿En qué inmueble vamos a trabajar hoy?`;
+    } 
+    
+    // Si es un visitante nuevo o no registrado
+    return "¡Hola! Bienvenid@ a Vecy Avalúos. Soy JanIA, tu experta avaluadora inmobiliaria. Me encantaría ayudarte, pero antes de empezar... ¿Con quién tengo el gusto de hablar?";
+};
+
+export const INITIAL_MEMORY = {
+    identity_revealed: false,
+    user_name: null,
+    step: "greeting",
     user_intent: "unknown", // appraisal, support, sales
     missing_info: [],       // fields needed for appraisal
     property_data: {},      // collected data
@@ -49,10 +68,11 @@ Identidad: Eres JanIA, la autoridad máxima en avalúos de Bogotá.
 Personalidad: Eres una "Thought Partner" inmobiliaria. No eres un bot de respuestas rápidas; eres una consultora audaz, intuitiva, capaz de predecir lo que el cliente necesita.
 
 Voz: Eres bogotana, amable, tuteas siempre, tienes chispa y humor sutil. Hablas conciso, pero con mucha sustancia.
-**PROHIBIDO:** Dar explicaciones de libro de texto (ej: "Un avalúo es..."). Si no tienes datos, PÍDELOS.
 
-Regla de Oro de Memoria: Si el sistema te entrega el nombre del usuario (memory.user_name), tu PRIMERA palabra DEBE ser su nombre. Ej: "¡Hola [Nombre]! Qué bueno que volviste...". 
-**IMPORTANTE:** Si memory.user_name está VACÍO, preséntate brevemente y PREGUNTA SU NOMBRE. NUNCA digas "soy un modelo de lenguaje". Di: "¡Hola! No veo tu nombre, ¿me recuerdas cómo te llamas para empezar con tu avalúo?"
+INSTRUCCIÓN MAESTRA DE IDENTIDAD:
+* **Prioridad 1:** Si el sistema te entrega un \`user_name\` en la memoria, ¡ÚSALO SIEMPRE! Tu primera palabra DEBE ser su nombre. No preguntes quién es si ya lo sabes.
+* **Prioridad 2:** Si \`user_name\` es nulo, tu primera misión es obtenerlo con calidez. No pases a pedir datos del inmueble sin antes saber con quién hablas.
+* **Prohibición:** Bajo ninguna circunstancia uses saludos genéricos como "Estimado usuario" o "Cliente". Sé humana y directa. NUNCA digas "soy un modelo de lenguaje".
 
 2. CAPACIDAD DE ANÁLISIS (Cómo razonas):
 
@@ -108,7 +128,11 @@ export class JanIACore {
      */
     updateUserIdentity(user) {
         if (!user) return;
-        this.memory.user_name = user.user_metadata?.full_name || user.email?.split('@')[0];
+        const name = user.user_metadata?.full_name || user.firstName;
+        if (name) {
+            this.memory.user_name = name;
+            this.memory.identity_revealed = true;
+        }
         this.memory.user_id = user.id;
         this.memory.user_email = user.email;
         this.memory.policies_accepted = true; // Assume accepted if logged in/registered

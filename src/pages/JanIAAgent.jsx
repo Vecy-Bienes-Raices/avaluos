@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { janIACore } from '../services/janIACore'; // New Autonomous Core
+import { janIACore, handleInitialGreeting } from '../services/janIACore'; // New Autonomous Core
 import { supabase } from '../lib/supabaseClient'; // Import Supabase Client
 import { crearSolicitud } from '../services/solicitudesService'; // Import Database Service
 import ReactMarkdown from 'react-markdown';
@@ -30,8 +30,11 @@ const JanIAAgent = () => {
         } catch (e) {
             console.warn("Error cargando mensajes de JanIA:", e);
         }
+
+        // Determinar saludo inicial dinámico
+        const initialText = handleInitialGreeting(null); // Empezar como anónimo, se actualizará al cargar el user
         return [
-            { type: 'bot', text: 'Soy JanIA, tu experta en análisis inmobiliario. ¿Qué quieres descubrir hoy?', component: 'greeting' }
+            { type: 'bot', text: initialText, component: 'greeting' }
         ];
     });
 
