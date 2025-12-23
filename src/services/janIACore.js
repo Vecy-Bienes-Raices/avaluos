@@ -31,17 +31,31 @@ const SEARCH_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; // Reusing Gemini ke
 
 // --- INITIAL STATES ---
 /**
- * LÓGICA DE IDENTIDAD - VECY AVALÚOS
- * Modificado: 23 de Diciembre, 2025 - "Modo Vecina Experta"
+ * LÓGICA DE CERCANÍA - VECY AVALÚOS
+ * Determina el trato (Vecino/Vecina) y extrae el primer nombre.
  */
+export const getNeighborGreeting = (fullName) => {
+    if (!fullName) return { name: "", title: "vecino/a" };
+
+    const firstName = fullName.trim().split(" ")[0];
+    
+    // Lista rápida de terminaciones comunes en español y excepciones
+    const isFemale = firstName.endsWith('a') || 
+                     ['Isabel', 'Beatriz', 'Carmen', 'Luz', 'Jani', 'Maria', 'Consuelo'].includes(firstName);
+
+    return {
+        name: firstName,
+        title: isFemale ? "vecina" : "vecino"
+    };
+};
 
 export const handleInitialGreeting = (user) => {
     // Si el usuario existe y tiene un nombre en la base de datos (Supabase)
     const rawName = user?.user_metadata?.full_name || user?.firstName;
-    const firstName = rawName ? rawName.trim().split(" ")[0] : null;
+    const { name, title } = getNeighborGreeting(rawName);
     
-    if (firstName) {
-        return `¡Hola de nuevo, vecino ${firstName}! Qué gusto saludarte. Soy JanIA, tu vecina experta en avalúos. ¿En qué inmueble del barrio vamos a trabajar hoy?`;
+    if (name) {
+        return `¡Hola de nuevo, ${title} ${name}! Qué gusto saludarte. Soy JanIA, tu vecina experta en avalúos. ¿En qué inmueble del barrio vamos a trabajar hoy?`;
     } 
     
     // Si es un visitante nuevo o no registrado
@@ -50,12 +64,13 @@ export const handleInitialGreeting = (user) => {
 
 export const INITIAL_MEMORY = {
     user_name: null,
+    user_title: "vecino/a", // Nuevo campo para el trato dinámico
     is_registered: false,
-    identity_revealed: false, // Para no repetir "Soy JanIA"
+    identity_revealed: false,
     step: "greeting",
-    user_intent: "unknown", // appraisal, support, sales
-    missing_info: [],       // fields needed for appraisal
-    property_data: {},      // collected data
+    user_intent: "unknown", 
+    missing_info: [],       
+    property_data: {},      
     last_action: null,
     confidence: 0
 };
@@ -146,10 +161,11 @@ export class JanIACore {
             return;
         }
         const rawName = user.user_metadata?.full_name || user.firstName;
-        const firstName = rawName ? rawName.trim().split(" ")[0] : null;
+        const { name, title } = getNeighborGreeting(rawName);
         
-        if (firstName) {
-            this.memory.user_name = firstName; // Solo el primer nombre guardado en memoria
+        if (name) {
+            this.memory.user_name = name;
+            this.memory.user_title = title;
             this.memory.identity_revealed = true;
             this.memory.is_registered = true;
         }

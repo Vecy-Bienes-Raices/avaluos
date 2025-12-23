@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { janIACore, handleInitialGreeting } from '../services/janIACore'; // New Autonomous Core
+import { janIACore, handleInitialGreeting, getNeighborGreeting } from '../services/janIACore'; // New Autonomous Core
 import { supabase } from '../lib/supabaseClient'; // Import Supabase Client
 import { crearSolicitud } from '../services/solicitudesService'; // Import Database Service
 import ReactMarkdown from 'react-markdown';
@@ -600,7 +600,10 @@ const JanIAAgent = () => {
                                                     <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl" />
                                                 </div>
                                                 <h1 className="text-3xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">
-                                                    Hola{user ? `, vecino ${user.user_metadata?.full_name?.trim().split(' ')[0] || user.email.split('@')[0]}` : ', vecino/a'}
+                                                    {(() => {
+                                                        const { name, title } = getNeighborGreeting(user?.user_metadata?.full_name || user?.email?.split('@')[0]);
+                                                        return `Hola, ${user ? `${title} ${name}` : 'vecino/a'}`;
+                                                    })()}
                                                 </h1>
                                                 <p className="text-lg md:text-xl text-stone-300 font-light max-w-2xl mx-auto px-4">Soy JanIA, tu vecina experta ¿Qué inmueble vamos a avaluar hoy?</p>
                                             </div>
