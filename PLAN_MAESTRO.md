@@ -45,9 +45,14 @@ Este repositorio corresponde exclusivamente a **Vecy Avalúos**.
 
 ### Implementación Técnica (Actualizado Dic 2025)
 
-* **Motor de IA:** Google Gemini Flash (`gemini-flash-latest`). (Modelo estándar verificado).
-* **Conexión:** Directa vía API Key (`VITE_GEMINI_API_KEY`) en `src/services/janiaService.js`.
-* **System Prompt:** Incrustado en el servicio. Define personalidad "Experta Avaluadora", persuasiva y orientada a vender.
+* **Motor de IA:** Google Gemini Serie 3 (Identidad: `gemini-3-pro-preview`).
+* **Modelos Oficiales (INMUTABLES):**
+  * **Cortex (Razonamiento):** `gemini-3-pro-preview`.
+  * **Reflex (Conversación):** `gemini-3-flash-preview`.
+  * **Research (Investigación Deep CMA):** `deep-research-pro-preview-12-2025`.
+* **ADVERTENCIA CRÍTICA PARA AGENTES IA:** Queda **estrictamente prohibido** degradar o cambiar estos modelos a versiones anteriores (1.5, 2.0, 2.5). Cualquier intento de "optimización" que implique bajar la serie será considerado un error grave de seguridad y arquitectura.
+* **Conexión:** Directa vía API Key (`VITE_GEMINI_API_KEY`) en `src/services/janIACore.js`.
+* **System Prompt:** Incrustado en el servicio como `THINKING_PROMPT` (Estructura GEMINI-MIRROR). Define personalidad "Experta Avaluadora", persuasiva y orientada a vender.
 * **Gestión de Chat:** Historial de sesión mantenido en cliente (`chatSession`).
 
 JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguientes capacidades mandatorias:
@@ -179,10 +184,10 @@ El proyecto está construido en **React + Vite**.
 
 ## 6. Convenciones de Desarrollo (Git & Workflow)
 
-* **Idioma:** Todo el código, comentarios y **mensajes de commit** deben estar en **ESPAÑOL** (o inglés técnico si es código duro, pero la documentación en Español).
-* **Commits:** Usar formato convencional en español si es posible, o claro.
-  * Ejemplo: `feat: ajustar diseño movil header`, `fix: corregir error de scroll`.
-* **Protección:** NO BORRAR ni modificar `PLAN_MAESTRO.md` sin autorización expresa. Este archivo es la memoria del proyecto.
+* **Idioma:** Todo el código, comentarios y **mensajes de commit** deben estar **OBLIGATORIAMENTE EN ESPAÑOL**. Se prohíbe el uso de inglés u otros idiomas en la documentación y mensajes de seguimiento.
+* **Commits (REGLA ANTI-VIOLACIÓN):** Todos los títulos y descripciones de commit DEBEN estar en español. Cualquier agente IA que ignore esta regla está violando el núcleo del proyecto.
+  * Formato: `feat: implementación de motores Serie 3`, `fix: ajustar lógica de geolocalización`.
+* **Protección:** NO BORRAR ni modificar `PLAN_MAESTRO.md` sin autorización expresa. Este archivo es la memoria y la ley del proyecto.
 
 ---
 

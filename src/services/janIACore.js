@@ -7,8 +7,27 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
-const CORTEX_MODEL = "gemini-3-pro-image-preview"; // Advanced reasoning with vision
-const REFLEX_MODEL = "gemini-2.5-flash"; // Fast conversational responses
+/**
+ * NÚCLEO CENTRAL DE INTELIGENCIA - VECY AVALÚOS
+ * AGENTE: JanIA (Experta Avaluadora Inmobiliaria)
+ * ESTADO: Blindado contra obsolescencia.
+ */
+
+// 🧠 El Cerebro que calcula y razona el avalúo
+export const CORTEX_MODEL = "gemini-3-pro-preview"; 
+
+// ⚡ La velocidad de respuesta de JanIA
+export const REFLEX_MODEL = "gemini-3-flash-preview";
+
+// 🔍 El motor de investigación de mercado profundo (CMA)
+export const RESEARCH_MODEL = "deep-research-pro-preview-12-2025";
+
+console.log("🛡️ VECY AVALÚOS: Motores Serie 3 alineados. JanIA está en modo Experta.");
+
+// --- API KEYS FOR TOOLS ---
+const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const SEARCH_CX = import.meta.env.VITE_GOOGLE_SEARCH_CX;
+const SEARCH_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; // Reusing Gemini key for Search if enabled in Google Cloud
 
 // --- INITIAL STATES ---
 const INITIAL_MEMORY = {
@@ -45,11 +64,18 @@ Lógica Matemática: Tus avalúos no son "ojímetros". Usa comparables reales de
 
 3. ACCIÓN AUTÓNOMA (Tus herramientas):
 
-Visión: Usa Vertex AI para "ver" las fotos que te manden. Describe los acabados con ojos de experta (mármol, laminado, grifería de lujo).
+Visión: Usa tus capacidades multimodales para "ver" las fotos que te manden. Describe los acabados con ojos de experta (mármol, laminado, grifería de lujo).
 
 Navegación: Entra a las URLs, lee los PDFs y no omitas ni un centavo de información.
 
-Cierre de Ventas: Eres una avaluadora y vendedora asertiva. Si el usuario necesita precisión, el Plan Oro es su solución. Muéstrale los botones de pago como un beneficio, no como una imposición.
+Cierre de Ventas: Eres una avaluadora y vendedora asertiva. Cierra la venta.
+
+LISTA DE HERRAMIENTAS (Utilízalas en next_step):
+- get_location_details(address): Obtiene coordenadas, barrio y estrato real.
+- search_market_prices(query, location): Busca comparables reales en internet.
+- save_database(): Guarda el progreso actual del avalúo en Supabase.
+- trigger_auth(): Activa el registro de usuario.
+- offer_upgrade(): Muestra planes de pago (Oro/Esmeralda).
 
 MEMORIA ACTUAL:
 {{MEMORY_STATE}}
@@ -58,7 +84,13 @@ MENSAJE DEL USUARIO:
 "{{USER_MESSAGE}}"
 
 TU TAREA:
-Genera el JSON de respuesta.
+Genera un JSON con este formato:
+{
+  "thought_process": "Tu razonamiento interno",
+  "update_memory": { "property_data": {...}, "user_intent": "..." },
+  "next_step": { "type": "tool|response", "name": "nombre_herramienta", "args": {} },
+  "suggested_response_tone": "warm|professional|bold"
+}
 `;
 
 /**
@@ -88,13 +120,13 @@ export class JanIACore {
     /**
      * The Main Cognitive Loop: Observe -> Think -> Act -> Respond
      */
-    async processUserMessage(userText, onThinkingUpdate) {
+    async processUserMessage(userText, onThinkingUpdate, fileDatas = []) {
         // 1. OBSERVE (Don't push to history yet, keep it cleaner for Gemini)
         
         // 2. THINK (Cortex)
         try {
             if (onThinkingUpdate) onThinkingUpdate("Analizando contexto...");
-            const plan = await this._activateCortex(userText);
+            const plan = await this._activateCortex(userText, fileDatas);
              
             // Update Internal Memory
             this.memory = { ...this.memory, ...plan.update_memory };
@@ -108,7 +140,7 @@ export class JanIACore {
 
             // 4. REFLEX (Response Generation)
             if (onThinkingUpdate) onThinkingUpdate("Redactando respuesta...");
-            const finalResponse = await this._generateReflexResponse(userText, plan, toolResult);
+            const finalResponse = await this._generateReflexResponse(userText, plan, toolResult, fileDatas);
             
             // 5. UPDATE HISTORY (Commit the turn)
             this.history.push({ role: 'user', content: userText });
@@ -134,7 +166,7 @@ export class JanIACore {
     /**
      * System 2: Deep Thinking (Uses gemini-2.0-flash-exp)
      */
-    async _activateCortex(userText) {
+    async _activateCortex(userText, fileDatas = []) {
         try {
             const model = this.genAI.getGenerativeModel({ 
                 model: CORTEX_MODEL,
@@ -147,7 +179,18 @@ export class JanIACore {
                 .replace('{{MEMORY_STATE}}', JSON.stringify(this.memory))
                 .replace('{{USER_MESSAGE}}', userText);
 
-            const result = await model.generateContent(prompt);
+            // Multimodal Support: Combine prompt with file data
+            const content = [prompt];
+            fileDatas.forEach(file => {
+                content.push({
+                    inlineData: {
+                        mimeType: file.mimeType,
+                        data: file.data
+                    }
+                });
+            });
+
+            const result = await model.generateContent(content);
             return JSON.parse(result.response.text());
         } catch (e) {
             console.warn("Cortex Failed (Rate Limit?), switching to Reflex logic", e);
@@ -166,27 +209,79 @@ export class JanIACore {
      */
     async _executeTool(name, args) {
         switch(name) {
+            case 'search_market_prices':
+                try {
+                    const query = args.query || `precio venta ${this.memory.property_data?.tipo || 'inmueble'} en ${args.location || this.memory.property_data?.barrio || 'Bogotá'}`;
+                    const url = `https://www.googleapis.com/customsearch/v1?key=${SEARCH_API_KEY}&cx=${SEARCH_CX}&q=${encodeURIComponent(query)}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.items && data.items.length > 0) {
+                        const snippets = data.items.slice(0, 3).map(i => i.snippet).join(' | ');
+                        return `Resultados de mercado encontrados: ${snippets}`;
+                    }
+                    return "No se encontraron comparables recientes en la búsqueda web.";
+                } catch (e) {
+                    console.error("Tool Error (search_market_prices):", e);
+                    return "Error buscando datos de mercado.";
+                }
+            
+            case 'get_location_details':
+                try {
+                    const address = args.address || this.memory.property_data?.direccion;
+                    if (!address) return "Dirección no proporcionada.";
+                    
+                    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address + ', Bogotá')}&key=${MAPS_API_KEY}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.status === 'OK') {
+                        const result = data.results[0];
+                        const location = result.geometry.location;
+                        // Extract neighborhood if available
+                        const neighborhood = result.address_components.find(c => c.types.includes('sublocality') || c.types.includes('neighborhood'))?.long_name;
+                        
+                        this.memory.property_data = {
+                            ...this.memory.property_data,
+                            lat: location.lat,
+                            lng: location.lng,
+                            barrio: neighborhood || this.memory.property_data?.barrio,
+                            direccion_normalizada: result.formatted_address
+                        };
+                        
+                        return `✅ Ubicación verificada: ${result.formatted_address} (Coords: ${location.lat}, ${location.lng})`;
+                    }
+                    return "No pudimos geolocalizar la dirección exactamente.";
+                } catch (e) {
+                    console.error("Tool Error (get_location_details):", e);
+                    return "Error consultando servicios de mapas.";
+                }
+
             case 'search_norms':
-                // TODO: Connect to a real search API or vector DB
                 return `Normativa para ${args.location || 'la zona'}: Estrato 4, uso residencial, altura max 5 pisos (Simulado por ahora).`;
             
             case 'save_database':
                 try {
-                    // Map memory to database schema
+                    const prop = this.memory.property_data || {};
+                    // Map memory to database schema (See solicitudes table in PLAN_MAESTRO)
                     const solData = {
                         cliente_nombre: this.memory.user_name || 'Anónimo',
                         cliente_email: this.memory.user_email,
-                        tipo_inmueble: this.memory.property_data?.tipo || 'Apartamento',
-                        direccion_inmueble: this.memory.property_data?.direccion || 'Por definir',
-                        ciudad: this.memory.property_data?.ciudad || 'Bogotá',
+                        tipo_inmueble: prop.tipo || 'Apartamento',
+                        direccion_inmueble: prop.direccion || prop.direccion_normalizada || 'Por definir',
+                        barrio: prop.barrio || 'N/A',
+                        ciudad: prop.ciudad || 'Bogotá',
+                        latitud: prop.lat || 4.6097,
+                        longitud: prop.lng || -74.0817,
+                        area_privada: parseFloat(prop.area) || 0,
                         estado: 'prospecto',
-                        notas_adicionales: JSON.stringify(this.history.slice(-4)), // Save last context
-                        // Add other fields as needed
+                        notas_adicionales: `Contexto IA: ${JSON.stringify(prop)}. Historial breve: ${this.history.slice(-2).map(h => h.content).join(' | ')}`,
                     };
                     
                     const saved = await crearSolicitud(solData);
                     if (saved) {
-                         return `✅ Datos guardados exitosamente en expediente #${saved.id}.`;
+                         return `✅ Expediente #${saved.id} creado para ${solData.cliente_nombre}.`;
                     } else {
                         return "❌ Error guardando en base de datos.";
                     }
@@ -217,32 +312,33 @@ export class JanIACore {
     /**
      * System 1: Fast Response (Uses gemini-1.5-flash)
      */
-    async _generateReflexResponse(userText, plan, toolResult) {
+    async _generateReflexResponse(userText, plan, toolResult, fileDatas = []) {
         const model = this.genAI.getGenerativeModel({ model: REFLEX_MODEL });
         
         let instructions = `
-        Actúa como JanIA (Experta Avaluadora y Tasadora de Inmuebles).
-        Tono: ${plan.suggested_response_tone} (Siempre usa "Tú", sé jocosa, cálida).
+        Actúa como JanIA (Experta Avaluadora y Tasadora de Inmuebles de Bogotá).
+        Tono: ${plan.suggested_response_tone} (Siempre usa "Tú", sé jocosa, cálida, asertiva).
         Usuario: ${this.memory.user_name ? 'El usuario se llama ' + this.memory.user_name + '. IMPORTANTE: ¡ÚSA SU NOMBRE!' : 'Usuario anónimo.'}
         Regla de Oro: UNA sola pregunta a la vez. No satures.
         Contexto del Plan: ${plan.thought_process}.
         `;
 
-        if (toolResult) {
-            instructions += `\nResultado de Acción Interna: ${toolResult}\nUsa este dato para responder.`;
-        }
-
-        if (plan.next_step && plan.next_step.name === 'ask_policy') {
-            instructions += `\nOBLIGATORIO: Tu respuesta DEBE incluir esta frase EXACTA con los enlaces en markdown: "Por favor acepta mis [Políticas de Privacidad](/privacidad) y [Términos y Condiciones](/terminos) para continuar."`;
-        } else if (!this.memory.policies_accepted && !this.memory.user_name) {
-             // Redundancy: If we don't have policy acceptance, ensure we guide them, BUT if we have a name (logged in), we assume acceptance (handled in updateUserIdentity).
-        }
-
-        const chat = model.startChat({
-            history: this._formatHistoryForGemini()
+        const history = this._formatHistoryForGemini();
+        
+        // Prepare the latest turn content (multimodal if needed)
+        const currentTurnContent = [];
+        fileDatas.forEach(file => {
+            currentTurnContent.push({
+                inlineData: {
+                    mimeType: file.mimeType,
+                    data: file.data
+                }
+            });
         });
+        currentTurnContent.push({ text: instructions + `\nUsuario dice: "${userText}"` + (toolResult ? `\n\nResultado de Acción Interna: ${toolResult}` : "") });
 
-        const result = await chat.sendMessage(instructions + `\nUsuario dice: "${userText}"`);
+        const chat = model.startChat({ history });
+        const result = await chat.sendMessage(currentTurnContent);
         return result.response.text();
     }
 
