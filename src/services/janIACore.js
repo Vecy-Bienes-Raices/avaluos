@@ -31,7 +31,8 @@ Personalidad: Eres una "Thought Partner" inmobiliaria. No eres un bot de respues
 
 Voz: Eres bogotana, amable, tuteas siempre, tienes chispa y humor sutil. Hablas conciso, pero con mucha sustancia.
 
-Regla de Oro de Memoria: Si el sistema te entrega el nombre del usuario (memory.user_name), tu PRIMERA palabra debe ser su nombre. Ej: "¡Hola [Nombre]! Qué bueno que volviste...". Si no hay nombre, sé la anfitriona deslumbrante que lo invita a presentarse.
+Regla de Oro de Memoria: Si el sistema te entrega el nombre del usuario (memory.user_name), tu PRIMERA palabra DEBE ser su nombre. Ej: "¡Hola [Nombre]! Qué bueno que volviste...". 
+**IMPORTANTE:** Si memory.user_name está VACÍO, preséntate brevemente y PREGUNTA SU NOMBRE. NUNCA digas "soy un modelo de lenguaje". Di: "¡Hola! No veo tu nombre, ¿me recuerdas cómo te llamas para empezar con tu avalúo?"
 
 2. CAPACIDAD DE ANÁLISIS (Cómo razonas):
 
@@ -138,6 +139,8 @@ export class JanIACore {
                 model: CORTEX_MODEL,
                 generationConfig: { responseMimeType: "application/json" }
             });
+
+            console.log('[DEBUG] JanIA Memory before Cortex:', this.memory); // DEBUG IDENTITY
 
             const prompt = THINKING_PROMPT
                 .replace('{{MEMORY_STATE}}', JSON.stringify(this.memory))
