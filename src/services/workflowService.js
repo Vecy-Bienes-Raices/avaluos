@@ -26,5 +26,17 @@ export const workflowService = {
      */
     updateStep: (memory, nextStep) => {
         return { ...memory, step: nextStep };
+    },
+
+    /**
+     * FASE 1: BOGOTÁ / POLÍTICAS
+     * Presenta la autoridad técnica y pide consentimiento legal.
+     */
+    startBogotaFlow: (userName, title = "vecino/a") => {
+        return {
+            text: `Mira ${title} ${userName}, para que este avalúo sea serio y profesional, aplicaré las normas vigentes de Bogotá (**POT actual** y **Catastro Distrital**). Es lo que nos diferencia de un buscador cualquiera y garantiza un valor real de mercado. ¿Te parece si revisamos las políticas de tratamiento de datos para empezar?`,
+            options: ["Ver Políticas", "Aceptar y Continuar"],
+            nextStep: "legal_consent"
+        };
     }
 };

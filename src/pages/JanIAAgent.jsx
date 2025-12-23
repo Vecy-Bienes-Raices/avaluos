@@ -195,6 +195,9 @@ const JanIAAgent = () => {
                 // --- CUSTOM COMPONENT MAPPING ---
                 if (toolName === 'auth_gate' || toolName === 'trigger_auth') {
                     botMsg.component = 'auth'; // Unified naming per user request
+                } else if (toolName === 'start_bogota_flow') {
+                    botMsg.component = 'options';
+                    botMsg.options = ["Ver Políticas", "Aceptar y Continuar"];
                 }
             } else {
                 // --- KEYWORD DETECTION ---
@@ -698,6 +701,21 @@ const JanIAAgent = () => {
                                                 )}
                                             </div>
                                         </>
+                                    )}
+
+                                    {/* Generic Options Component (JanIA 3.0) */}
+                                    {msg?.component === 'options' && msg?.options && (
+                                        <div className="mt-4 flex flex-wrap gap-2 animate-fade-in-up">
+                                            {msg.options.map((opt, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => handleSendMessage(opt)}
+                                                    className="bg-white/5 hover:bg-brand-accent/20 text-white hover:text-brand-accent border border-white/10 hover:border-brand-accent/50 px-4 py-2 rounded-xl text-sm font-bold transition-all backdrop-blur-md"
+                                                >
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                        </div>
                                     )}
 
                                     {/* Auth & Identity Components (JanIA 3.0) */}
