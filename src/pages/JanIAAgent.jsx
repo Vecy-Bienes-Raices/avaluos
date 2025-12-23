@@ -71,6 +71,16 @@ const JanIAAgent = () => {
 
         // 2. Initial Check (Only if not handling a redirect)
         const checkCurrentSession = async () => {
+            // Check for OAuth errors in URL
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('error')) {
+                console.error("Auth Error:", params.get('error'), params.get('error_description'));
+                alert(`Error de Autenticación: ${params.get('error_description') || 'Configuración de redirección incompleta.'}`);
+                // Optional: Clean URL
+                window.history.replaceState({}, document.title, "/");
+                return;
+            }
+
             // If handling an OAuth redirect, let onAuthStateChange handle it to avoid race
             if (window.location.hash && window.location.hash.includes('access_token')) {
                 return;
