@@ -309,7 +309,26 @@ create table public.profiles (
 
 ---
 
-## 10. Bitácora de Cambios (Dic 23, 2025)
+## 10. Inventario de Modelos Técnicos (Google Cloud/Gemini)
+
+Esta lista representa los modelos disponibles y soportados para diversas tareas dentro del ecosistema Vecy Avalúos (Embeddings, Generación, Visión, etc.) a fecha de diciembre 2025.
+
+| Modelo | Versión | Propósito Primario | Capacidad Thinking |
+| :--- | :--- | :--- | :--- |
+| **gemini-3-pro-preview** | 3-pro | **Cortex (Cerebro Principal)** | Sí |
+| **gemini-3-flash-preview** | 3-flash | **Reflex (Chat Rápido)** | Sí |
+| **deep-research-pro-preview** | 12-2025 | **Investigación Deep CMA** | Sí |
+| **gemini-2.5-pro/flash** | 2.5 | Propósitos Generales (Referencia) | Sí |
+| **embedding-gecko-001** | 001 | Representación de texto | No |
+| **imagen-4.0** | 4.0 | Generación de Imágenes | No |
+| **veo-3.1-preview** | 3.1 | Generación de Video | No |
+
+> [!NOTE]
+> Para detalles técnicos completos de cada modelo (límites de tokens, parámetros de temperatura, etc.), consultar el log JSON de inventario proporcionado por la consola de Google.
+
+---
+
+## 11. Bitácora de Cambios (Dic 23, 2025)
 
 ### A. Re-arquitectura Técnica y Cognitiva (JanIA 3.0)
 
