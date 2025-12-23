@@ -139,6 +139,10 @@ const JanIAAgent = () => {
 
         // --- COGNITIVE LOOP EXECUTION ---
         try {
+            // FORCE SYSTEM SYNC: Update Identity before every interaction
+            janIACore.updateUserIdentity(user);
+            console.log("🔍 [DEBUG FRONTEND] IDENTITY SENT TO JANIA:", janIACore.memory);
+
             // Callback to update UI with "Looking at norms", "Thinking", etc.
             const onThinkingStep = (stepDescription) => {
                 // Determine if this is a "Thinking" step or "Action" step for UI coloring
