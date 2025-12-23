@@ -146,6 +146,11 @@ const JanIAAgent = () => {
             janIACore.updateUserIdentity(user);
             console.log("🔍 [DEBUG FRONTEND] IDENTITY SENT TO JANIA:", janIACore.memory);
 
+            // MODO CAPTURA DE LEAD: Si no hay usuario y no tenemos nombre, el CorteX lo detectará
+            if (!user && !janIACore.memory.user_name) {
+                console.log("🎯 [MODO CAPTURA]: JanIA buscando identidad...");
+            }
+
             // Callback to update UI with "Looking at norms", "Thinking", etc.
             const onThinkingStep = (stepDescription) => {
                 // Determine if this is a "Thinking" step or "Action" step for UI coloring
@@ -188,12 +193,9 @@ const JanIAAgent = () => {
                 // For component mapping, we just need the tool name
 
                 // --- CUSTOM COMPONENT MAPPING ---
-                if (toolName === 'auth_gate') {
-                    botMsg.component = 'auth_gate';
-                } else if (toolName === 'trigger_auth') {
-                    botMsg.component = 'auth_options';
+                if (toolName === 'auth_gate' || toolName === 'trigger_auth') {
+                    botMsg.component = 'auth'; // Unified naming per user request
                 }
-                // Note: 'ask_policy' is now integrated into 'auth_gate'
             } else {
                 // --- KEYWORD DETECTION ---
                 const lowerText = response.text.toLowerCase();
@@ -695,6 +697,13 @@ const JanIAAgent = () => {
                                         </>
                                     )}
 
+                                    {/* Auth & Identity Components (JanIA 3.0) */}
+                                    {(msg?.component === 'auth' || msg?.component === 'auth_options') && (
+                                        <div className="mt-4 ml-2 animate-fade-in-up">
+                                            <AuthOptions onSelect={handleAuthSelect} />
+                                        </div>
+                                    )}
+
                                     {/* Policy & Auth Gate Component */}
                                     {msg?.component === 'auth_gate' && (
                                         <div className="mt-4 ml-2 flex flex-col gap-4 animate-fade-in-up max-w-[90%]">
@@ -711,8 +720,8 @@ const JanIAAgent = () => {
                                                         onClick={() => {
                                                             janIACore.memory.policies_accepted = true;
                                                             janIACore.saveState();
-                                                            // Logic: Accept triggers AuthOptions
-                                                            const notifyMsg = { id: Date.now(), type: 'bot', text: '¡Excelente! Ahora elige cómo prefieres guardar tu progreso en la nube:', component: 'auth_options' };
+                                                            // Logic: Accept triggers the unified auth component
+                                                            const notifyMsg = { id: Date.now(), type: 'bot', text: '¡Excelente! Ahora elige cómo prefieres guardar tu progreso en la nube:', component: 'auth' };
                                                             setMessages(prev => [...prev, notifyMsg]);
                                                         }}
                                                         className="bg-brand-emerald hover:bg-emerald-400 text-black px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2"
@@ -721,13 +730,6 @@ const JanIAAgent = () => {
                                                     </button>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {/* Legacy Component Support / Specific Auth Options */}
-                                    {msg?.component === 'auth_options' && (
-                                        <div className="mt-4 ml-2 animate-fade-in-up">
-                                            <AuthOptions onSelect={handleAuthSelect} />
                                         </div>
                                     )}
                                 </div>
