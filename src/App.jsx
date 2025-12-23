@@ -4,6 +4,9 @@ import AvaluoPortales from './pages/AvaluoPortales';
 const JanIAAgent = lazy(() => import('./pages/JanIAAgent'));
 const Planes = lazy(() => import('./pages/Planes'));
 const Perfil = lazy(() => import('./pages/Perfil'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const PaymentResponse = lazy(() => import('./pages/PaymentResponse'));
+const PaymentConfirmation = lazy(() => import('./pages/PaymentConfirmation'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsAndConditions = lazy(() => import('./pages/Terms'));
 
@@ -28,6 +31,13 @@ function App() {
                     {/* Navigation Pages */}
                     <Route path="/planes" element={<Planes />} />
                     <Route path="/perfil" element={<Perfil />} />
+
+                    {/* Auth Callback */}
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+
+                    {/* Payment Routes */}
+                    <Route path="/payment-response" element={<PaymentResponse />} />
+                    <Route path="/payment-confirmation" element={<PaymentConfirmation />} />
 
                     {/* Legal Pages */}
                     <Route path="/privacidad" element={<PrivacyPolicy />} />
