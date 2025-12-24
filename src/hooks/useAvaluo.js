@@ -18,7 +18,8 @@ const DEMO_DATA = {
     banos: 2,
     parqueadero: 1,
     lat: 4.749, // Approx location
-    lng: -74.062
+    lng: -74.062,
+    analisis_mercado_texto: "Comparables en zona piden ~$5.6M/m², pero son inmuebles con mayor área legalizada. El sujeto debe ajustar precio por falta de licencia en ampliaciones."
 };
 
 export const useAvaluo = (id) => {

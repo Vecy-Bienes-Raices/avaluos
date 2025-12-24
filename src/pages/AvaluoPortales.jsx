@@ -7,12 +7,15 @@ import NegotiationSimulator from '../components/VecyPhoenix/NegotiationSimulator
 import SWOT from '../components/VecyPhoenix/SWOT';
 import Footer from '../components/VecyPhoenix/Footer';
 import FloatingConcierge from '../components/VecyPhoenix/FloatingConcierge';
+import AppraiserCertification from '../components/VecyPhoenix/AppraiserCertification';
 
 // Lazy Load Map
 const LocationMap = lazy(() => import('../components/VecyPhoenix/LocationMap'));
 
 import { useParams } from 'react-router-dom';
 import { useAvaluo } from '../hooks/useAvaluo';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFilePdf, faShareNodes } from '@fortawesome/free-solid-svg-icons';
 
 import { useTheme } from '../context/ThemeContext';
 
@@ -20,6 +23,8 @@ const AvaluoPortales = () => {
     const { id } = useParams();
     const { theme } = useTheme();
     const { data, loading, error } = useAvaluo(id);
+
+    console.log("🛠️ [REPORT DEBUG]: Cargando Avalúo ID:", id, data);
 
     const bgClass = theme === 'dark' ? 'bg-[#0f0f0f] text-stone-200' : 'bg-[#423229] text-stone-200';
 
@@ -65,12 +70,30 @@ const AvaluoPortales = () => {
 
             <main className="max-w-6xl mx-auto px-4 pb-20">
                 <PropertyDetails data={data} />
-                <MarketAnalysis />
-                <NegotiationSimulator />
-                <SWOT />
+                <MarketAnalysis data={data} />
+                <NegotiationSimulator data={data} />
+                <SWOT data={data} />
                 <Suspense fallback={<div className="h-96 w-full glass-panel flex items-center justify-center text-stone-500 animate-pulse">Cargando Mapa...</div>}>
                     <LocationMap data={data} />
                 </Suspense>
+
+                {/* --- SECCIÓN DE IDENTIDAD PROFESIONAL (PLAN ORO/ESMERALDA) --- */}
+                <AppraiserCertification />
+
+                {/* Acciones de Informe */}
+                <div className="flex flex-wrap justify-center gap-4 mt-12 pb-16">
+                    <button
+                        onClick={() => window.print()}
+                        className="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl flex items-center gap-3 text-white font-bold transition-all shadow-xl backdrop-blur-md group"
+                    >
+                        <FontAwesomeIcon icon={faFilePdf} className="text-red-400 group-hover:scale-110 transition-transform" />
+                        DESCARGAR INFORME PDF
+                    </button>
+                    <button className="px-8 py-4 bg-brand-accent hover:bg-brand-accent/90 border border-brand-accent/30 rounded-2xl flex items-center gap-3 text-black font-bold transition-all shadow-xl group">
+                        <FontAwesomeIcon icon={faShareNodes} className="group-hover:rotate-12 transition-transform" />
+                        COMPARTIR URL DINÁMICA
+                    </button>
+                </div>
             </main>
 
             <Footer />

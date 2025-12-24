@@ -3,13 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalculator, faHandHoldingDollar, faExpand } from '@fortawesome/free-solid-svg-icons';
 
-const NegotiationSimulator = () => {
-    // Owner's Accepted Listing Price: 375M (Down from 410M proposal)
-    const listPrice = 375000000;
-    const fairValue = 350000000;
-    const minPrice = 300000000;
+const NegotiationSimulator = ({ data = {} }) => {
+    // Escalar precios basados en la data real o usar Portales como default si no hay data
+    const listPrice = data.valor_final_avaluador || 375000000;
+    const fairValue = data.valor_estimado_ia || 350000000;
+    const minPrice = fairValue * 0.85; // Margen técnico del 15%
 
-    // Initial State: Start at the Listing Price (375M)
+    // Initial State: Start at the Listing Price
     const [price, setPrice] = useState(listPrice);
     const [status, setStatus] = useState({
         msg: 'Precio Base Sugerido',

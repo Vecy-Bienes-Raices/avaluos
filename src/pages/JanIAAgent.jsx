@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm';
 import AuthOptions from '../components/VecyPhoenix/AuthOptions';
 import PricingCards from '../components/PricingCards';
 import { initiateCheckout } from '../services/epaycoService';
-import { saveChatToHistory, getUserChats, getChatDetail } from '../services/historyService';
+import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile } from '../services/historyService';
 // Eliminado uuidv4 por crypto.randomUUID()
 
 const JanIAAgent = () => {
@@ -171,15 +171,34 @@ const JanIAAgent = () => {
         ? { backgroundImage: 'radial-gradient(circle at center, #7D6B65 0%, #4E3D32 40%, #423229 100%)' }
         : { background: '#0f0f0f' };
 
-    // Function to handle sending messages
     const handleSendMessage = async (text, files = []) => {
         if (!text.trim() && files.length === 0) return;
+
+        // --- SUBIDA REAL A SUPABASE STORAGE ---
+        let uploadedAttachments = [];
+        if (user && files.length > 0) {
+            try {
+                uploadedAttachments = await Promise.all(files.map(async (fileObj) => {
+                    const publicUrl = await uploadChatFile(user.id, chatId, fileObj.file);
+                    return {
+                        name: fileObj.name,
+                        type: fileObj.type,
+                        url: publicUrl, // URL real en Supabase
+                        preview: fileObj.preview
+                    };
+                }));
+            } catch (err) {
+                console.error("Storage Upload Error:", err);
+            }
+        }
 
         // 1. Add User Message
         const newMsg = {
             type: 'user',
             text,
-            attachments: files.map(f => ({ name: f.name, type: f.type, preview: f.preview }))
+            attachments: uploadedAttachments.length > 0
+                ? uploadedAttachments
+                : files.map(f => ({ name: f.name, type: f.type, preview: f.preview }))
         };
         setMessages(prev => [...prev, newMsg]);
         setInput('');
@@ -217,7 +236,7 @@ const JanIAAgent = () => {
                     };
                 }));
 
-                response = await janIACore.processUserMessage(text, onThinkingStep, fileDatas);
+                response = await janIACore.processUserMessage(text, onThinkingStep, fileDatas, uploadedAttachments);
             } catch (coreError) {
                 console.error("JanIA Core Critical Failure:", coreError);
                 response = {
@@ -361,7 +380,9 @@ const JanIAAgent = () => {
                         onClick={() => {
                             const newId = crypto.randomUUID();
                             setChatId(newId);
-                            setMessages([{ type: 'bot', text: handleInitialGreeting(user), component: 'greeting' }]);
+                            janIACore.reset(); // Reiniciar cerebro
+                            const greeting = handleInitialGreeting(user);
+                            setMessages([{ type: 'bot', text: greeting, component: 'greeting' }]);
                             localStorage.removeItem('janIA_chat_messages');
                             localStorage.setItem('janIA_current_chat_id', newId);
                         }}

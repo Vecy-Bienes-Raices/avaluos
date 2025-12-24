@@ -64,3 +64,34 @@ export const getChatDetail = async (chatId) => {
     return null;
   }
 };
+/**
+ * Sube un archivo al bucket 'documents' de Supabase
+ */
+export const uploadChatFile = async (userId, chatId, file) => {
+  if (!userId || !file) return null;
+
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${chatId}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('documents') // Asegúrate de crear este bucket en Supabase
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    // Obtener URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error('❌ Error subiendo archivo:', error);
+    return null;
+  }
+};

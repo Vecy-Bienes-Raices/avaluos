@@ -104,7 +104,7 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
         * **URLs:** Usuario pega links (Fichas Web, Portales, Landing Pages) y JanIA extrae la data automáticamente.
     * **Datos Críticos:** Énfasis en "Tipos de Acabados" (Calidad, Estado, Materiales) para el cálculo de valor.
     * **Búsqueda Web (CMA):** JanIA busca en portales inmobiliarios para crear comparativas de mercado en tiempo real.
-    * Base de Datos (Supabase) + Storage (Docs/Fotos). **(EN PROCESO)**
+    * Base de Datos (Supabase) + Storage (Docs/Fotos). **(COMPLETADO 100%)**
 3. **Fase 3 (Monetización y Niveles):**
     * **Nivel Gratuito:** Lógica de comparación rápida en chat.
     * **Plantilla Maestra (`/avaluo/portales`):** Conexión de variables de chat a la plantilla real.
@@ -407,5 +407,46 @@ Esta lista representa los modelos disponibles y soportados para diversas tareas 
 * **Sidebar Vivo (Sincronización Supabase):** Conexión real del Sidebar con la tabla `chats`. Los iconos de burbuja ahora cargan conversaciones pasadas y restauran la consciencia plena de JanIA mediante `setMemory`.
 * **Bypass Auth 2.0:** Eliminación total del bucle de autenticación. Si el usuario está logueado, JanIA omite cualquier invitación a registro y continúa el flujo de avalúo.
 
+### [2025-12-24] - Estandarización de Plantilla Dinámica Maestra
+
+* **Dinamización de Componentes**: `MarketAnalysis`, `NegotiationSimulator` y `SWOT` ahora reciben y procesan data de Supabase en tiempo real.
+
+* **Exportación PDF**: Estilos de impresión y botón de descarga para generar reportes técnicos sin elementos de la interfaz web.
+* **Formato Industrial**: El informe de Portales del Norte se consolida como el estándar técnico de oro de JanIA.
+
+### V. Persistencia Total: Supabase Storage para Documentos (Dic 24, 2025 - 00:45)
+
+* **Archivo en la Nube:** Creación de `uploadChatFile` en `historyService.js`. Los documentos (escrituras, recibos) y fotos ahora se suben al bucket `documents` de Supabase Storage.
+* **URLs Inmortales:** El historial de chats ya no depende de blobs locales; ahora guarda las URLs públicas de Supabase. Esto permite que JanIA consulte el "expediente" del inmueble en cualquier sesión futura.
+* **Flujo Sincronizado:** La subida ocurre antes de la respuesta de JanIA, integrando los documentos en su memoria de análisis de forma inmediata y persistente.
+
+### VI. Restauración Forzada: Retorno a la Serie 3 (Dic 24, 2025 - 02:10)
+
+* **Motores Serie 3 Reinstaurados:** Reversión de la degradación accidental. JanIA recupera sus modelos `gemini-3-pro-preview` y `gemini-3-flash-preview`.
+* **Alma de Vecina Recuperada:** Reinstalación del `PERSONALITY_PROMPT` bogotano y el protocolo obligatorio de trato cercano ("vecino/a").
+* **Protocolo de Verdades Absolutas 2.0:** Blindaje técnico para evitar amnesia. JanIA ahora inyecta un resumen técnico inmutable en cada turno para no re-preguntar datos confirmados.
+* **Diagnóstico 403 (Referrer):** Identificación del error de seguridad en la API Key de Google Cloud. Documentación para que el usuario verifique restricciones de Referrer en su consola.
+
+### VII. Conexión de Persistencia Real (Supabase Storage) (Dic 24, 2025 - 02:25)
+
+* **Integración Storage Pro:** Implementación de `supabase_storage_setup.sql`. Creación de políticas RLS para el bucket `documents`, permitiendo que JanIA guarde archivos reales bajo el UID del usuario.
+* **Memoria Documental Sincronizada:** Modificación de `JanIAAgent.jsx` y `janIACore.js` para que los adjuntos subidos se vinculen permanentemente a la memoria técnica (`property_data.documents`).
+* **Consciencia de Expediente:** JanIA ahora reconoce qué archivos ya han sido subidos y evita solicitar duplicados, manteniendo una trazabilidad clara del expediente inmobiliario.
+* **Estandarización RAA:** Reintegración del componente `AppraiserCertification.jsx` (Jani Alves Souza) en el informe maestro, respetando el estándar Oro/Esmeralda de Portales del Norte II.
+
+### VIII. JanIA 4.0: Activación de Sentidos (Dic 24, 2025 - 03:00)
+
+* **Visión Real (Street View SDK):** Evolución de `get_location_details`. Ahora JanIA captura la fachada del inmueble vía Google Street View API, la almacena en `facade_url` y la analiza visualmente para el reporte.
+* **Investigación Obligatoria (Deep Research):** Implementación de la herramienta `deep_research_property`. Blindaje del motor `Cortex` para prohibir respuestas técnicas sin previa investigación profunda del sector/edificio.
+* **Fluidez Cognitiva (Anti-Lora):** Implementación de "Memoria de Giros" en `INITIAL_MEMORY`. Diccionario expandido de 10+ variantes para saludos y confirmaciones, prohibiendo la repetición de frases idénticas.
+* **Disección Documental Exhaustiva:** Protocolo de extracción profunda 360°. JanIA ahora extrae obligatoriamente 15+ campos técnicos (Matrícula, Chip, Linderos, Coeficientes) de PDFs y fotos adjuntas.
+
+### X. JanIA 4.2: Ojos Abiertos & Persistencia Real (Dic 24, 2025 - 03:30)
+
+* **Estabilización Quirúrgica del Core:** Re-escritura total de `janIACore.js`. Se eliminaron errores de sintaxis y colapsos de linter provocados por ediciones parciales. Base de código 100% limpia y robusta.
+* **Persistencia de Consciencia (Fix Sidebar):** Sincronización real del Sidebar con Supabase. Ahora los chats se cargan correctamente al loguear y la memoria cerebral de JanIA se restaura íntegramente mediante `setMemory` al cambiar de conversación.
+* **Sentidos de Navegación (`read_web_page`):** Implementación técnica de la herramienta de lectura web. JanIA ahora puede extraer información directamente de enlaces externos para validar datos técnicos.
+* **Reinicio Neuronal Seguro:** El botón "Nuevo Chat" ahora ejecuta un `reset()` total del cerebro, garantizando que cada avalúo inicie sin residuos de memoria de la sesión anterior.
+
 ---
-Última actualización: 24 de Diciembre, 2025 (00:30) - Agente Antigravity (Autoridad en Persistencia y UI Real)
+Última actualización: 24 de Diciembre, 2025 (03:30) - Agente Antigravity (Ingeniero de Resiliencia y Estabilidad Cerebral)

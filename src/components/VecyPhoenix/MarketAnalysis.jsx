@@ -3,8 +3,9 @@ import React, { Suspense, lazy } from 'react';
 // Lazy Load Chart to save bundle size
 const MarketChart = lazy(() => import('./MarketChart'));
 
-const MarketAnalysis = () => {
-
+const MarketAnalysis = ({ data = {} }) => {
+    const marketInsight = data.analisis_mercado_texto ||
+        "Comparables en zona muestran una tendencia estable. Se sugiere ajustar precio según estado de conservación y metraje legalizado.";
 
     return (
         <section id="market" className="glass-panel bg-white/10 p-4 md:p-12 mt-12 overflow-hidden relative">
@@ -15,8 +16,7 @@ const MarketAnalysis = () => {
                 <span className="text-brand-accent font-bold tracking-[0.2em] uppercase text-xs mb-2 block">Inteligencia de Mercado</span>
                 <h2 className="text-3xl md:text-4xl font-extrabold text-brand-accent tracking-tight text-shadow-volcanic">Estudio Comparativo (CMA)</h2>
                 <p className="text-stone-300 text-shadow-black mt-4 max-w-3xl text-lg leading-relaxed">
-                    Comparables en zona piden ~$5.6M/m², pero son inmuebles con mayor área legalizada.
-                    <span className="text-amber-400 font-bold"> El sujeto debe ajustar precio por falta de licencia en ampliaciones.</span>
+                    {marketInsight}
                 </p>
             </div>
 

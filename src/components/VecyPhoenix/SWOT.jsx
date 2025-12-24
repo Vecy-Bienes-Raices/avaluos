@@ -2,10 +2,10 @@ import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCopy } from '@fortawesome/free-solid-svg-icons';
 
-const SWOT = () => {
+const SWOT = ({ data = {} }) => {
 
     const copySummary = () => {
-        const text = `*Resumen Avalúo Portales del Norte*\n📍 Ubicación: Cra 65 # 167-18\n🏠 Área: 72m² (3 Niveles)\n✅ Estado: Remodelado (Cocina/Baño Ppal)\n💰 Precio Base: $375.000.000\n📉 Cierre Estimado: $350.000.000\n⚖️ Documentación: Saneada 100%`;
+        const text = `*Resumen Avalúo ${data.tipo_inmueble || 'Inmueble'}*\n📍 Ubicación: ${data.direccion_inmueble}\n🏠 Área: ${data.area_privada}m²\n✅ Estado: Analizado por JanIA\n💰 Precio Sugerido: $${new Intl.NumberFormat('es-CO').format(data.valor_final_avaluador || 0)}`;
         navigator.clipboard.writeText(text).then(() => {
             alert("Resumen copiado al portapapeles.");
         });
