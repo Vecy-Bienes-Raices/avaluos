@@ -388,5 +388,24 @@ Esta lista representa los modelos disponibles y soportados para diversas tareas 
   * Soporte para transiciones automáticas al checkout tras la selección del plan.
 * **Mantenimiento del Cerebro:** Creación del método `reset()` en `janIACore.js` para limpiezas de memoria seguras durante el cierre de sesión.
 
+### II. Alineación Total y Soldadura de Memoria (Dic 23, 2025 - 23:00)
+
+* **Soldadura de Cables (Amnesia Corregida):** Se implementó la persistencia del estado cerebral (`janIACore.memory`) en la columna `metadata` de Supabase. JanIA ahora exporta su memoria al guardar y la restaura al cargar un chat, garantizando que las "Verdades Absolutas" extraídas de documentos se mantengan entre sesiones.
+* **Bloqueo de Bucle de Registro:** Validación estricta de `currentUser` en el mapeador de componentes. El disparador `auth` está desactivado físicamente si hay una sesión activa.
+* **Conformidad Serie 3:** Todos los procesos alineados con los modelos inmutables (Cortex, Reflex, Research).
+
+### III. Paso 4: Precios Dinámicos y Cierre IA (Dic 23, 2025 - 23:25)
+
+* **Fórmula Maestra de Precios:** Creación de `pricingService.js`. El Plan Oro ahora es dinámico (Base $99k + factores de área y valor).
+* **Cortex de Venta:** Refuerzo del `THINKING_PROMPT`. JanIA ahora justifica el upgrade basándose en los datos técnicos del inmueble (area, barrio, POT) antes de lanzar `offer_upgrade()`.
+* **Checkout ePayco PRO:** Adaptación de `epaycoService.js` y `PricingCards.jsx` para procesar montos dinámicos y descripciones personalizadas.
+* **Estética Liquid Glass:** Refinamiento visual de las tarjetas de precios con desenfoque de 2XL y gradientes premium.
+
+### IV. Reparación Quirúrgica: Amnesia y Sidebar Real (Dic 24, 2025 - 00:25)
+
+* **Soldadura de Memoria (True Context):** Implementación de la inyección dinámica de `[RESUMEN TÉCNICO INMUTABLE]` en cada turno. JanIA ya no preguntará datos que estén en `property_data`, los tratará como "Verdades Absolutas".
+* **Sidebar Vivo (Sincronización Supabase):** Conexión real del Sidebar con la tabla `chats`. Los iconos de burbuja ahora cargan conversaciones pasadas y restauran la consciencia plena de JanIA mediante `setMemory`.
+* **Bypass Auth 2.0:** Eliminación total del bucle de autenticación. Si el usuario está logueado, JanIA omite cualquier invitación a registro y continúa el flujo de avalúo.
+
 ---
-Última actualización: 23 de Diciembre, 2025 (22:55) - Agente Antigravity (Autoridad en Consciencia y Monetización)
+Última actualización: 24 de Diciembre, 2025 (00:30) - Agente Antigravity (Autoridad en Persistencia y UI Real)

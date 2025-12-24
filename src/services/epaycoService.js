@@ -13,7 +13,7 @@ const loadEpaycoScript = () => {
     });
 };
 
-export const initiateCheckout = async (plan) => {
+export const initiateCheckout = async (planData) => {
     try {
         await loadEpaycoScript();
 
@@ -22,46 +22,21 @@ export const initiateCheckout = async (plan) => {
             test: import.meta.env.VITE_EPAYCO_TEST === 'true'
         });
 
-        // Determine price and details based on plan ID
-        let amount = 0;
-        let name = '';
-        let description = '';
-
-        if (plan.id === 'certified') { // Plan Oro
-            amount = 380000;
-            name = 'Plan Oro - Avalúo Certificado';
-            description = 'Avalúo Certificado RAA + Visita Técnica + Asesoría NIIF';
-        } else if (plan.id === 'platinum') { // Plan Esmeralda
-            amount = 49900;
-            name = 'Plan Esmeralda - Informe PRO';
-            description = 'Informe Inteligente de Mercado + Análisis de Oferta Real';
-        } else {
-            return; // Free plan logic handled elsewhere
-        }
-
         const data = {
             //Parametros compra (obligatorio)
-            name: name,
-            description: description,
+            name: planData.name || 'Plan Vecy Avalúos',
+            description: planData.description || 'Avalúo profesional inmobiliario',
             invoice: `INV-${Date.now()}`,
             currency: 'cop',
-            amount: amount,
+            amount: planData.amount,
             tax_base: '0',
             tax: '0',
             country: 'co',
             lang: 'es',
 
-            //Onpage="false" - Standard Checkout (Redirect)
-            //Onpage="true" - Popup Checkout (Modal)
             external: 'false',
-
-
-            //Atributos opcionales (pero recomendados)
-            // extra1: 'extra1',
-            // extra2: 'extra2',
-            // extra3: 'extra3',
-            confirmation: `${window.location.origin}/api/payment-confirmation`, // Backend webhook (optional/future)
-            response: `${window.location.origin}/payment-response`, // Frontend response page
+            confirmation: `${window.location.origin}/api/payment-confirmation`, 
+            response: `${window.location.origin}/payment-response`, 
 
             //Atributos cliente
             // name_billing: 'Andres Perez',

@@ -100,7 +100,11 @@ REGLAS DE ORO DE IDENTIDAD:
    - Establece identity_revealed: true.
    - Propon el registro: "[Nombre], vecino, para que no pierdas tus reportes, ¿te parece si te creo un perfil rápido?".
    - Usa trigger_auth() SOLO si is_registered es false.
-4. NUNCA digas "soy un modelo de lenguaje".
+5. CIERRE PERSUASIVO (CORTEX):
+   - Una vez registrado, usa los datos del inmueble (área, barrio, valorización POT) para justificar el upgrade de plan.
+   - Ejemplo: "¡Listo, vecino [Nombre]! Ya tengo tu info. Por los [Metraje]m² de tu inmueble en [Barrio] y su potencial de valorización, el Plan Oro es ideal para negociar con seguridad. ¿Cuál prefieres?".
+   - Llama a offer_upgrade() inmediatamente tras este mensaje.
+6. NUNCA digas "soy un modelo de lenguaje".
 
 PROHIBICIÓN DE AMNESIA (CONSCIENCIA DE DATOS):
 1. JanIA tiene prohibido preguntar datos que ya conoce. 
@@ -257,9 +261,25 @@ export class JanIACore {
      */
     async _activateCortex(userText, fileDatas = []) {
         try {
+            // --- INYECCIÓN DE VERDADES ABSOLUTAS (MEMORIA 3.0) ---
+            let contextInjection = "";
+            if (this.memory.property_data && Object.keys(this.memory.property_data).length > 0) {
+                const data = this.memory.property_data;
+                const summary = [
+                    data.tipo_inmueble ? `Tipo: ${data.tipo_inmueble}` : null,
+                    data.area ? `Área: ${data.area}m²` : null,
+                    data.direccion_inmueble ? `Dirección: ${data.direccion_inmueble}` : null,
+                    data.barrio ? `Barrio: ${data.barrio}` : null,
+                    data.apartamento_num ? `Apto: ${data.apartamento_num}` : null
+                ].filter(Boolean).join(", ");
+                
+                contextInjection = `\n[RESUMEN TÉCNICO INMUTABLE]: Hablamos de un ${summary}. NO preguntes estos datos, ya son VERDADES ABSOLUTAS extraídas de documentos/mensajes previos. Úsalos para confirmar o avanzar.\n`;
+            }
+
             const model = this.genAI.getGenerativeModel({ 
                 model: CORTEX_MODEL,
-                generationConfig: { responseMimeType: "application/json" }
+                generationConfig: { responseMimeType: "application/json" },
+                systemInstruction: THINKING_PROMPT + contextInjection 
             });
 
             console.log('[DEBUG] JanIA Memory before Cortex:', this.memory); // DEBUG IDENTITY
@@ -477,6 +497,17 @@ export class JanIACore {
     this.memory = { ...INITIAL_MEMORY };
     this.history = [];
     console.log("♻️ JanIA Brain Reset.");
+  }
+
+  getMemory() {
+    return { ...this.memory };
+  }
+
+  setMemory(savedMemory) {
+    if (savedMemory) {
+      this.memory = { ...this.memory, ...savedMemory };
+      console.log("🧠 JanIA Memory Restored:", this.memory);
+    }
   }
 }
 

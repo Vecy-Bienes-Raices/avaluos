@@ -141,7 +141,8 @@ const JanIAAgent = () => {
                     title = await janIACore.generateChatTitle(messages);
                     localStorage.setItem(`janIA_title_${chatId}`, title);
                 }
-                await saveChatToHistory(user.id, chatId, title, messages);
+                const currentMemory = janIACore.getMemory();
+                await saveChatToHistory(user.id, chatId, title, messages, currentMemory);
             };
             saveChat();
         }
@@ -237,9 +238,14 @@ const JanIAAgent = () => {
                 const step = response.plan.next_step;
                 const toolName = step?.type === 'tool' ? step.name : null;
 
-                // --- CUSTOM COMPONENT MAPPING ---
-                if (!user && (toolName === 'auth_gate' || toolName === 'trigger_auth')) {
-                    botMsg.component = 'auth'; // Unified naming per user request
+                // --- CUSTOM COMPONENT MAPPING (BYPASS AUTH IF LOGGED IN) ---
+                if (toolName === 'auth_gate' || toolName === 'trigger_auth') {
+                    if (!user) {
+                        botMsg.component = 'auth'; // Solo mostrar si no hay sesión
+                    } else {
+                        // Si ya está logueado, JanIA debe continuar suavemente
+                        console.log("🔒 [AUTH BYPASS]: Usuario ya logueado, saltando auth_gate.");
+                    }
                 } else if (toolName === 'offer_upgrade') {
                     botMsg.component = 'plan_card';
                 } else if (toolName === 'start_bogota_flow') {
@@ -381,8 +387,14 @@ const JanIAAgent = () => {
                                         if (detail) {
                                             setChatId(chat.id);
                                             setMessages(detail.messages);
+                                            // 🧩 REGRESO AL FUTURO: Restauración de Consciencia Plena
+                                            if (detail.metadata) {
+                                                janIACore.setMemory(detail.metadata);
+                                                console.log("🧠 [MEMORIA RESTAURADA]:", detail.metadata);
+                                            }
                                             localStorage.setItem('janIA_chat_messages', JSON.stringify(detail.messages));
                                             localStorage.setItem('janIA_current_chat_id', chat.id);
+                                            setSidebarOpen(false); // Close on mobile
                                         }
                                     }}
                                     className={`flex items-center gap-3 p-2.5 rounded-full hover:bg-white/10 w-full text-left group transition-all ${chatId === chat.id ? 'bg-white/5 border border-white/10' : ''} ${!sidebarOpen && 'justify-center'}`}
@@ -808,14 +820,17 @@ const JanIAAgent = () => {
                                     {/* Pricing Plans Component */}
                                     {msg?.component === 'plan_card' && (
                                         <div className="w-full mt-4 animate-fade-in-up flex justify-center">
-                                            <div className="w-full max-w-4xl scale-90 md:scale-95 origin-top">
-                                                <PricingCards onSelect={(planId) => {
-                                                    if (planId === 'free') {
-                                                        handleSendMessage("Gracias, prefiero el Plan Café por ahora.");
-                                                    } else {
-                                                        initiateCheckout({ id: planId });
-                                                    }
-                                                }} />
+                                            <div className="w-full max-w-4xl scale-95 md:scale-100 origin-top">
+                                                <PricingCards
+                                                    propertyData={janIACore.memory.property_data}
+                                                    onSelect={(plan) => {
+                                                        initiateCheckout({
+                                                            amount: plan.amount,
+                                                            name: `${plan.name} - Vecy Avalúos`,
+                                                            description: `Avalúo profesional para el inmueble en ${janIACore.memory.property_data?.barrio || 'Bogotá'}`
+                                                        });
+                                                    }}
+                                                />
                                             </div>
                                         </div>
                                     )}
