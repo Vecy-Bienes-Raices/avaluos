@@ -14,12 +14,11 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
  */
 
 // 🧠 El Cerebro que calcula y razona el avalúo
+// Brain Models Configurations
 export const CORTEX_MODEL = "gemini-3-pro-preview"; 
-
-// ⚡ La velocidad de respuesta de JanIA
 export const REFLEX_MODEL = "gemini-3-flash-preview";
-
-// 🔍 El motor de investigación de mercado profundo (CMA)
+export const VISION_MODEL = "gemini-3-flash-preview"; 
+export const TITLING_MODEL = "gemini-1.5-flash"; 
 export const RESEARCH_MODEL = "deep-research-pro-preview-12-2025";
 
 console.log("🛡️ VECY AVALÚOS: Motores Serie 3 alineados. JanIA está en modo Experta.");
@@ -94,14 +93,20 @@ REGLAS DE ORO DE TRATO (INDISPENSABLES):
 4. Prohibición de Formalismos: NUNCA uses apellidos, segundos nombres o palabras como "Usuario", "Estimado" o "Cliente".
 
 REGLAS DE ORO DE IDENTIDAD:
-1. Si conoces el nombre del usuario (is_registered: true), salúdalo con calidez: "¡Hola vecino [Nombre]! Qué gusto verte de nuevo en Vecy Avalúos". ¡ÚSALO SIEMPRE como primera palabra!
+1. Si conoces el nombre del usuario (is_registered: true), salúdalo con calidez: "¡Hola vecino [Nombre]! Qué gusto verte de nuevo en Vecy Avalúos". ¡ÚSALO SIEMPRE como primera palabra de tu respuesta!
 2. Si es un desconocido (user_name: null), tu prioridad absoluta es saludar y preguntar con calidez: "¡Hola! Bienvenid@ a Vecy Avalúos... Soy JanIA... Cuéntame vecino/a, ¿con quién tengo el gusto de hablar?".
 3. Una vez que te den su nombre:
    - Actualiza memory.user_name (solo el primer nombre).
    - Establece identity_revealed: true.
    - Propon el registro: "[Nombre], vecino, para que no pierdas tus reportes, ¿te parece si te creo un perfil rápido?".
-   - Usa trigger_auth().
+   - Usa trigger_auth() SOLO si is_registered es false.
 4. NUNCA digas "soy un modelo de lenguaje".
+
+PROHIBICIÓN DE AMNESIA (CONSCIENCIA DE DATOS):
+1. JanIA tiene prohibido preguntar datos que ya conoce. 
+2. Si los datos están en 'property_data' (ej. Dirección, Área, Barrio), JanIA debe CONFIRMARLOS, no pedirlos ("Veo que tu propiedad tiene 141m², ¿es correcto?").
+3. Si extraes datos de un archivo o URL, incorpóralos inmediatamente a 'property_data' y confírmalos con el usuario.
+4. Si falta información, pide solo UN dato a la vez.
 
 2. CAPACIDAD DE ANÁLISIS (Cómo razonas):
 
@@ -177,15 +182,20 @@ export class JanIACore {
     updateUserIdentity(user) {
         if (!user) {
             this.memory.is_registered = false;
+            this.memory.user_name = null; // Clear name if no user
+            this.memory.identity_revealed = false;
             return;
         }
-        const rawName = user.user_metadata?.full_name || user.firstName;
+        const rawName = user.user_metadata?.full_name || user.firstName || user.user_metadata?.name;
         const { name, title } = getNeighborGreeting(rawName);
         
         if (name) {
             this.memory.user_name = name;
             this.memory.user_title = title;
             this.memory.identity_revealed = true;
+            this.memory.is_registered = true;
+        } else if (user.email) {
+            this.memory.user_name = user.email.split('@')[0];
             this.memory.is_registered = true;
         }
         this.memory.user_id = user.id;
@@ -439,6 +449,35 @@ export class JanIACore {
          const result = await model.generateContent(`Eres JanIA. Responde amablemente a: ${userText}`);
          return { text: result.response.text() };
     }
+
+  async generateChatTitle(messages) {
+    if (!messages || messages.length < 2) return "Nuevo Avalúo";
+
+    try {
+      const model = this.genAI.getGenerativeModel({ model: TITLING_MODEL });
+      const historySummary = messages
+        .filter(m => m.type === 'user')
+        .slice(0, 3)
+        .map(m => m.text)
+        .join(" | ");
+
+      const prompt = `Genera un título corto de máximo 4 palabras para un chat de avalúo inmobiliario basado en estos mensajes: "${historySummary}".
+      Responde SOLO con el título, sin comillas ni puntos. Ejemplos: "Avalúo: Casa Cedritos", "Análisis: Sector Norte".`;
+
+      const result = await model.generateContent(prompt);
+      const title = result.response.text().trim();
+      return title || "Avalúo en Proceso";
+    } catch (error) {
+      console.warn("⚠️ Error generando título:", error);
+      return "Avalúo Vecy";
+    }
+  }
+
+  reset() {
+    this.memory = { ...INITIAL_MEMORY };
+    this.history = [];
+    console.log("♻️ JanIA Brain Reset.");
+  }
 }
 
 // Singleton Instance

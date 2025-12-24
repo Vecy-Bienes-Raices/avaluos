@@ -7,6 +7,10 @@ import { crearSolicitud } from '../services/solicitudesService'; // Import Datab
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AuthOptions from '../components/VecyPhoenix/AuthOptions';
+import PricingCards from '../components/PricingCards';
+import { initiateCheckout } from '../services/epaycoService';
+import { saveChatToHistory, getUserChats, getChatDetail } from '../services/historyService';
+// Eliminado uuidv4 por crypto.randomUUID()
 
 const JanIAAgent = () => {
     // Auth & Identity State
@@ -32,7 +36,7 @@ const JanIAAgent = () => {
         }
 
         // Determinar saludo inicial dinámico
-        const initialText = handleInitialGreeting(null); // Empezar como anónimo, se actualizará al cargar el user
+        const initialText = handleInitialGreeting(null);
         return [
             { type: 'bot', text: initialText, component: 'greeting' }
         ];
@@ -42,6 +46,8 @@ const JanIAAgent = () => {
     const [isTyping, setIsTyping] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false); // New State: Background Analysis
     const [attachments, setAttachments] = useState([]); // NEW: Store selected files
+    const [history, setHistory] = useState([]); // Real chat history
+    const [chatId, setChatId] = useState(() => localStorage.getItem('janIA_current_chat_id') || crypto.randomUUID());
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null); // NEW: Ref for hidden input
 
@@ -124,7 +130,35 @@ const JanIAAgent = () => {
     useEffect(() => {
         scrollToBottom();
         localStorage.setItem('janIA_chat_messages', JSON.stringify(messages));
-    }, [messages]);
+        localStorage.setItem('janIA_current_chat_id', chatId);
+
+        // Auto-save logic for logged in users
+        if (user && messages.length > 2) {
+            const saveChat = async () => {
+                // If it's a new chat, generate a title
+                let title = localStorage.getItem(`janIA_title_${chatId}`);
+                if (!title) {
+                    title = await janIACore.generateChatTitle(messages);
+                    localStorage.setItem(`janIA_title_${chatId}`, title);
+                }
+                await saveChatToHistory(user.id, chatId, title, messages);
+            };
+            saveChat();
+        }
+    }, [messages, chatId, user]);
+
+    // Load user history
+    useEffect(() => {
+        if (user) {
+            const loadHistory = async () => {
+                const userChats = await getUserChats(user.id);
+                setHistory(userChats);
+            };
+            loadHistory();
+        } else {
+            setHistory([]);
+        }
+    }, [user, messages]); // Refresh on user change or new messages
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -204,8 +238,10 @@ const JanIAAgent = () => {
                 const toolName = step?.type === 'tool' ? step.name : null;
 
                 // --- CUSTOM COMPONENT MAPPING ---
-                if (toolName === 'auth_gate' || toolName === 'trigger_auth') {
+                if (!user && (toolName === 'auth_gate' || toolName === 'trigger_auth')) {
                     botMsg.component = 'auth'; // Unified naming per user request
+                } else if (toolName === 'offer_upgrade') {
+                    botMsg.component = 'plan_card';
                 } else if (toolName === 'start_bogota_flow') {
                     botMsg.component = 'options';
                     botMsg.options = ["Ver Políticas", "Aceptar y Continuar"];
@@ -316,7 +352,13 @@ const JanIAAgent = () => {
                 {/* New Chat Button */}
                 <div className={`px-4 mb-6 ${!sidebarOpen && 'flex justify-center px-0'}`}>
                     <button
-                        onClick={() => setMessages([{ type: 'bot', text: 'Hola, soy JanIA. ¿Qué quieres valuar hoy?', component: 'greeting' }])}
+                        onClick={() => {
+                            const newId = crypto.randomUUID();
+                            setChatId(newId);
+                            setMessages([{ type: 'bot', text: handleInitialGreeting(user), component: 'greeting' }]);
+                            localStorage.removeItem('janIA_chat_messages');
+                            localStorage.setItem('janIA_current_chat_id', newId);
+                        }}
                         className={`flex items-center gap-3 bg-white/10 hover:bg-white/20 border border-transparent rounded-full text-stone-200 transition-all shadow-md backdrop-blur-md ${sidebarOpen ? 'px-4 py-3 w-full' : 'p-3 rounded-full'}`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -324,18 +366,35 @@ const JanIAAgent = () => {
                     </button>
                 </div>
 
-                {/* Recent Chats List */}
+                {/* Recent Chats List - Real Data */}
                 <div className="flex-grow overflow-y-auto px-2 no-scrollbar">
                     {sidebarOpen && (
-                        <div className="mb-2 px-4 text-xs font-medium text-stone-500">Recientes</div>
+                        <div className="mb-2 px-4 text-xs font-medium text-stone-500 italic">Historial</div>
                     )}
                     <div className="space-y-1">
-                        {['Avalúo Casa Portales', 'Análisis Sector Norte', 'Consulta Jurídica'].map((chat, i) => (
-                            <button key={i} className={`flex items-center gap-3 p-2 rounded-full hover:bg-white/5 w-full text-left group ${!sidebarOpen && 'justify-center'}`}>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
-                                {sidebarOpen && <span className="text-sm text-stone-300 truncate group-hover:text-white">{chat}</span>}
-                            </button>
-                        ))}
+                        {history.length > 0 ? (
+                            history.map((chat) => (
+                                <button
+                                    key={chat.id}
+                                    onClick={async () => {
+                                        const detail = await getChatDetail(chat.id);
+                                        if (detail) {
+                                            setChatId(chat.id);
+                                            setMessages(detail.messages);
+                                            localStorage.setItem('janIA_chat_messages', JSON.stringify(detail.messages));
+                                            localStorage.setItem('janIA_current_chat_id', chat.id);
+                                        }
+                                    }}
+                                    className={`flex items-center gap-3 p-2.5 rounded-full hover:bg-white/10 w-full text-left group transition-all ${chatId === chat.id ? 'bg-white/5 border border-white/10' : ''} ${!sidebarOpen && 'justify-center'}`}
+                                    title={chat.title}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 transition-colors ${chatId === chat.id ? 'text-brand-accent' : 'text-stone-400 group-hover:text-white'}`}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                                    {sidebarOpen && <span className={`text-xs truncate ${chatId === chat.id ? 'text-white font-bold' : 'text-stone-300 group-hover:text-white'}`}>{chat.title}</span>}
+                                </button>
+                            ))
+                        ) : (
+                            sidebarOpen && <p className="px-4 text-[10px] text-stone-600">No hay avalúos recientes</p>
+                        )}
                     </div>
                 </div>
 
@@ -451,6 +510,9 @@ const JanIAAgent = () => {
                                         await supabase.auth.signOut();
                                         janIACore.reset();
                                         localStorage.removeItem('janIA_chat_messages');
+                                        localStorage.removeItem('janIA_current_chat_id');
+                                        const newId = crypto.randomUUID();
+                                        setChatId(newId);
                                         setMessages([{ type: 'bot', text: 'Soy JanIA, tu experta en análisis inmobiliario. ¿Qué quieres descubrir hoy?', component: 'greeting' }]);
                                         setProfileOpen(false);
                                     }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-500/10 text-red-400 text-left group transition-colors">
@@ -743,6 +805,21 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
+                                    {/* Pricing Plans Component */}
+                                    {msg?.component === 'plan_card' && (
+                                        <div className="w-full mt-4 animate-fade-in-up flex justify-center">
+                                            <div className="w-full max-w-4xl scale-90 md:scale-95 origin-top">
+                                                <PricingCards onSelect={(planId) => {
+                                                    if (planId === 'free') {
+                                                        handleSendMessage("Gracias, prefiero el Plan Café por ahora.");
+                                                    } else {
+                                                        initiateCheckout({ id: planId });
+                                                    }
+                                                }} />
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Policy & Auth Gate Component */}
                                     {msg?.component === 'auth_gate' && (
                                         <div className="mt-4 ml-2 flex flex-col gap-4 animate-fade-in-up max-w-[90%]">
@@ -758,7 +835,6 @@ const JanIAAgent = () => {
                                                     <button
                                                         onClick={() => {
                                                             janIACore.memory.policies_accepted = true;
-                                                            janIACore.saveState();
                                                             // Logic: Accept triggers the unified auth component
                                                             const notifyMsg = { id: Date.now(), type: 'bot', text: '¡Excelente! Ahora elige cómo prefieres guardar tu progreso en la nube:', component: 'auth' };
                                                             setMessages(prev => [...prev, notifyMsg]);

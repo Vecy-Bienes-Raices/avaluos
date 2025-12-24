@@ -371,5 +371,22 @@ Esta lista representa los modelos disponibles y soportados para diversas tareas 
 * **Brain Sync:** JanIA ahora utiliza la memoria de captura (barrio/documentos) para invitar al registro de forma persuasiva y personalizada.
 * **Auto-Workflow:** Se añadió un disparador en el frontend que, tras detectar un registro exitoso, salta automáticamente al **Paso 4 (Planes)** para agilizar el cierre de venta.
 
+### H. Historial de Chat Real y Smart Titling (Dic 23, 2025)
+
+* **Persistencia en Supabase:** Creación de `historyService.js` y tabla `chats`. Los mensajes se autoguardan tras cada interacción significativa.
+* **Smart Titling:** Implementado `generateChatTitle` en `janIACore.js` usando Gemini 1.5 Flash para bautizar los chats según el inmueble analizado.
+* **Sidebar Dinámico:** Refactorización de `JanIAAgent.jsx` para mapear el historial real y permitir el cambio de contexto entre avalúos.
+* **Session Management:** Uso de `crypto.randomUUID()` para identidades de sesión únicas y persistentes.
+
+### I. Blindaje de Consciencia y Planes de Pago (Dic 23, 2025 - Sesión Noche)
+
+* **Misión 1: Consciencia de Datos:** Refuerzo del `THINKING_PROMPT` para eliminar la amnesia contextual. JanIA ahora tiene prohibido preguntar datos que ya conoce (dirección, área, barrio) y debe optar por la confirmación activa.
+* **Misión 2: Validación de Sesión:** Ajuste en `JanIAAgent.jsx` para ocultar gatillos de registro (`trigger_auth`) si el usuario ya tiene una sesión activa. Sincronización robusta de identidad mediante `updateUserIdentity`.
+* **Paso 4: Integración de Planes (E-Payco):**
+  * Implementación del componente `plan_card` dinámico dentro del chat.
+  * Vinculación con `epaycoService.js` para los planes Oro y Esmeralda.
+  * Soporte para transiciones automáticas al checkout tras la selección del plan.
+* **Mantenimiento del Cerebro:** Creación del método `reset()` en `janIACore.js` para limpiezas de memoria seguras durante el cierre de sesión.
+
 ---
-Última actualización: 23 de Diciembre, 2025 - Agente Antigravity (JanIA 3.0 Authority & Soul Logic)
+Última actualización: 23 de Diciembre, 2025 (22:55) - Agente Antigravity (Autoridad en Consciencia y Monetización)
