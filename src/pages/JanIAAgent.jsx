@@ -12,6 +12,13 @@ import { initiateCheckout } from '../services/epaycoService';
 import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile } from '../services/historyService';
 // Eliminado uuidv4 por crypto.randomUUID()
 
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+});
+
 const JanIAAgent = () => {
     // Auth & Identity State
     const [user, setUser] = useState(null);
@@ -179,11 +186,16 @@ const JanIAAgent = () => {
         if (user && files.length > 0) {
             try {
                 uploadedAttachments = await Promise.all(files.map(async (fileObj) => {
-                    const publicUrl = await uploadChatFile(user.id, chatId, fileObj.file);
+                    const publicUrl = await uploadChatFile(user.id, chatId, fileObj);
+
+                    if (!publicUrl) {
+                        console.error("Failed to upload file:", fileObj.name);
+                    }
+
                     return {
                         name: fileObj.name,
                         type: fileObj.type,
-                        url: publicUrl, // URL real en Supabase
+                        url: publicUrl,
                         preview: fileObj.preview
                     };
                 }));
@@ -191,6 +203,7 @@ const JanIAAgent = () => {
                 console.error("Storage Upload Error:", err);
             }
         }
+
 
         // 1. Add User Message
         const newMsg = {
@@ -305,13 +318,9 @@ const JanIAAgent = () => {
         }
     };
 
+
     // Helper: Convert File to Base64
-    const fileToBase64 = (file) => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
+    // Helper: Convert File to Base64 (Moved to top of file)
 
     const handleFileSelect = (e) => {
         const files = Array.from(e.target.files);
@@ -657,14 +666,13 @@ const JanIAAgent = () => {
                     <div className="flex items-center gap-3 pointer-events-auto">
                         <div className="flex flex-col items-end mr-3">
                             <span className="text-[10px] md:text-xs font-bold text-brand-accent tracking-wider">VECY AVALÚOS</span>
-                            <span className="text-[8px] md:text-[10px] text-[#00ff22] animate-pulse">● Conectado</span>
+                            <span className="text-[8px] md:text-[10px] text-[#00ff22]">● Conectado</span>
                         </div>
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-neutral-900/80 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-brand-accent/50 transition-all overflow-hidden p-1.5 backdrop-blur-md border border-white/10 shadow-lg">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-neutral-900 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-brand-accent/50 transition-all overflow-hidden p-1.5 border border-white/10">
                             <img
                                 src="/animacion-vecy-blanco.gif"
                                 alt="User"
                                 className="w-full h-full object-contain opacity-90"
-                                style={{ filter: 'brightness(0.7) sepia(1) hue-rotate(5deg) saturate(1.5)' }}
                             />
                         </div>
                     </div>
@@ -693,16 +701,22 @@ const JanIAAgent = () => {
                                     {/* User Avatar if User Message */}
                                     {msg?.type === 'user' && (
                                         <div className="flex items-center gap-3 mb-2 flex-row-reverse">
-                                            <div className="w-10 h-10 rounded-full bg-brand-accent/20 backdrop-blur-md border border-brand-accent/30 overflow-hidden flex-shrink-0">
-                                                {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture) ? (
+                                            <div className="w-10 h-10 rounded-full bg-brand-accent/20 backdrop-blur-md border border-brand-accent/30 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                                {!user ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-brand-accent">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                    </svg>
+                                                ) : (user?.user_metadata?.avatar_url || user?.user_metadata?.picture) ? (
                                                     <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="Tú" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-brand-accent font-bold">
-                                                        {user?.email ? user.email.substring(0, 2).toUpperCase() : 'A'}
+                                                        {user?.user_metadata?.full_name
+                                                            ? user.user_metadata.full_name.charAt(0).toUpperCase()
+                                                            : user.email?.charAt(0).toUpperCase()}
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="text-xs font-bold text-white/50">Tú</span>
+                                            <span className="text-xs font-bold text-white/50">{user ? 'Tú' : 'Invitado'}</span>
                                         </div>
                                     )}
 
@@ -789,7 +803,7 @@ const JanIAAgent = () => {
 
                                             {/* STANDARD BUBBLE WITH MARKDOWN */}
                                             <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-lg backdrop-blur-sm ${msg?.type === 'user'
-                                                ? 'bg-brand-accent text-black font-bold rounded-tr-sm' // High contrast: Pure Black on Gold
+                                                ? 'bg-brand-accent text-black font-medium rounded-tr-sm border-t border-white/40 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.3)]'
                                                 : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
                                                 }`}>
 
@@ -1022,4 +1036,5 @@ const JanIAAgent = () => {
     );
 };
 
+// Export Agent Component
 export default JanIAAgent;

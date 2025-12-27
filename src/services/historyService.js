@@ -68,7 +68,15 @@ export const getChatDetail = async (chatId) => {
  * Sube un archivo al bucket 'documents' de Supabase
  */
 export const uploadChatFile = async (userId, chatId, file) => {
-  if (!userId || !file) return null;
+  console.log("🔍 [UPLOAD DEBUG] Starting upload...", { userId, chatId, fileName: file?.name }); // DEBUG ENTRY
+  if (!userId) {
+    console.error("❌ Upload aborted: Missing userId. User might not be fully authenticated.");
+    return null;
+  }
+  if (!file) {
+    console.error("❌ Upload aborted: Missing file object.");
+    return null;
+  }
 
   try {
     const fileExt = file.name.split('.').pop();
@@ -91,7 +99,8 @@ export const uploadChatFile = async (userId, chatId, file) => {
 
     return publicUrl;
   } catch (error) {
-    console.error('❌ Error subiendo archivo:', error);
+    console.error('❌ Error subiendo archivo:', error); // Mostrar objeto completo
+    console.error('❌ Detalles:', error.message || error.error_description); // Mostrar mensaje
     return null;
   }
 };

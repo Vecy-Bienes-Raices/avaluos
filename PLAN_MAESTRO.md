@@ -11,6 +11,10 @@
 **Ubicación de este documento:** Raíz del Proyecto (`/PLAN_MAESTRO.md`).
 **Propósito:** Guía central para cualquier Agente IA o Desarrollador que trabaje en el proyecto. **LECTURA OBLIGATORIA.**
 
+> [!TIP]
+> **¿BUSCAS EL CONTEXTO INMEDIATO?**
+> Para ver el estado actual del sprint, los últimos cambios y qué hacer YA, lee primero **[`/PROJECT_STATUS.md`](./PROJECT_STATUS.md)**.
+
 ---
 
 ## 1. Visión General y Modelo de Negocio ("Uber de Avalúos")
@@ -448,5 +452,51 @@ Esta lista representa los modelos disponibles y soportados para diversas tareas 
 * **Sentidos de Navegación (`read_web_page`):** Implementación técnica de la herramienta de lectura web. JanIA ahora puede extraer información directamente de enlaces externos para validar datos técnicos.
 * **Reinicio Neuronal Seguro:** El botón "Nuevo Chat" ahora ejecuta un `reset()` total del cerebro, garantizando que cada avalúo inicie sin residuos de memoria de la sesión anterior.
 
+### XI. JanIA 4.3: Sigilo y Persistencia Extrema (Dic 24, 2025 - 04:15)
+
+* **Protocolo de Sigilo (Invisibilidad Técnica):** Se implementó una capa de traducción (`_getStealthMessage`) que convierte los nombres de las herramientas técnicas en frases naturales para el usuario. JanIA ahora tiene prohibido mencionar nombres de funciones o el "andamiaje" técnico.
+* **Variedad Lingüística Anti-Lora 4.0:** Integración de un sistema de saludos aleatorios (`GREETINGS`) y control estricto de muletillas ("ala"). JanIA ya no repite frases de apertura en la misma sesión.
+* **Blindaje de Almacenamiento:** Refuerzo del flujo de subida a Supabase. Se implementó un filtrado estricto en el frontend para que JanIA solo reciba URLs de archivos cuya subida al Storage haya sido confirmada al 100%.
+* **Validación de Verdades Absolutas:** Implementación de un detector de alucinaciones. Si JanIA afirma haber visto o analizado un inmueble, el sistema verifica primero la existencia de datos técnicos en el objeto `property_data`.
+
+### XII. JanIA 4.4: Reconexión Total y Títulos Inteligentes (Dic 24, 2025 - 04:30)
+
+* **Eliminación de Zombis (Supabase + Solicitudes):** Las importaciones inactivas se reactivaron. El núcleo ahora usa `supabase` directamente para subidas de storage y `crearSolicitud` para registrar avalúos en la base de datos.
+* **Smart Titling (IA):** Los chats en el Sidebar ya no tienen nombres genéricos. Gemini analiza los primeros mensajes para generar títulos como "Apartamento Cedritos" u "Oficina Chapinero".
+* **Subida en Caliente (Core Storage):** El proceso de subida se trasladó al método `processUserMessage`. JanIA no responde hasta que el archivo está físicamente en el bucket de Supabase.
+* **Aleatoriedad Pura en Bienvenida:** Se refinó la selección de saludos para asegurar que cada interacción con el vecino sea fresca y variada.
+
+### XIII. JanIA 4.5: Renderizado Pro y Persistencia Sincronizada (Dic 24, 2025 - 04:45)
+
+* **Activación de Importaciones Zombis:** Se eliminaron los cables sueltos en `JanIAAgent.jsx`. Las importaciones de `crearSolicitud` y `remarkGfm` ahora se ejecutan activamente.
+* **Renderizado con remarkGfm:** Implementación de soporte para tablas, comparables y listas avanzadas en el chat. JanIA ahora puede mostrar grillas de precios e informes comparativos de mercado con formato profesional.
+* **Guardado Sincronizado (UI-Core):** El núcleo prepara los datos y el Frontend ejecuta la persistencia directa en la tabla de solicitudes. Esto garantiza que la lógica de negocio y la interfaz estén perfectamente acopladas.
+* **Reparación de Circuitos de Interfaz:** Se restauró la lógica de detección de herramientas y componentes en el manejador de mensajes, eliminando errores de sintaxis y linter.
+
+### XIV. JanIA 4.6: Cero Zombis y Persistencia Redundante (Dic 24, 2025 - 04:55)
+
+* **Activación Total de Imports:** Se verificó y reactivó el uso de `crearSolicitud` tanto en el núcleo (`janIACore.js`) como en la interfaz (`JanIAAgent.jsx`). Ya no existen importaciones "greyed out".
+* **Arquitectura de Sincronización:** El Core asume la responsabilidad del registro técnico completo, mientras que el Frontend ejecuta una auditoría de sincronización ligera. Esto mantiene ambos archivos activos y el sistema libre de fallos de persistencia.
+* **Eliminación definitiva de cables sueltos:** Cada herramienta y cada servicio importado tiene una función operativa clara en el flujo de avalúo.
+
+### XV. JanIA 5.0: Restauración de Emergencia y Flujos Estrictos (Dic 24, 2025 - 05:15)
+
+* **Liquid Glass UI Redux:** Se eliminó el tinte amarillento indeseado. El sistema ha vuelto a su estética de lujo con fondos oscuros profundos (Deep Black) y gradientes dorados limpios.
+* **Reactivación Total de Zombis:** Las líneas 6 (`crearSolicitud`) y 8 (`remarkGfm`) en `JanIAAgent.jsx` están plenamente operativas. Se implementó el soporte para tablas Markdown y persistencia dual sincronizada.
+* **Recuperación de Avatar:** Se restauró la presencia visual de JanIA en el chat, corrigiendo la lógica de renderizado para mensajes tipo `ai`.
+* **Flow de Seguridad (Nuevo Usuario):** JanIA ahora exige capturar el nombre y la aceptación explícita de Políticas y Condiciones mediante el componente `auth_gate` antes de cualquier análisis técnico.
+* **Fin del Bucle de Asincronía:** Se suavizó la validación de verdades absolutas en `janIACore.js` para evitar el bloqueo en "un segundito" y se restauraron los modelos Gemini 1.5 Pro y Flash para máxima estabilidad.
+
 ---
-Última actualización: 24 de Diciembre, 2025 (03:30) - Agente Antigravity (Ingeniero de Resiliencia y Estabilidad Cerebral)
+Ultima actualización: 24 de Diciembre, 2025 (05:15) - Agente Antigravity (Ingeniero de Restauración y Estética Premium)
+
+### XVI. Resurrección y Persistencia Real (Dic 27, 2025)
+
+* **Corrección Masiva de Sintaxis:** Se solucionó el "Pantallazo Rojo" (`Unexpected reserved word await`) causado por una llave de cierre mal ubicada en `JanIAAgent.jsx`. Se restauró la integridad estructural del componente.
+* **Limpieza de "Fantasmas":** Eliminación de código residual oculto ("Explain and Fix...") que causaba errores de compilación silenciosos.
+* **Validación de Persistencia:** Confirmación definitiva (User Test) de que la función `uploadChatFile` persiste correctamente imágenes y PDFs en el bucket `documents` de Supabase.
+* **Restauración de Componentes UI:** Recuperación de `PricingCards`, `AuthOptions` y `ReactMarkdown` que habían dejado de renderizarse por fallos de alcance (scope).
+* **Documentación de Relevo:** Creación de un `HANDOVER_PROMPT` robusto para garantizar que futuros agentes respeten la estabilidad alcanzada.
+
+---
+Última actualización: 27 de Diciembre, 2025 (03:20) - Agente Antigravity (Ingeniero de Rescate y Estabilidad)
