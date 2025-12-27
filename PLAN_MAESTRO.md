@@ -114,6 +114,10 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
     * **Plantilla Maestra (`/avaluo/portales`):** Conexión de variables de chat a la plantilla real.
     * **Pasarela de Pagos:** Implementación de ePayco antes de mostrar el informe final.
 4. **Fase 4 (Uber-Dispatch):** Lógica de "Llamado a Avaluadores" para el nivel Certificado.
+5. **Fase 5 (Inteligencia Colectiva - RAG):**
+    * **Memoria Vectorial:** Convertir los avalúos pasados y documentos de Supabase en "Vectores" numéricos.
+    * **Búsqueda Semántica:** Que JanIA pueda preguntar a su base de datos: *"¿Qué precio promedio tuvieron los apartamentos en Chicó Norte que evalué el mes pasado con acabados de lujo?"*.
+    * **Ingesta Normativa:** Cargar el POT de Bogotá y normas de la Lonja en la base vectorial para consultas precisas.
 
 ---
 
