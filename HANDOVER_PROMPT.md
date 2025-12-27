@@ -21,6 +21,7 @@ Antes de escribir una sola línea de código, ejecuta estas acciones:
 
 * **Interfaz:** Liquid Glass UI (Theme Coffee/Dark) -> **FUNCIONANDO**.
 * **Cerebro:** `janIACore.js` (Serie 3 Gemini) -> **FUNCIONANDO**.
+* **Inteligencia Colectiva (RAG):** Conexión Vectorial Activada (`ragService.js` + `janIACore.js`) -> **EN ESPERA DE INGESTA DE DATOS**.
 * **Persistencia:** Subida de archivos a Supabase Storage del bucket `documents` -> **FUNCIONANDO**.
 * **Sintaxis:** El código está limpio. TU PRIORIDAD ES MANTENERLO ASÍ.
 

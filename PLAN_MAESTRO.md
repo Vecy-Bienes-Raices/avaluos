@@ -502,5 +502,11 @@ Ultima actualización: 24 de Diciembre, 2025 (05:15) - Agente Antigravity (Ingen
 * **Restauración de Componentes UI:** Recuperación de `PricingCards`, `AuthOptions` y `ReactMarkdown` que habían dejado de renderizarse por fallos de alcance (scope).
 * **Documentación de Relevo:** Creación de un `HANDOVER_PROMPT` robusto para garantizar que futuros agentes respeten la estabilidad alcanzada.
 
+### XVII. JanIA 5.1: Cerebro Vectorial y Estabilidad de Puerto (Dic 27, 2025 - 16:30)
+
+* **Inteligencia Colectiva (RAG) Activada:** Se implementó `ragService.js` y se conectó al `_activateCortex` de `janIACore.js`. Ahora JanIA inyecta contexto de normas (POT) y avalúos previos (Comparables) en su prompt de sistema antes de generar respuestas.
+* **Blindaje de Puerto 5701:** Modificación imperativa de `package.json` (`vite --port 5701`) para forzar el entorno de desarrollo en el puerto correcto y evitar interferencias con otros proyectos en 5173.
+* **Infraestructura de Datos:** Creación de script `supabase/rag_setup.sql` para habilitar `pgvector` y las tablas `knowledge_base` y `valuation_memory`.
+
 ---
-Última actualización: 27 de Diciembre, 2025 (03:20) - Agente Antigravity (Ingeniero de Rescate y Estabilidad)
+Última actualización: 27 de Diciembre, 2025 (16:40) - Agente Antigravity (Ingeniero de Sistemas Cognitivos)

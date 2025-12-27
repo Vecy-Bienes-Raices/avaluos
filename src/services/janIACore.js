@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { supabase } from '../lib/supabaseClient';
 import { crearSolicitud } from './solicitudesService';
+import { searchRegulatoryContext, searchSimilarValuations, memorizeValuation } from './ragService'; // RAG Connection
 
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -145,11 +146,30 @@ export class JanIACore {
     }
 
     async _activateCortex(userText, fileDatas) {
+        // --- COLLECTIVE INTELLIGENCE (RAG) ---
+        let ragContext = "";
+        try {
+            console.log("🧠 [RAG] Searching Collective Memory...");
+            const [regDocs, pastVals] = await Promise.all([
+                searchRegulatoryContext(userText),
+                searchSimilarValuations(userText)
+            ]);
+
+            if (regDocs.length > 0) {
+                ragContext += "\n\n[SABIDURÍA NORMATIVA (POT/LEYES)]: " + regDocs.map(d => d.content).join(" | ");
+            }
+            if (pastVals.length > 0) {
+                ragContext += "\n\n[EXPERIENCIA PREVIA (AVALÚOS COMPARABLES)]: " + pastVals.map(v => `${v.summary_text} (Precio: $${v.valuation_price})`).join(" | ");
+            }
+        } catch (err) {
+            console.warn("⚠️ [RAG] Connection failed:", err);
+        }
+
         // Build File Manifest (Textual Proof for the AI)
         const fileManifest = fileDatas.map(f => `[Archivo: ${f.mimeType}]`).join(', ');
-        const sysInjection = fileDatas.length > 0 
+        const sysInjection = (fileDatas.length > 0 
             ? `\n\n[SISTEMA ALERT]: Se han adjuntado ${fileDatas.length} archivos visuales/PDFs reales al contexto: ${fileManifest}. ESTÁN AHÍ. ¡NO LOS IGNORES! TU PRIORIDAD ES LEERLOS y extraer la Matrícula Inmobiliaria y otros datos.` 
-            : "";
+            : "") + ragContext;
 
         const model = this.genAI.getGenerativeModel({ model: CORTEX_MODEL, generationConfig: { responseMimeType: "application/json" } });
         const prompt = THINKING_PROMPT.replace('{{MEMORY_STATE}}', JSON.stringify(this.memory)).replace('{{USER_MESSAGE}}', userText) + sysInjection;

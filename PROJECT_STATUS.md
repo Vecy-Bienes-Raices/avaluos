@@ -15,7 +15,8 @@
 2. **PERSISTENCIA SUPABASE:** La función `uploadChatFile` ya guarda archivos reales en el bucket `documents` usando el UUID del usuario.
 3. **INTERFAZ RELOADED:** Se restauraron componentes perdidos (`PricingCards`, `ReactMarkdown`, `AuthOptions`) tras el fallo de sintaxis.
 4. **MEMORIA DE CONTEXTO:** JanIA ahora reconoce archivos subidos y los integra en su memoria sin alucinaciones.
-5. **BLOQUEO RLS:** Se identificó que la política RLS de Supabase debe permitir `INSERT` para usuarios `authenticated`.
+5. **INTELIGENCIA COLECTIVA (RAG):** Se implementó `ragService` y la conexión neuronal. JanIA ahora consulta la "Memoria Vectorial" antes de pensar.
+6. **PUERTO 5701 BLINDADO:** Se configuró `package.json` para obligar el uso del puerto 5701.
 
 ## 3. Deuda Técnica / Alertas
 
