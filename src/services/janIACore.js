@@ -74,12 +74,21 @@ PROTOCOLOS DE SUPER-INTELIGENCIA:
 3. INTERACCIÓN UNO A UNO:
    - Flujo Invitado: Nombre -> [Política](link) y [Términos](link) -> Registro -> Avalúo.
    - Pregunta UNA cosa a la vez. Espera respuesta.
-4. AUTO-APRENDIZAJE SIMULADO: Usa el contexto previo. Si ya sabes que es un "Apartamento en Cedritos", no preguntes "¿Qué vamos a avaluar?".`;
+4. AUTO-APRENDIZAJE SIMULADO: Usa el contexto previo. Si ya sabes que es un "Apartamento en Cedritos", no preguntes "¿Qué vamos a avaluar?".
+   
+HERRAMIENTAS DISPONIBLES (USALAS SI ES NECESARIO):
+- "read_web_page": { url: "..." } -> Leer portales o noticias.
+- "get_location_details": { address: "..." } -> Verificar barrio/coordenadas.
+- "trigger_auth": {} -> Mostrar formulario de registro.
+- "deep_research_property": { query: "..." } -> Búsqueda INTENSIVA en fuentes oficiales/portales para hallar precios referencia.
+- "memorize_valuation": { summary: "...", price: 0 } -> GUARDA el avalúo en tu memoria a largo plazo cuando finalizas y el usuario aprueba.`;
 
 const THINKING_PROMPT = `${PERSONALITY_PROMPT} // MANTIENE LA IDENTIDAD SUPREMA
 \nMODO CORTEX ACTIVADO:
 - Si hay ARCHIVOS: Ejecuta protocolo de extracción exhaustiva. JSON output debe tener "property_data" detallado.
 - Si hay TEXTO: Analiza intención, sentimiento y lógica.
+- CRÍTICO: Si te faltan datos de mercado o el usuario pide precisión, USA "deep_research_property".
+- FINAL: Si entregas un valor y el usuario acepta, USA "memorize_valuation".
 \nGenera JSON ESTRICTO: { 
   "thought_process": "Deducción paso a paso... [Ej: Veo matricula X, cruzo con dirección Y, falta Área]", 
   "update_memory": { "property_data": { ...todos los datos extraídos... } }, 
@@ -208,6 +217,32 @@ export class JanIACore {
             case 'trigger_auth':
                 // Retornamos un mensaje de sistema para el Reflex Model, NO para el usuario final directamente (aunque el Reflex lo usará de contexto)
                 return "SISTEMA: Tarjeta de registro desplegada en UI. Diles algo corto como: '¡Perfecto! Para guardar tu proceso, crea tu cuenta aquí abajo 👇'";
+            
+            case 'deep_research_property':
+                try {
+                    // LLAMADA AL MODELO DE INVESTIGACIÓN (RESEARCH_MODEL)
+                    const researchModel = this.genAI.getGenerativeModel({ model: RESEARCH_MODEL });
+                    const researchPrompt = `INVESTIGACIÓN FORENSE INMOBILIARIA:
+                    Busca en fuentes fiables (Portales Inmobiliarios Colombia, Metrocuadrado, Finca Raíz, Lonjas) datos sobre: ${args.query}.
+                    Retorna: Precios m2 promedio en la zona, Arriendos estimados, y Tendencia de valorización. Sé técnico y preciso.`;
+                    
+                    const res = await researchModel.generateContent(researchPrompt);
+                    const findings = res.response.text();
+                    return `[INVESTIGACIÓN DEEP COMPLETA]: ${findings}`;
+                } catch(e) { 
+                    return `Error en investigación profunda: ${e.message}. Intenta una búsqueda web normal.`; 
+                }
+
+            case 'memorize_valuation':
+                try {
+                    // Guardamos en Supabase Vector
+                    // Asumimos que tenemos solicitud_id en memory, sino pasamos null (la DB lo permite nullable o lo manejamos)
+                    // Para ser seguros, usamos 0 o null si no hay ID real.
+                    const solId = this.memory.current_solicitud_id || null; 
+                    const ok = await memorizeValuation(solId, args.summary, args.price, this.memory.property_data);
+                    return ok ? "Avalúo memorizado exitosamente en el Cerebro Vectorial." : "Error guardando memoria.";
+                } catch (e) { return "Fallo en memorización."; }
+
             default: return "Acción no encontrada.";
         }
     }
