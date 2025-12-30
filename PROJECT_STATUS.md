@@ -1,22 +1,24 @@
 # PROJECT STATUS: VECY AVALÚOS (La Verdad Inmediata)
 
-> **ESTADO DEL PROYECTO: 🟢 OPERATIVO Y ESTABLE**
-> *Última actualización: 27 de Diciembre, 2025*
+> **ESTADO DEL PROYECTO: 🟢 OPERATIVO Y ESTABLE (GOLD CANDIDATE)**
+> *Última actualización: 29 de Diciembre, 2025*
 
 ## 1. Contexto Activo (Sprint Actual)
 
-* **Objetivo Cumplido:** Restauración de Interfaz de Agente + Persistencia Real de Archivos.
-* **Foco Actual:** Verificación funcional completa y limpieza de código.
-* **Siguiente Paso:** Implementación de lógica de Dispatch (Asignación de Avaluadores) y reforzamiento de RLS.
+* **Objetivo Cumplido:** Ecosistema Completo (Perfil + Precios + Persistencia Blindada).
+* **Foco Actual:** Verificación visual final (Mobile typography & Glass variants).
+* **Siguiente Paso:** Despliegue a Producción y Pruebas de Carga.
 
 ## 2. Últimos 5 Cambios Críticos (¡LEER ANTES DE TOCAR CÓDIGO!)
 
-1. **FIX CRÍTICO SINTAXIS:** Se reparó `JanIAAgent.jsx` (llaves de cierre faltantes y texto fantasma "Explain and Fix"). **NO AGREGAR CÓDIGO SIN VERIFICAR CIERRES DE LLAVES.**
-2. **PERSISTENCIA SUPABASE:** La función `uploadChatFile` ya guarda archivos reales en el bucket `documents` usando el UUID del usuario.
-3. **INTERFAZ RELOADED:** Se restauraron componentes perdidos (`PricingCards`, `ReactMarkdown`, `AuthOptions`) tras el fallo de sintaxis.
-4. **MEMORIA DE CONTEXTO:** JanIA ahora reconoce archivos subidos y los integra en su memoria sin alucinaciones.
-5. **INTELIGENCIA COLECTIVA (RAG) LIVE:** Sistema 100% operativo. Ingesta de POT/DTS exitosa. Búsqueda y "Lectura" (Retrieval) verificada con 68% de precisión semántica.
-6. **PUERTO 5701 BLINDADO:** Se configuró `package.json` para obligar el uso del puerto 5701.
+1. **Smart PDF Generator PRO:** Backend (FastAPI) + Frontend implementation for Plan Esmeralda reports.
+2. **2026 Pricing Update:** Updated logic for new SMMLV ($1,750,905) and Plan Oro rules.
+3. **Global Modals System:** Replaced native alerts with a premium Glass UI modal system.
+4. **Secure Avatar Upload:** Fixed RLS policies and implemented modal feedback for uploads.
+5. **PROTOCOL ANTI-ZOMBIE:** Solución a resurrección de chats borrados (Atomic Resets).
+6. **MOTOR DE PRECIOS:** Tarifas dinámicas en tiempo real.
+7. **PERFIL DE USUARIO:** Nueva ruta `/perfil` con historial y descargas.
+8. **VECY THEME:** Sistema de diseño centralizado (`src/theme/VecyTheme.js`).
 
 ## 3. Deuda Técnica / Alertas
 

@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Footer from '../components/VecyPhoenix/Footer';
 
 import { useTheme } from '../context/ThemeContext';
 
 const TermsAndConditions = () => {
+    const navigate = useNavigate();
     const { theme } = useTheme();
 
     // Theme Classes
@@ -23,12 +24,13 @@ const TermsAndConditions = () => {
             <div className="relative z-10 flex-grow max-w-4xl mx-auto px-6 py-12 md:py-20">
 
                 {/* Back Button */}
-                <Link to="/" className="inline-flex items-center gap-2 text-stone-400 hover:text-white mb-8 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                    </svg>
-                    Volver a JanIA
-                </Link>
+                <button
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-sm font-bold backdrop-blur-md group mb-6"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:-translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                    Volver con JanIA
+                </button>
 
                 {/* Glass Card Container (Dark Glass) */}
                 <div className={`glass-panel backdrop-blur-md shadow-lg p-8 md:p-12 rounded-3xl border transition-colors duration-500 ${cardClass}`}>
@@ -84,6 +86,19 @@ const TermsAndConditions = () => {
                             <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">5. Propiedad Intelectual</h2>
                             <p>
                                 Todo el software, algoritmos, diseños ("JanIA", "Vecy") y contenidos de la plataforma son propiedad exclusiva de Vecy Avalúos S.A.S.
+                            </p>
+                        </section>
+                        <section>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">6. Asistente de Navegación e Investigación</h2>
+                            <p>
+                                El usuario reconoce que JanIA actúa como un asistente técnico que procesa información pública (POT, portales inmobiliarios, bases de datos abiertas) bajo instrucción directa del usuario. La plataforma no realiza "web scraping" masivo ni indiscriminado, sino análisis puntuales bajo demanda para enriquecer la precisión del avalúo.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">7. Inteligencia Colectiva (RAG)</h2>
+                            <p>
+                                El sistema utiliza tecnologías de Recuperación Aumentada (RAG) para mejorar sus modelos. Al usar el servicio, el usuario acepta que los datos técnicos y no sensibles del inmueble (área, ubicación, características físicas) alimenten una base de conocimiento vectorial anónima. Esto permite al sistema "recordar" transacciones comparables para beneficio de la comunidad, sin comprometer la identidad del titular.
                             </p>
                         </section>
                     </div>

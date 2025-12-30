@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Footer from '../components/VecyPhoenix/Footer';
 
 import { useTheme } from '../context/ThemeContext';
 
 const PrivacyPolicy = () => {
+    const navigate = useNavigate();
     const { theme } = useTheme();
 
     // Theme Classes
@@ -23,12 +24,13 @@ const PrivacyPolicy = () => {
             <div className="relative z-10 flex-grow max-w-4xl mx-auto px-6 py-12 md:py-20">
 
                 {/* Back Button */}
-                <Link to="/" className="inline-flex items-center gap-2 text-stone-400 hover:text-white mb-8 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                    </svg>
-                    Volver a JanIA
-                </Link>
+                <button
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-sm font-bold backdrop-blur-md group mb-6"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:-translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                    Volver con JanIA
+                </button>
 
                 {/* Glass Card Container (Dark Glass) */}
                 <div className={`glass-panel backdrop-blur-md shadow-lg p-8 md:p-12 rounded-3xl border transition-colors duration-500 ${cardClass}`}>
@@ -82,7 +84,14 @@ const PrivacyPolicy = () => {
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">5. Contacto</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">5. Tratamiento de Datos Vectoriales</h2>
+                            <p>
+                                En línea con nuestra fase de "Inteligencia Colectiva", los documentos cargados (PDFs, Imágenes) se transforman en vectores numéricos para análisis comparativo. Este proceso de "vectorización" asegura que la información sea procesada de forma abstracta por el algoritmo, garantizando que la identidad del titular no se filtre en las consultas abiertas del sistema.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">6. Contacto</h2>
                             <p>
                                 Si tiene preguntas sobre esta política, puede contactarnos en: <a href="mailto:legal@vecyavaluos.com" className="text-brand-accent hover:underline">legal@vecyavaluos.com</a>
                             </p>

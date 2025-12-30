@@ -104,3 +104,46 @@ export const uploadChatFile = async (userId, chatId, file) => {
     return null;
   }
 };
+
+export const deleteChat = async (chatId) => {
+    try {
+        const { count, error } = await supabase
+            .from('chats')
+            .delete({ count: 'exact' })
+            .eq('id', chatId);
+        
+        if (error) throw error;
+        
+        // If count is 0/null, it means RLS or ID mismatch prevented deletion
+        if (count === 0) {
+            console.warn("⚠️ [DELETE] Supabase returned 0 deletions. RLS might be blocking or chat doesn't exist.");
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Error al eliminar chat:', error);
+        return false;
+    }
+};
+
+export const clearUserHistory = async (userId) => {
+    try {
+        const { count, error } = await supabase
+            .from('chats')
+            .delete({ count: 'exact' })
+            .eq('user_id', userId);
+            
+        if (error) throw error;
+
+        if (count === 0) {
+             console.warn("⚠️ [CLEAR] Supabase returned 0 deletions. RLS Policy likely blocking DELETE.");
+             return false; // CORRECT: Fail so UI shows error
+        }
+
+        return true;
+    } catch (error) {
+        console.error('❌ Error al limpiar historial:', error);
+        return false;
+    }
+};

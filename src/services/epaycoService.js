@@ -19,7 +19,7 @@ export const initiateCheckout = async (planData) => {
 
         const handler = window.ePayco.checkout.configure({
             key: import.meta.env.VITE_EPAYCO_PUBLIC_KEY,
-            test: import.meta.env.VITE_EPAYCO_TEST === 'true'
+            test: true // Force test mode for debugging
         });
 
         const data = {
@@ -28,15 +28,18 @@ export const initiateCheckout = async (planData) => {
             description: planData.description || 'Avalúo profesional inmobiliario',
             invoice: `INV-${Date.now()}`,
             currency: 'cop',
-            amount: planData.amount,
+            amount: String(planData.amount), // Ensure string format
             tax_base: '0',
             tax: '0',
             country: 'co',
             lang: 'es',
 
             external: 'false',
-            confirmation: `${window.location.origin}/api/payment-confirmation`, 
-            response: `${window.location.origin}/payment-response`, 
+            
+            // VALIDATION FIX: ALWAYS force production HTTPS URLs for callbacks during debugging
+            // ePayco strictly validates these fields. Localhost or http:// causes "epaycoResponse is not a valid URL"
+            confirmation: 'https://vecy-avaluos.netlify.app/api/payment-confirmation',
+            response: 'https://vecy-avaluos.netlify.app/payment-response', 
 
             //Atributos cliente
             // name_billing: 'Andres Perez',
@@ -47,6 +50,9 @@ export const initiateCheckout = async (planData) => {
 
             //methodsDisable: ["TDC", "PSE","SP","CASH","DP"]
         };
+
+        console.log("💳 [ePayco Debug] Initializing checkout with data:", JSON.stringify(data, null, 2));
+        console.log("🔑 [ePayco Debug] Public Key:", import.meta.env.VITE_EPAYCO_PUBLIC_KEY ? "Present" : "MISSING");
 
         handler.open(data);
 

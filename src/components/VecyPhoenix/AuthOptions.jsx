@@ -5,11 +5,11 @@ import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
 
 const AuthOptions = ({ onSelect }) => {
     return (
-        <div className="flex flex-col gap-4 w-full max-w-[260px] mx-auto animate-fade-in py-2">
+        <div className="flex flex-col gap-4 w-full max-w-[320px] mx-auto animate-fade-in py-2 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-3xl p-6 shadow-2xl">
             {/* GOOGLE BUTTON - Liquid Glass Style */}
             <button
                 onClick={() => onSelect('google')}
-                className="flex items-center justify-center gap-3 bg-white/95 text-stone-900 font-bold py-3 px-4 rounded-xl hover:bg-white transition-all shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-white/10 hover:-translate-y-0.5 group overflow-hidden w-full text-[13px] backdrop-blur-md"
+                className="flex items-center justify-center gap-3 bg-white/95 text-stone-900 font-bold py-3.5 px-6 rounded-xl hover:bg-white transition-all shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-white/10 hover:-translate-y-0.5 group overflow-hidden w-full text-base backdrop-blur-md"
             >
                 <div className="w-5 h-5 flex-shrink-0">
                     <svg viewBox="0 0 24 24" className="w-full h-full">
@@ -25,7 +25,7 @@ const AuthOptions = ({ onSelect }) => {
             {/* FACEBOOK BUTTON - Liquid Glass Style */}
             <button
                 onClick={() => onSelect('facebook')}
-                className="flex items-center justify-center gap-3 bg-[#1877F2]/90 text-white font-bold py-3 px-4 rounded-xl hover:bg-[#1877F2] transition-all shadow-[0_8px_32px_rgba(24,119,242,0.2)] hover:shadow-[#1877F2]/30 hover:-translate-y-0.5 group overflow-hidden w-full text-[13px] backdrop-blur-md"
+                className="flex items-center justify-center gap-3 bg-[#1877F2]/90 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-[#1877F2] transition-all shadow-[0_8px_32px_rgba(24,119,242,0.2)] hover:shadow-[#1877F2]/30 hover:-translate-y-0.5 group overflow-hidden w-full text-base backdrop-blur-md"
             >
                 <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center flex-shrink-0">
                     <svg viewBox="0 0 24 24" fill="#1877F2" className="w-4 h-4">
@@ -35,16 +35,16 @@ const AuthOptions = ({ onSelect }) => {
                 <span>Continuar con Facebook</span>
             </button>
 
-            <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-white/10"></div>
-                <span className="flex-shrink-0 mx-3 text-[9px] font-bold tracking-widest text-stone-500 uppercase">O usa tu email</span>
-                <div className="flex-grow border-t border-white/10"></div>
+            <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-white/20"></div>
+                <span className="flex-shrink-0 mx-4 text-[10px] font-extrabold tracking-[0.2em] text-white/80 uppercase drop-shadow-sm">O usa tu email</span>
+                <div className="flex-grow border-t border-white/20"></div>
             </div>
 
             {/* EMAIL BUTTON - Glass/Gold Premium */}
             <button
                 onClick={() => onSelect('email')}
-                className="flex items-center justify-center gap-3 bg-white/5 text-stone-200 font-medium py-3 px-4 rounded-xl hover:bg-brand-gold/10 border border-white/10 hover:border-brand-gold/30 transition-all group text-[13px] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
+                className="flex items-center justify-center gap-3 bg-white/5 text-stone-200 font-medium py-3.5 px-6 rounded-xl hover:bg-brand-gold/10 border border-white/10 hover:border-brand-gold/30 transition-all group text-base backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
             >
                 <FontAwesomeIcon icon={faEnvelope} className="text-stone-400 group-hover:text-brand-gold transition-colors w-4 h-4" />
                 Continuar con Correo

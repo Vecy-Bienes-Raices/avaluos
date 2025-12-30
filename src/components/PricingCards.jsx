@@ -10,8 +10,8 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
             name: 'Plan Café',
             subtitle: 'Sondeo Digital Inmediato',
             image: '/cafe.png',
-            price: '49.000',
-            amount: 49000,
+            price: 'GRATIS',
+            amount: 0,
             features: [
                 'Acceso 24/7.',
                 'Sondeo de mercado 2025.',
@@ -34,16 +34,16 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
         {
             id: 'oro',
             name: 'Plan Oro',
-            subtitle: 'Informe Inteligente PRO',
+            subtitle: 'Avalúo Certificado RAA',
             image: '/oro.png',
-            price: getFormattedPrice(dynamicOroPrice),
-            amount: dynamicOroPrice,
+            price: '', // A determinar
+            amount: 0,
             features: [
-                'Todo lo del Plan Café +',
-                'Analítica de Mercado (CMA).',
-                'Análisis POT y Catastro.',
-                'Descarga PDF Técnico.',
-                'Sugerencia de Valor Real.'
+                'Todo lo del Plan Esmeralda +',
+                'Visita técnica Perito Oficial.',
+                'Certificación RAA Perito Oficial.',
+                'Análisis Jurídico Profundo.',
+                'Proyección Plusvalía 5 años.'
             ],
             isPopular: true,
             style: {
@@ -62,16 +62,16 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
         {
             id: 'esmeralda',
             name: 'Plan Esmeralda',
-            subtitle: 'Avalúo Certificado RAA',
+            subtitle: 'Informe Inteligente PRO',
             image: '/esmeralda.png',
-            price: '299.000',
-            amount: 299000,
+            price: '', // A determinar
+            amount: 0,
             features: [
-                'Todo lo del Plan Oro +',
-                'Firma de Perito Oficial.',
-                'Visita técnica en sitio.',
-                'Análisis Jurídico Profundo.',
-                'Proyección Plusvalía 5 años.'
+                'Todo lo del Plan Café +',
+                'Analítica de Mercado (CMA).',
+                'Análisis POT y Catastro.',
+                'Descarga PDF Técnico.',
+                'Sugerencia de Valor Real.'
             ],
             style: {
                 cardBg: 'bg-[#0DBB83]/10 backdrop-blur-2xl',

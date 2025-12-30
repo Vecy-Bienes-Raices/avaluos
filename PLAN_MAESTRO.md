@@ -98,21 +98,22 @@ JanIA no es un chatbot simple; es una **Entidad IA Autónoma** con las siguiente
 ## 3. Hoja de Ruta (Roadmap)
 
 1. **Fase 1 (Frontend & Legal):** UI "Premium Glass", JanIA Chat, Páginas Legales (Privacidad/Términos), **Tema Global (Claro/Oscuro)**. **(COMPLETADO 100%)**
-2. **Fase 2 (Datos & IA - JanIA 2.0):**
-    * **Autenticación Híbrida:** Chat conversacional que deriva a Pop-Up/Botones (Google/Facebook/Correo) para registro seguro sin fricción.
+2. **Fase 2 (Datos & IA - JanIA 3.0):**
+    * **Autenticación Híbrida:** Chat conversacional que deriva a Pop-Up/Botones (Google/Facebook/Correo) para registro seguro sin fricción. **(COMPLETADO 100%)**
     * **Sistema de Roles:**
         * **Cliente:** Solicita avalúo.
         * **Socio Avaluador (Uber-Model):** Recibe notificaciones, revisa, certifica y gana tarifa por operación (dispersión semanal).
     * **Ingesta Documental & Web:**
-        * **Archivos:** JanIA instruye usar el clip 📎 para subir PDFs, Fotos, Escrituras.
-        * **URLs:** Usuario pega links (Fichas Web, Portales, Landing Pages) y JanIA extrae la data automáticamente.
+        * **Archivos:** JanIA instruye usar el clip 📎 para subir PDFs, Fotos, Escrituras. **(COMPLETADO 100%)**
+        * **URLs:** Usuario pega links (Fichas Web, Portales, Landing Pages) y JanIA extrae la data automáticamente. **(COMPLETADO 100%)**
     * **Datos Críticos:** Énfasis en "Tipos de Acabados" (Calidad, Estado, Materiales) para el cálculo de valor.
     * **Búsqueda Web (CMA):** JanIA busca en portales inmobiliarios para crear comparativas de mercado en tiempo real.
     * Base de Datos (Supabase) + Storage (Docs/Fotos). **(COMPLETADO 100%)**
 3. **Fase 3 (Monetización y Niveles):**
     * **Nivel Gratuito:** Lógica de comparación rápida en chat.
-    * **Plantilla Maestra (`/avaluo/portales`):** Conexión de variables de chat a la plantilla real.
-    * **Pasarela de Pagos:** Implementación de ePayco antes de mostrar el informe final.
+    * **Plantilla Maestra (`/avaluo/portales`):** Conexión de variables de chat a la plantilla real. **(COMPLETADO 100%)**
+    * **Pasarela de Pagos:** Implementación de ePayco antes de mostrar el informe final. **(COMPLETADO 100%)**
+    * **Precios Dinámicos:** Lógica de cálculo (Plan Oro vs Esmeralda) basada en datos del inmueble. **(COMPLETADO 100%)**
 4. **Fase 4 (Uber-Dispatch):** Lógica de "Llamado a Avaluadores" para el nivel Certificado.
 5. **Fase 5 (Inteligencia Colectiva - RAG):**
     * **Memoria Vectorial:** Convertir los avalúos pasados y documentos de Supabase en "Vectores" numéricos.
@@ -509,4 +510,24 @@ Ultima actualización: 24 de Diciembre, 2025 (05:15) - Agente Antigravity (Ingen
 * **Infraestructura de Datos:** Creación de script `supabase/rag_setup.sql` para habilitar `pgvector` y las tablas `knowledge_base` y `valuation_memory`.
 
 ---
-Última actualización: 27 de Diciembre, 2025 (16:40) - Agente Antigravity (Ingeniero de Sistemas Cognitivos)
+
+### XVIII. Ecosistema Completo y Protocolo Anti-Zombie (Dic 29, 2025)
+
+* **Perfil de Usuario (Segmento 10):** Despliegue de `Perfil.jsx` con dashboard de avalúos, estados del proceso y descargas PDF.
+* **Dinamismo (Segmento 11):** Integración de Iframe Inteligente para reportes finales y sistema de notificaciones.
+* **VecyTheme (Segmento 12):** Estandarización visual global (Glassmorphism & Gold) y Disclaimer unificado.
+* **Matemagia (Segmento 13-A):** Implementación de `pricingService.js` para cálculo de tarifas dinámicas en tiempo real dentro del chat.
+* **Persistencia Blindada (Segmento 13-B):** Solución del bug "Zombie Chat". Atomic Resets para evitar resurrección.
+* **Refinamiento UI (Emergencia):** Reescritura de `Perfil.jsx` para eliminar errores de sintaxis y despliegue de `GlassAvatar` con carga de imágenes funcional.
+
+---
+
+### XIX. Sprint Final 2025: PDF Pro & Global Modals (Dic 29, 2025 - 23:55)
+
+* **Smart PDF Generator PRO (Plan Esmeralda):** Implementación de backend Python (FastAPI/FPDF2) para generar informes técnicos con gráficas, QR y branding.
+* **Global Modals System:** Reemplazo total de alertas nativas (`alert()`) por un sistema de modales `Glassmorphism` gestionados vía Context API (`ModalContext`).
+* **Lógica de Precios 2026:** Actualización de constantes financieras (SMMLV, Auxilio, UVT) y reglas de negocio para el nuevo año.
+* **Avatar Upload Fix:** Solución de permisos RLS en Supabase para permitir la personalización del perfil sin errores "Bucket not found".
+
+---
+Última actualización: 29 de Diciembre, 2025 (23:59) - Agente Antigravity (Finalización de Roadmap 2025)
