@@ -17,13 +17,13 @@ export const RESEARCH_MODEL = "deep-research-pro-preview-12-2025";
 // UX: Dynamic Thinking States
 // UX: Dynamic Thinking States
 export const THINKING_MESSAGES = {
-    INITIAL: "JanIA está pensando...",
-    FILES: "JanIA está escaneando tus archivos...",
-    WEB: "JanIA está navegando en la web...",
-    COMPARING: "JanIA está buscando en el barrio...",
-    PRICING: "JanIA está cotizando tu plan...",
-    WRITING: "JanIA está escribiendo...",
-    REPORT: "JanIA está redactando tu informe..."
+    INITIAL: "JanIA está pensando",
+    FILES: "JanIA está escaneando tus archivos",
+    WEB: "JanIA está navegando en la web",
+    COMPARING: "JanIA está buscando en el barrio",
+    PRICING: "JanIA está cotizando tu plan",
+    WRITING: "JanIA está escribiendo",
+    REPORT: "JanIA está redactando tu informe"
 };
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
