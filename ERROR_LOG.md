@@ -54,3 +54,10 @@
 ## 🛠️ PRÓXIMA INTERVENCIÓN TÉCNICA
 
 - Monitoreo de la capacidad de extracción de datos de JanIA con documentos complejos.
+
+### 4. [LOGIC/Async] Race Condition en Historial
+
+- **Síntoma:** El historial no mostraba el último chat inmediatamente.
+- **Causa:** La petición `getUserChats` se disparaba antes de que `saveChatToHistory` (Supabase) completara su escritura.
+- **Solución:** Se añadió `await` estricto en el guardado antes de refrescar el estado.
+- **ESTADO:** 🟢 SOLUCIONADO. Sincronización perfecta.

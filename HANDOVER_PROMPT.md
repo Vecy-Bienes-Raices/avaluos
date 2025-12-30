@@ -1,7 +1,7 @@
 # HANDOVER PROMPT: VECY AVALÚOS (GOLD CANDIDATE)
 
-**Current State:** 🟢 STABLE / GOLD CANDIDATE
-**Last Sprint Goal:** Smart PDF Generator, 2026 Pricing, Global Modals.
+**Current State:** 🚀 READY FOR DEPLOYMENT (v1.0)
+**Last Sprint Goal:** Sidebar UI, History Fixes, Guest Strategy Refinement.
 
 ## 🚨 CRITICAL CONTEXT FOR NEXT AGENT
 
@@ -26,6 +26,9 @@
 
 5. **Supabase Policies:**
     * If "Bucket not found" errors appear, run `fix_avatars_bucket_v2.sql`.
+
+6. **Guest History Strategy:**
+    * **INTENTIONAL:** Guests do NOT have persistent history. This is a strategic decision for Lead Generation and Privacy. Do not "fix" this.
 
 ## 📌 IMMEDIATE NEXT STEPS
 

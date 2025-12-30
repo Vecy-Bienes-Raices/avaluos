@@ -529,5 +529,17 @@ Ultima actualización: 24 de Diciembre, 2025 (05:15) - Agente Antigravity (Ingen
 * **Lógica de Precios 2026:** Actualización de constantes financieras (SMMLV, Auxilio, UVT) y reglas de negocio para el nuevo año.
 * **Avatar Upload Fix:** Solución de permisos RLS en Supabase para permitir la personalización del perfil sin errores "Bucket not found".
 
+### XX. Refinamiento Final UI y Estrategia (Dic 30, 2025 - 02:40)
+
+* **Sidebar UI Polish:**
+  * **Incognito Mode:** Reemplazo del texto genérico "US" por un ícono de usuario anónimo en contenedor oscuro (`bg-neutral-900`).
+  * **Settings UI:** Estandarización del botón de configuración con el mismo estilo de contenedor oscuro para consistencia visual.
+* **Estrategia de Historial (Privacidad & Leads):**
+  * **Decisión Arquitectónica:** Se implementó y luego se revirtió el historial local para invitados.
+  * **Veredicto:** El historial se mantiene **exclusivo para usuarios registrados**.
+  * **Razón:** Maximizar la captura de leads ("Si quieres guardar este análisis, regístrate") y proteger la privacidad en dispositivos compartidos.
+* **Corrección de Bugs Críticos:**
+  * **Race Condition (Historial):** Se corrigió un bug donde el historial se cargaba antes de que el guardado finalizara. Ahora la actualización de UI espera estrictamente la confirmación de la DB (`await saveChat`).
+
 ---
-Última actualización: 29 de Diciembre, 2025 (23:59) - Agente Antigravity (Finalización de Roadmap 2025)
+Última actualización: 30 de Diciembre, 2025 (02:45) - Agente Antigravity (Cierre de Sesión & Deploy)
