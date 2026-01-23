@@ -1,22 +1,63 @@
-import React from 'react';
-import { calculatePlanPrice, getFormattedPrice } from '../services/pricingService';
+import React, { useState } from 'react';
 
-const PricingCards = ({ onSelect, propertyData = {} }) => {
-    const dynamicOroPrice = calculatePlanPrice(propertyData);
+const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMode = false }) => {
+    const [selectionStep, setSelectionStep] = useState(null); // 'cafe' | 'esmeralda' | null
 
-    const plans = [
+    const handleBuy = (plan) => {
+        // 1. Caso Oro: Cotización Directa
+        if (plan.id === 'oro') {
+            onSelect({ ...plan, amount: 0 }); // Valida con backend/janIA
+            return;
+        }
+
+        // 2. Si ya hay estrato en la data (JanIA lo sabe), cobramos directo
+        if (propertyData.stratum) {
+            const stratum = parseInt(propertyData.stratum);
+            let finalAmount = plan.amount; // Base (High) ?? No, logic required.
+
+            // Logic Remapped:
+            // Cafe: 1-3 (29997), 4-6 (49997)
+            // Esmeralda: 1-3 (99997), 4-6 (149997)
+
+            if (plan.id === 'cafe') {
+                finalAmount = stratum <= 3 ? 29997 : 49997;
+            } else if (plan.id === 'esmeralda') {
+                finalAmount = stratum <= 3 ? 99997 : 149997;
+            }
+
+            onSelect({ ...plan, amount: finalAmount });
+            return;
+        }
+
+        // 3. Si NO hay estrato, mostramos selector en la tarjeta
+        setSelectionStep(plan.id);
+    };
+
+    const handleStratumSelect = (plan, range) => {
+        let finalAmount;
+        if (plan.id === 'cafe') {
+            finalAmount = range === 'low' ? 29997 : 49997;
+        } else {
+            finalAmount = range === 'low' ? 99997 : 149997;
+        }
+        onSelect({ ...plan, amount: finalAmount, stratumRange: range });
+        setSelectionStep(null);
+    };
+
+    const allPlans = [
         {
             id: 'cafe',
-            name: 'Plan Café',
-            subtitle: 'Sondeo Digital Inmediato',
+            name: 'Café Express',
+            subtitle: 'Sondeo de Mercado Rápido',
             image: '/cafe.png',
-            price: 'GRATIS',
-            amount: 0,
+            price: 'Desde $29.997',
             features: [
-                'Acceso 24/7.',
-                'Sondeo de mercado 2025.',
-                'Rango de valor por IA.',
-                'Entrega ágil vía chat.'
+                'Estratos 1-3: $29.997',
+                'Estratos 4-6: $49.997',
+                'Reporte PDF al Instante.',
+                '3 Inmuebles Comparables.',
+                '💸 Gana por cada Referido (Venta Efectiva).',
+                '🚫 ¡Sin límites de ganancias!'
             ],
             style: {
                 cardBg: 'bg-[#5D493A]/15 backdrop-blur-2xl',
@@ -33,17 +74,17 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
         },
         {
             id: 'oro',
-            name: 'Plan Oro',
-            subtitle: 'Avalúo Certificado RAA',
+            name: 'Oro King',
+            subtitle: 'Avalúo Corporativo Certificado',
             image: '/oro.png',
-            price: '', // A determinar
+            price: 'COTIZAR',
             amount: 0,
             features: [
-                'Todo lo del Plan Esmeralda +',
-                'Visita técnica Perito Oficial.',
-                'Certificación RAA Perito Oficial.',
-                'Análisis Jurídico Profundo.',
-                'Proyección Plusvalía 5 años.'
+                'Cotización Personalizada (Tipo Uber).',
+                'Visita Técnica Presencial.',
+                'Firmado por Perito RAA.',
+                'Soporte Jurídico Total.',
+                '👑 Gana 10% Comisión por Referido.'
             ],
             isPopular: true,
             style: {
@@ -61,17 +102,17 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
         },
         {
             id: 'esmeralda',
-            name: 'Plan Esmeralda',
-            subtitle: 'Informe Inteligente PRO',
+            name: 'Esmeralda Plus',
+            subtitle: 'Inteligencia de Datos PRO',
             image: '/esmeralda.png',
-            price: '', // A determinar
-            amount: 0,
+            price: 'Desde $99.997',
             features: [
-                'Todo lo del Plan Café +',
-                'Analítica de Mercado (CMA).',
-                'Análisis POT y Catastro.',
-                'Descarga PDF Técnico.',
-                'Sugerencia de Valor Real.'
+                'Estratos 1-3: $99.997',
+                'Estratos 4-6: $149.997',
+                'Analítica de Mercado + Normativa.',
+                'Mapa de Calor Urbano.',
+                '💸 Gana por cada Referido (Venta Efectiva).',
+                '🚫 ¡Sin límites de ganancias!'
             ],
             style: {
                 cardBg: 'bg-[#0DBB83]/10 backdrop-blur-2xl',
@@ -88,13 +129,19 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
         }
     ];
 
+    // Filter Logic
+    const plansToShow = filter.includes('all')
+        ? allPlans
+        : allPlans.filter(p => filter.includes(p.id));
+
+    if (plansToShow.length === 0) return null;
+
     return (
         <div className="w-full flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-stretch justify-center p-4 perspective-1000 mt-8">
-            {plans.map((plan) => (
+            {plansToShow.map((plan) => (
                 <div
                     key={plan.id}
                     className={`relative w-full max-w-[320px] group transition-all duration-500 hover:-translate-y-2 ${plan.isPopular ? 'md:scale-110 z-10' : 'md:scale-100'}`}
-                    onClick={() => onSelect(plan)}
                 >
                     {/* Badge */}
                     {plan.isPopular && (
@@ -105,6 +152,42 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
 
                     {/* Main Card */}
                     <div className={`relative p-5 rounded-[2rem] border ${plan.style.cardBg} ${plan.style.borderColor} ${plan.style.shadow} flex flex-col overflow-hidden h-full transform transition-transform duration-300`}>
+
+                        {/* STRATUM SELECTOR OVERLAY */}
+                        {selectionStep === plan.id ? (
+                            <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+                                <h4 className="text-white font-bold text-lg mb-4 text-center">¿Qué Estrato es?</h4>
+                                <p className="text-xs text-stone-400 mb-6 text-center">Selecciona para calcular el precio exacto.</p>
+
+                                <button
+                                    onClick={() => handleStratumSelect(plan, 'low')}
+                                    className={`w-full py-3 mb-3 rounded-xl border ${plan.style.borderColor} ${plan.style.buttonBg} text-white font-bold text-sm shadow-lg hover:scale-105 transition-transform`}
+                                >
+                                    Estrato 1, 2 o 3
+                                    <span className="block text-[10px] opacity-80 font-normal">
+                                        ${plan.id === 'cafe' ? '29.997' : '99.997'}
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => handleStratumSelect(plan, 'high')}
+                                    className={`w-full py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-stone-200 font-bold text-sm shadow-lg hover:scale-105 transition-transform`}
+                                >
+                                    Estrato 4, 5 o 6
+                                    <span className="block text-[10px] opacity-60 font-normal">
+                                        ${plan.id === 'cafe' ? '49.997' : '149.997'}
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => setSelectionStep(null)}
+                                    className="mt-6 text-[10px] text-stone-500 hover:text-white underline cursor-pointer"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        ) : null}
+
                         <div className="relative z-10 mb-3 text-center">
                             <h3 className={`text-xl font-bold font-outfit mb-2 ${plan.style.textColor} tracking-tight drop-shadow-sm`}>
                                 {plan.name}
@@ -115,6 +198,7 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
                                     src={plan.image}
                                     alt={plan.name}
                                     className="w-12 h-12 object-contain drop-shadow-xl"
+                                    onClick={() => handleBuy(plan)} // Clicking image also triggers buy
                                 />
                             </div>
 
@@ -122,10 +206,15 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
                                 {plan.subtitle}
                             </p>
 
-                            <div className="flex items-baseline justify-center gap-1">
-                                <span className={`text-2xl md:text-3xl font-bold font-outfit ${plan.style.priceColor}`}>${plan.price}</span>
-                                <span className="text-white/40 text-[8px] font-bold uppercase tracking-wider">COP</span>
+                            <div className={`flex items-baseline justify-center gap-1 ${genericMode ? 'animate-pulse' : ''}`}>
+                                <span className={`text-2xl md:text-3xl font-bold font-outfit ${plan.style.priceColor}`}>
+                                    {genericMode ? '' : '$'}{plan.price}
+                                </span>
+                                {!genericMode && <span className="text-white/40 text-[8px] font-bold uppercase tracking-wider">COP</span>}
                             </div>
+                            {genericMode && plan.id !== 'cafe' && (
+                                <p className="text-[9px] text-stone-400 mt-1 italic">* Depende del Estrato</p>
+                            )}
                         </div>
 
                         <ul className="space-y-1.5 mb-4 flex-grow relative z-10 w-full px-1">
@@ -139,8 +228,13 @@ const PricingCards = ({ onSelect, propertyData = {} }) => {
                             ))}
                         </ul>
 
-                        <button className={`relative w-full py-2.5 rounded-xl text-[10px] font-bold transition-all duration-300 uppercase tracking-widest transform active:scale-95 ${plan.style.buttonBg} ${plan.style.buttonText} ${plan.style.buttonGlow} border border-white/10 z-10 shadow-lg mt-auto`}>
-                            <span className={`relative z-10 ${plan.style.buttonTextShadow}`}>ELEGIR PLAN</span>
+                        <button
+                            onClick={() => handleBuy(plan)}
+                            className={`relative w-full py-2.5 rounded-xl text-[10px] font-bold transition-all duration-300 uppercase tracking-widest transform active:scale-95 ${plan.style.buttonBg} ${plan.style.buttonText} ${plan.style.buttonGlow} border border-white/10 z-10 shadow-lg mt-auto`}
+                        >
+                            <span className={`relative z-10 ${plan.style.buttonTextShadow}`}>
+                                {plan.id === 'oro' ? 'SOLICITAR COTIZACIÓN' : 'SELECCIONAR ESTRATO'}
+                            </span>
                         </button>
                     </div>
                 </div>

@@ -148,4 +148,68 @@ export const clearUserHistory = async (userId) => {
     }
 };
 
+import { janIACore } from './janIACore';
 
+// ... existing code ...
+
+/**
+ * Generates a smart 3-5 word title using Flash model
+ */
+export const generateSmartTitle = async (messages) => {
+    try {
+        // Only generate if we have enough context (e.g., User + JanIA response)
+        const relevantMsgs = messages.filter(m => m.type !== 'system' && m.text).slice(0, 4);
+        if (relevantMsgs.length < 2) return null;
+
+        const conversationText = relevantMsgs.map(m => `${m.type}: ${m.text}`).join('\n');
+        
+        // Direct lightweight call for titling with STRICT FORMAT
+        const prompt = `Analiza esta conversación de bienes raíces. Tu objetivo es extraer la DIRECCIÓN y el TIPO DE PROPIEDAD para el título.
+        
+        REGLAS DE FORMATO OBLIGATORIO:
+        Genera el título usando: "[CODIGO] [DIRECCION EN MAYUSCULAS]"
+        
+        Códigos de Propiedad:
+        - AP = Apartamento
+        - CA = Casa
+        - LT = Lote
+        - LC = Local Comercial
+        - OF = Oficina
+        - BG = Bodega
+        - FI = Finca/Rural
+        - PH = Penthouse
+        
+        EJEMPLOS DE SALIDA:
+        - "AP KRA 96A # 73 49"
+        - "CA CL 168A # 58A-91"
+        - "LT KRA 83 # 13F-52"
+        - "LC C.C. UNICENTRO LC 204"
+
+        Si NO encuentras ninguna dirección en la conversación, genera un resumen temático muy corto (ej: "Consulta Normativa", "Avalúo General").
+
+        Conversación:
+        ${conversationText}
+        
+        TÍTULO (Sin comillas):`;
+
+        const title = await janIACore.generateTitle(prompt); // Custom lightweight method in Core
+        if (!title) return null;
+
+        return title.replace(/["\.]/g, '').trim();
+    } catch (e) {
+        console.warn("Title generation failed:", e);
+        return null;
+    }
+};
+
+/**
+ * Update just the title of a chat
+ */
+export const updateChatTitle = async (chatId, newTitle) => {
+    const { error } = await supabase
+        .from('chats')
+        .update({ title: newTitle })
+        .eq('id', chatId);
+    
+    if (error) console.error("Error updating title:", error);
+};

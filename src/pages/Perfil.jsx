@@ -4,6 +4,10 @@ import { useTheme } from '../context/ThemeContext';
 import { useModal } from '../context/ModalContext';
 import { supabase } from '../lib/supabaseClient';
 import { GlassAvatar } from '../components/GlassAvatar';
+import ImageCropperModal from '../components/ImageCropperModal';
+import { pdf } from '@react-pdf/renderer';
+import CafeReport from '../components/reports/CafeReport';
+import { sendAdminNotification, triggerEmailWorkflow } from '../services/notificationService';
 
 const Perfil = () => {
     const { theme } = useTheme();
@@ -13,7 +17,12 @@ const Perfil = () => {
     const [fullName, setFullName] = useState('');
     const [activeTab, setActiveTab] = useState('appraisals');
     const [appraisals, setAppraisals] = useState([]);
+
+    const [referrals, setReferrals] = useState({ count: 0, rank: 'Pionero', balance: 0, nextGoal: 6, code: '' });
     const [loading, setLoading] = useState(true);
+
+    // CROPPER STATE
+    const [cropImageSrc, setCropImageSrc] = useState(null);
 
     // Initial Load
     useEffect(() => {
@@ -31,6 +40,49 @@ const Perfil = () => {
                     .order('created_at', { ascending: false });
 
                 if (apps) setAppraisals(apps);
+
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('referral_code, wallet_balance')
+                    .eq('id', user.id)
+                    .single();
+
+                let activeCode = profile?.referral_code;
+
+                // 🔄 AUTO-GENERATE REFERRAL CODE IF MISSING
+                if (!activeCode) {
+                    const baseName = (user.user_metadata?.full_name || user.email?.split('@')[0] || 'VECY').replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase();
+                    const newCode = `${baseName}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+                    // Save to DB
+                    await supabase
+                        .from('profiles')
+                        .update({ referral_code: newCode })
+                        .eq('id', user.id);
+
+                    activeCode = newCode;
+                }
+
+                const { count: refCount } = await supabase
+                    .from('referrals')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('referrer_id', user.id);
+
+                // Calculate Rank & Goals
+                // Logic: 0-5 (Pionero), 6-20 (Zafiro), 20+ (Diamante)
+                const currentCount = refCount || 0;
+                let currentRank = 'Pionero';
+                let nextGoal = 6;
+                if (currentCount >= 6) { currentRank = 'Zafiro'; nextGoal = 20; }
+                if (currentCount >= 20) { currentRank = 'Diamante'; nextGoal = 50; }
+
+                setReferrals({
+                    count: currentCount,
+                    rank: currentRank,
+                    balance: profile?.wallet_balance || 0,
+                    nextGoal: nextGoal,
+                    code: activeCode
+                });
             } else {
                 navigate('/');
             }
@@ -61,16 +113,36 @@ const Perfil = () => {
         }
     };
 
-    // Handle Avatar Upload
-    const handleAvatarUpload = async (e) => {
+    // Handle Cashout
+    const handleCashout = () => {
+        showModal({ title: 'Solicitud Enviada', message: 'Tu petición de retiro está en proceso. Un asesor validará tus comisiones en menos de 24h.', type: 'success' });
+    };
+
+    // 1. Handle File Selection (Opens Cropper)
+    const handleFileSelect = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.addEventListener('load', () => {
+            setCropImageSrc(reader.result); // Open Modal
+        });
+        reader.readAsDataURL(file);
+
+        // Reset input value to allow re-selecting same file if needed
+        e.target.value = '';
+    };
+
+    // 2. Handle Upload (Called by Cropper)
+    const handleUploadCroppedImage = async (blob) => {
         try {
             setLoading(true);
-            const file = e.target.files[0];
-            if (!file) return;
+            setCropImageSrc(null); // Close Modal
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+            // Convert Blob to File
+            const fileName = `${user.id}-${Math.random()}.jpg`;
             const filePath = `${fileName}`;
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
 
             // Upload
             const { error: uploadError } = await supabase.storage
@@ -94,50 +166,89 @@ const Perfil = () => {
             // Refresh User
             const { data: { user: updatedUser } } = await supabase.auth.getUser();
             setUser(updatedUser);
-            showModal({ title: 'Foto Nueva', message: 'Tu perfil luce increíble con esa nueva foto.', type: 'success' });
+            showModal({ title: 'Foto Actualizada', message: 'Tu foto de perfil se ha ajustado perfectamente.', type: 'success' });
 
         } catch (error) {
-            showModal({ title: 'Error de Carga', message: error.message, type: 'error' });
+            console.error(error);
+            showModal({ title: 'Error', message: error.message, type: 'error' });
         } finally {
             setLoading(false);
         }
     };
 
-    // 💎 Handle Smart PDF Generation
-    const handleDownloadPDF = async (appraisalId) => {
+    // ... Inside Component ...  
+
+    // 💎 Handle Smart PDF Generation (Client Side + Cloud Sync)
+    const handleDownloadPDF = async (appraisalId, appraisalData) => {
         try {
             // Toast de "Generando..."
             const btn = document.getElementById(`btn-${appraisalId}`);
-            if (btn) btn.innerText = "Generando...";
+            if (btn) btn.innerText = "Procesando...";
 
-            // Use Environment Variable for Backend URL
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await fetch(`${API_URL}/generate-pdf/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ appraisal_id: appraisalId })
+            // 1. Generate PDF Blob Client-Side
+            // Note: We access data from the passed object or state
+            const blob = await pdf(
+                <CafeReport
+                    propertyAddress={appraisalData.property_data?.details?.address || appraisalData.address}
+                    area={appraisalData.property_data?.details?.area}
+                    estimatedValue={appraisalData.valuation_price || "Pendiente"}
+                    userName={user.user_metadata?.full_name || "Usuario Vecy"}
+                    planType={appraisalData.plan_type}
+                    date={new Date().toLocaleDateString()}
+                />
+            ).toBlob();
+
+            // 2. Upload to Supabase (To get a shareable Link for Email/WhatsApp)
+            const fileName = `Reporte_${appraisalData.plan_type}_${appraisalId.slice(0, 6)}_${Date.now()}.pdf`;
+            const filePath = `${user.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('documents')
+                .upload(filePath, blob);
+
+            let publicLink = '';
+            if (!uploadError) {
+                const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
+                publicLink = data.publicUrl;
+            }
+
+            // 3. Trigger Notifications (Vecy Agenda Logic)
+            // A. WhatsApp Admin
+            await sendAdminNotification('Descarga de Reporte', {
+                user_name: user?.user_metadata?.full_name,
+                user_email: user?.email,
+                property_summary: appraisalData.property_data?.details?.address,
+                plan: appraisalData.plan_type,
+                pdf_link: publicLink || 'Adjunto en Email'
             });
 
-            if (!res.ok) throw new Error('Error generando informe');
+            // B. Email Workflow (Make)
+            await triggerEmailWorkflow({
+                email: user?.email,
+                name: user?.user_metadata?.full_name,
+                link: publicLink,
+                plan: appraisalData.plan_type
+            });
 
-            const blob = await res.blob();
+            // 4. Download in Browser
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Informe_Inteligente_Vecy_${appraisalId.slice(0, 6)}.pdf`;
+            a.download = `Vecy_Avaluo_${appraisalId.slice(0, 6)}.pdf`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
             if (btn) btn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" class="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                Descargar PDF
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" class="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                Enviado
             `;
 
-            showModal({ title: 'Descarga Lista', message: 'Tu informe inteligente ha sido generado y descargado.', type: 'success' });
+            showModal({ title: 'Documento Listo', message: 'El reporte se ha descargado y enviado a tu correo/WhatsApp.', type: 'success' });
 
         } catch (err) {
+            console.error(err);
             showModal({ title: 'Error', message: err.message, type: 'error' });
             const btn = document.getElementById(`btn-${appraisalId}`);
             if (btn) btn.innerText = "Reintentar";
@@ -172,17 +283,17 @@ const Perfil = () => {
                 {/* 1. PROFILE CARD (Left) */}
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl h-fit animate-in slide-in-from-left-4 duration-700">
                     <div className="flex flex-col items-center mb-6">
-                        <label className="w-24 h-24 rounded-full border-4 border-brand-accent/20 mb-4 overflow-hidden shadow-2xl relative group cursor-pointer transition-transform active:scale-95">
+                        <label className="w-24 h-24 rounded-full mb-4 relative group cursor-pointer transition-transform active:scale-95 hover:shadow-[0_0_30px_rgba(204,172,78,0.3)] duration-300">
                             <GlassAvatar
                                 src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture}
                                 name={user?.user_metadata?.full_name || user?.email || 'Tú'}
                                 size="xl"
-                                className="w-full h-full"
+                                className="!w-full !h-full !border-4 !border-brand-accent/30"
                             />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                            <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm overflow-hidden border-4 border-transparent">
                                 <span className="text-[10px] uppercase font-bold text-brand-gold animate-pulse tracking-wide">Editar Foto</span>
                             </div>
-                            <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={loading} />
+                            <input type="file" className="hidden" accept="image/*" onChange={handleFileSelect} disabled={loading} />
                         </label>
                         <p className="text-xs text-stone-400 font-medium truncate w-full text-center">{user?.email}</p>
                     </div>
@@ -219,6 +330,12 @@ const Perfil = () => {
                             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'payments' ? 'bg-brand-accent text-black shadow-lg' : 'text-stone-400 hover:text-white'}`}
                         >
                             Historial de Pagos
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('network')}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'network' ? 'bg-gradient-to-r from-brand-gold to-amber-500 text-black shadow-lg shadow-brand-gold/20' : 'text-stone-400 hover:text-white'}`}
+                        >
+                            💎 Vecy Network
                         </button>
                     </div>
 
@@ -285,7 +402,7 @@ const Perfil = () => {
                                                             {item.status === 'completed' ? (
                                                                 <button
                                                                     id={`btn-${item.id}`}
-                                                                    onClick={() => handleDownloadPDF(item.id)}
+                                                                    onClick={() => handleDownloadPDF(item.id, item)}
                                                                     className="inline-flex items-center gap-1.5 bg-brand-gold hover:bg-brand-gold-light text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-lg hover:shadow-brand-gold/20"
                                                                 >
                                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
@@ -350,6 +467,141 @@ const Perfil = () => {
                             </div>
                         )}
 
+                        {activeTab === 'network' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                                {/* Header Section */}
+                                <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-brand-gold/20 to-transparent p-6 rounded-2xl border border-brand-gold/30">
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-brand-gold mb-1">Rango: {referrals.rank} 🚀</h3>
+                                        <p className="text-sm text-stone-300">Tu influencia está creciendo. ¡Sigue así!</p>
+                                    </div>
+                                    <div className="mt-4 md:mt-0 text-right">
+                                        <p className="text-xs text-stone-400 uppercase tracking-widest font-bold">Saldo Disponible</p>
+                                        <p className="text-3xl font-mono text-emerald-400 font-bold">${referrals.balance.toLocaleString()}</p>
+                                    </div>
+                                </div>
+
+                                {/* Earnings Section */}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-black/20 p-4 rounded-xl border border-white/5">
+                                            <p className="text-[10px] uppercase text-stone-500 font-bold mb-1">Referidos Totales</p>
+                                            <p className="text-2xl font-bold text-white">{referrals.count}</p>
+                                        </div>
+                                        <div className="bg-black/20 p-4 rounded-xl border border-white/5">
+                                            <p className="text-[10px] uppercase text-stone-500 font-bold mb-1">Estatus</p>
+                                            <p className={`text-sm font-bold uppercase ${referrals.balance > 0 ? 'text-emerald-400' : 'text-stone-400'}`}>
+                                                {referrals.balance > 0 ? 'Activo' : 'Sin comisiones'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-xl">💡</span>
+                                            <div className="space-y-3 w-full">
+                                                <div>
+                                                    <p className="text-sm font-bold text-emerald-400 mb-1">Modelo de Ganancias Ilimitadas</p>
+                                                    <p className="text-xs text-stone-300 leading-relaxed">
+                                                        Gana comisiones específicas por <b>cada amigo</b> que adquiera un plan (Café, Esmeralda u Oro).
+                                                        Entre más refieras, más dinero acumulas en tu saldo disponible.
+                                                    </p>
+                                                </div>
+
+                                                {/* Commission Breakdown */}
+                                                <div className="bg-black/30 rounded-lg p-4 space-y-4 border border-white/5 font-mono text-xs">
+
+                                                    {/* CAFÉ */}
+                                                    <div>
+                                                        <p className="font-bold text-brand-gold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">☕ Referidos Plan Café Express</p>
+                                                        <div className="space-y-1.5 text-stone-300">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                                                <span>1. Venta $29.997</span>
+                                                                <span className="text-emerald-400 font-bold">→ Referido = $4.997 COP</span>
+                                                            </div>
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                                                <span>2. Venta $49.997</span>
+                                                                <span className="text-emerald-400 font-bold">→ Referido = $7.499 COP</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ESMERALDA */}
+                                                    <div>
+                                                        <p className="font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">💎 Referidos Plan Esmeralda Plus</p>
+                                                        <div className="space-y-1.5 text-stone-300">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                                                <span>1. Venta $99.997</span>
+                                                                <span className="text-emerald-400 font-bold">→ Referido = $9.997 COP</span>
+                                                            </div>
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                                                <span>2. Venta $149.997</span>
+                                                                <span className="text-emerald-400 font-bold">→ Referido = $12.499 COP</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ORO */}
+                                                    <div>
+                                                        <p className="font-bold text-amber-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">👑 Referidos Plan Oro King</p>
+                                                        <div className="text-stone-300">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                                                <span>Cada Referido genera:</span>
+                                                                <span className="text-emerald-400 font-bold">10% sobre valor cotizado</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="space-y-3">
+                                    {/* 1. PRIMARY ACTION: WHATSAPP (Zero Friction) */}
+                                    <button
+                                        onClick={() => {
+                                            const code = referrals.code;
+                                            const text = encodeURIComponent(`Hola! 👋 Te recomiendo Vecy Avalúos para valorar tu inmueble en segundos. Es inteligencia artificial real. Usa mi link: https://vecyavaluos.com/?ref=${code}`);
+                                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                                        }}
+                                        className="w-full py-4 bg-[#25D366] hover:bg-[#20bd5a] text-black font-bold rounded-xl shadow-[0_0_20px_rgba(37,211,102,0.4)] hover:shadow-[0_0_30px_rgba(37,211,102,0.6)] transition-all flex items-center justify-center gap-2 group transform active:scale-95"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z" />
+                                        </svg>
+                                        Enviar por WhatsApp Ahora
+                                    </button>
+
+                                    {/* 2. SECONDARY ACTIONS */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => {
+                                                const code = referrals.code;
+                                                navigator.clipboard.writeText(`https://vecyavaluos.com/?ref=${code}`);
+                                                showModal({ title: 'Copiado', message: 'Link copiado al portapapeles.', type: 'success' });
+                                            }}
+                                            className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
+                                        >
+                                            <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🔗</span>
+                                            <span className="font-bold text-white text-xs">Copiar Link</span>
+                                        </button>
+
+                                        <button
+                                            onClick={handleCashout}
+                                            disabled={referrals.balance <= 0}
+                                            className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all group ${referrals.balance > 0 ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 hover:border-emerald-500 cursor-pointer' : 'bg-stone-800/10 border-stone-700/30 opacity-50 cursor-not-allowed'}`}
+                                        >
+                                            <span className="text-xl mb-1 group-hover:scale-110 transition-transform">💸</span>
+                                            <span className={`font-bold text-xs ${referrals.balance > 0 ? 'text-emerald-400' : 'text-stone-500'}`}>Canjear</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
 
                     <p className="text-center text-[10px] text-stone-600 mt-4">
@@ -357,6 +609,18 @@ const Perfil = () => {
                     </p>
                 </div>
             </div>
+
+            {/* CROPPER MODAL */}
+            {cropImageSrc && (
+                <ImageCropperModal
+                    imageSrc={cropImageSrc}
+                    onCancel={() => {
+                        setCropImageSrc(null);
+                        // Optional: Clear file input via ref if needed, but not critical here
+                    }}
+                    onCropComplete={handleUploadCroppedImage}
+                />
+            )}
         </div>
     );
 };

@@ -38,11 +38,16 @@ export const GlassAvatar = ({ src, name = 'Usuario', size = 'md', className = ''
 
     // Actual Image
     return (
-        <img
-            src={src}
-            alt={name}
-            className={`rounded-full object-cover shadow-lg border border-white/10 ${sizeClasses[size] || sizeClasses.md} ${className}`}
-            onError={() => setImgError(true)}
-        />
+        <div
+            className={`relative rounded-full overflow-hidden shadow-lg border border-white/10 shrink-0 ${sizeClasses[size] || sizeClasses.md} ${className}`}
+            title={name}
+        >
+            <img
+                src={src}
+                alt={name}
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
+            />
+        </div>
     );
 };

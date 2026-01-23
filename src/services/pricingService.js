@@ -28,66 +28,51 @@ export const liquidarServiciosVecy = ({
     plan,
     tipoInmueble,
     estrato,
-    areaM2,
-    valorEstimadoJanIA
+    areaM2
 }) => {
-    // 0. Validaciones Básicas
-    if (valorEstimadoJanIA > CONSTANTS.LIMIT_GRAN_ACTIVO || tipoInmueble === 'especial') {
-        return {
-            precio_base: 0,
-            iva: 0,
-            total_a_pagar: 0,
-            mensaje_legal: "",
-            special_messsage: "Contacto directo para cotización de Gran Activo"
-        };
-    }
-
+    // 0. Validaciones y Defaults
+    const safeEstrato = parseInt(estrato) || 3; // Default estrato 3
+    const safeArea = parseFloat(areaM2) || 0;
+    const smmlv = CONSTANTS.SMMLV_2026;
+    
     let precioBase = 0;
     let mensajeLegal = "";
-    const smmlv = CONSTANTS.SMMLV_2026;
 
-    // --- LÓGICA PLAN ESMERALDA (Analítica IA) ---
-    if (plan === 'esmeralda') {
-        mensajeLegal = "Servicio de Analítica de Datos e Inteligencia Artificial. NO reemplaza un avalúo certificado.";
-        if (tipoInmueble === 'residencial') {
-            // Tarifas fijas por estrato
-            const tarifas = { 1: 150000, 2: 200000, 3: 250000, 4: 350000, 5: 450000, 6: 550000 };
-            precioBase = tarifas[estrato] || 350000; // Fallback estrato 4
-        } else if (tipoInmueble === 'comercial') {
-            // Base + m2
-            precioBase = 600000 + (500 * areaM2);
+    // Componente Variable: $500 por m2
+    const costoArea = safeArea * 500;
+
+    // --- LÓGICA PLAN CAFÉ EXPRESS ---
+    if (plan === 'cafe' || plan === 'cafe express') {
+        mensajeLegal = "Reporte de Opinión de Valor (Sondeo de Mercado). No válido para bancos.";
+        // Estratificación
+        if (safeEstrato <= 3) {
+             precioBase = 29997; // Estratos 1, 2, 3
+        } else {
+             precioBase = 49997; // Estratos 4, 5, 6
+        }
+    }
+
+    // --- LÓGICA PLAN ESMERALDA PLUS ---
+    else if (plan === 'esmeralda' || plan === 'esmeralda plus') {
+        mensajeLegal = "Servicio de Analítica de Datos e Inteligencia Artificial.";
+        // Estratificación
+        if (safeEstrato <= 3) {
+             precioBase = 99997; // Estratos 1, 2, 3
+        } else {
+             precioBase = 149997; // Estratos 4, 5, 6
         }
     } 
     
-    // --- LÓGICA PLAN ORO (Avalúo RAA Certificado) - 2026 RULES ---
-    else if (plan === 'oro') {
-        mensajeLegal = "Avalúo Corporativo Certificado RAA. Cumple normas NIIF y Ley 1673.";
-        if (tipoInmueble === 'residencial') {
-            if (estrato <= 2) {
-                // VIS (Estratos 1 y 2) -> 0.5 SMMLV BASE
-                precioBase = Math.round(smmlv * 0.5); // $875,452 -> $875,500 approx logic
-            } else {
-                // No VIS (3-6) -> Mayor entre 1 SMMLV BASE o 1.2x1000 del valor
-                const opcionA = smmlv * 1.0;
-                const opcionB = valorEstimadoJanIA * (1.2 / 1000);
-                precioBase = Math.max(opcionA, opcionB);
-            }
-        } else if (tipoInmueble === 'comercial') {
-            // Mayor entre 1.3 SMMLV BASE o 1.5x1000 del valor
-            const opcionA = smmlv * 1.3;
-            const opcionB = valorEstimadoJanIA * (1.5 / 1000);
-            precioBase = Math.max(opcionA, opcionB);
-        }
+    // --- LÓGICA PLAN ORO KING (COTIZACIÓN) ---
+    else if (plan === 'oro' || plan === 'oro king') {
+        mensajeLegal = "Avalúo Corporativo Certificado RAA. Requiere Cotización Personalizada.";
+        precioBase = 0; // Se debe manejar como "Sujeto a Cotización" en el frontend
     }
-
-    // Cálculos Finales
-    const iva = precioBase * CONSTANTS.IVA_RATE;
-    const total = precioBase + iva;
 
     return {
         precio_base: Math.round(precioBase),
-        iva: Math.round(iva),
-        total_a_pagar: Math.round(total),
+        iva: 0, // No IVA as per config
+        total_a_pagar: Math.round(precioBase), // Simple total
         mensaje_legal: mensajeLegal,
         moneda: "COP"
     };
@@ -97,17 +82,27 @@ export const liquidarServiciosVecy = ({
  * Función de compatibilidad para PricingCards.jsx
  * Calcula el precio del Plan Oro para mostrar en la tarjeta UI.
  */
-export const calculatePlanPrice = (propertyData) => {
+export const calculatePlanPrice = (propertyData, targetPlan = 'oro') => {
     if (!propertyData) return 0;
     
-    // Mapeo de datos básicos para la UI inicial (si existen)
-    // Si no hay valor estimado aún, usamos un base o 0.
+    // Función helper para limpiar números de strings (ej: "125.5 m2" -> 125.5)
+    const cleanNumber = (val) => {
+        if (typeof val === 'number') return val;
+        if (!val) return 0;
+        const match = val.toString().match(/[\d\.]+/);
+        return match ? parseFloat(match[0]) : 0;
+    };
+
+    // Extracción tolerante de datos
+    const foundArea = propertyData.area || propertyData.area_construida || propertyData.m2 || propertyData.superficie || 0;
+    const foundEstrato = propertyData.estrato || propertyData.stratum || propertyData.nivel_socioeconomico || 3;
+
+    // Mapeo de datos básicos para la UI inicial
     const params = {
-        plan: 'oro',
-        tipoInmueble: propertyData.tipoInmueble || 'residencial',
-        estrato: parseInt(propertyData.estrato) || 4,
-        areaM2: parseFloat(propertyData.area) || 0,
-        valorEstimadoJanIA: parseFloat(propertyData.valor_estimado) || 0 // Asumiendo que tenemos este dato o 0
+        plan: targetPlan,
+        tipoInmueble: propertyData.tipo || 'residencial',
+        estrato: parseInt(cleanNumber(foundEstrato)) || 3, // Default 3
+        areaM2: cleanNumber(foundArea),
     };
 
     const res = liquidarServiciosVecy(params);

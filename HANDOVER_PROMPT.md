@@ -30,6 +30,15 @@
 6. **Guest History Strategy:**
     * **INTENTIONAL:** Guests do NOT have persistent history. This is a strategic decision for Lead Generation and Privacy. Do not "fix" this.
 
+7. **Gemini 3 Protocol (CRITICAL):**
+    * **Do NOT downgrade models** from `gemini-3-pro-preview`.
+    * **Thought Signatures:** Any function call or reasoning step MUST pass a `thought_signature` to the next step. Removing this will break the chat (return empty messages).
+
+8. **Vecy Network V2 Rules (STRICT):**
+    * **Pricing:** Café ($29k/$49k), Esmeralda ($99k/$149k), Oro (Quote/Uber).
+    * **Cashback:** 100% refund logic MUST be mentioned (6 referrals for Café, 10 for Esmeralda).
+    * **Terminology Lock:** NEVER use "Empresa/Lote". ALWAYS use "Predio/Inmueble".
+
 ## 📌 IMMEDIATE NEXT STEPS
 
 1. **Deployment:** Configure production build and environment variables.

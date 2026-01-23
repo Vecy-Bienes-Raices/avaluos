@@ -39,3 +39,4 @@ Suelo de Protección: Humedales (ahora Reservas Distritales de Humedal), Rondas 
 5. AMENAZAS Y RIESGOS (ALERTAS ROJAS):
 
 JanIA debe identificar predios en zonas de: Remoción en masa (ladera sur/oriental), Inundación (rondas de río), Incendios forestales.
+

@@ -46,6 +46,35 @@ const PaymentResponse = () => {
                         if (!isMounted) return;
                         if (data.success && data.data.x_cod_response === 1) {
                             setStatus('success');
+
+                            // 💎 VECY NETWORK WIRING: TRIGGER COMMISSION
+                            // We attempt to attribute commission. If no referrer, the RPC handles it gracefully.
+                            // We need user_id (payer) and plan details.
+                            // Ideally, x_extra1 or x_extra2 in ePayco params holds the user_id.
+                            // Fallback: We rely on the current session if user is logged in (risk: cross-device payment).
+
+                            // For MVP: We assume the user is logged in on this device.
+                            import('../lib/supabaseClient').then(async ({ supabase }) => {
+                                const { data: { user } } = await supabase.auth.getUser();
+                                if (user) {
+                                    const amountPaid = parseFloat(data.data.x_amount);
+                                    // Infer plan from amount (Safe heuristic for MVP)
+                                    let planType = 'unknown';
+                                    if (amountPaid > 20000 && amountPaid < 60000) planType = 'cafe';
+                                    if (amountPaid > 90000 && amountPaid < 160000) planType = 'esmeralda';
+                                    if (amountPaid > 200000) planType = 'oro';
+
+                                    const { data: rpcData, error: rpcError } = await supabase.rpc('process_referral_commission', {
+                                        p_payer_id: user.id,
+                                        p_plan_type: planType,
+                                        p_amount_paid: amountPaid
+                                    });
+
+                                    if (rpcError) console.error("Referral Commission Error:", rpcError);
+                                    else console.log("Referral Commission Result:", rpcData);
+                                }
+                            });
+
                         } else {
                             setStatus('error');
                         }

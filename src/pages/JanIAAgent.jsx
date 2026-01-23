@@ -9,9 +9,11 @@ import remarkGfm from 'remark-gfm';
 import AuthOptions from '../components/VecyPhoenix/AuthOptions';
 import PricingCards from '../components/PricingCards';
 import { initiateCheckout } from '../services/epaycoService';
-import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile, deleteChat, clearUserHistory } from '../services/historyService';
+import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile, deleteChat, clearUserHistory, generateSmartTitle } from '../services/historyService';
 import { GlassToast, GlassConfirm } from '../components/VecyAlerts';
 import { GlassAvatar } from '../components/GlassAvatar'; // 💎 NEW IMPORT
+import { PDFDownloadLink } from '@react-pdf/renderer'; // 📄 PDF Generation
+import ProfessionalReport from '../components/reports/ProfessionalReport'; // 📄 Professional Report Template (Cafe/Esmeralda/Oro)
 import { DisclaimerText, VecyStyles } from '../theme/VecyTheme';
 // Eliminado uuidv4 por crypto.randomUUID()
 
@@ -46,6 +48,7 @@ const JanIAAgent = () => {
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState(() => !!localStorage.getItem('janIA_guest_terms_accepted'));
     // State for History Management
     const [avatarError, setAvatarError] = useState(false);
+    const [reportData, setReportData] = useState(null); // 📄 State for PDF Report Data
 
     // Sync Sidebar & Popups (Gemini Style)
     useEffect(() => {
@@ -177,6 +180,7 @@ const JanIAAgent = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false); // New State: Background Analysis
     const [thinkingText, setThinkingText] = useState("JanIA está pensando..."); // DYNAMIC THINKING STATE
     const [attachments, setAttachments] = useState([]); // NEW: Store selected files
+    const [paidPlan, setPaidPlan] = useState(null); // [RESTORED] State for Paid Plan (Esmeralda/Oro)
     const [history, setHistory] = useState([]); // Real chat history
     const [chatId, setChatId] = useState(() => localStorage.getItem('janIA_current_chat_id') || crypto.randomUUID());
     const messagesEndRef = useRef(null);
@@ -284,29 +288,35 @@ const JanIAAgent = () => {
         });
 
         // 2. Initial Check (Ensure strict state on load)
+        // 2. Initial Check (Ensure strict state on load)
         const checkCurrentSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
+
                 if (session?.user) {
                     setUser(session.user);
-                    janIACore.updateUserIdentity(session.user);
+                    // Fetch Profile FIRST to sync Core correctly
+                    const { data: profile } = await supabase.from('profiles').select('accepted_terms, policies_accepted').eq('id', session.user.id).maybeSingle();
+
+                    const dbAccepted = profile?.accepted_terms || profile?.policies_accepted;
+                    const localAccepted = localStorage.getItem('janIA_guest_terms_accepted');
+                    const finalAccepted = dbAccepted || !!localAccepted;
+
+                    // Sync Core Identity WITH Policy State
+                    janIACore.updateUserIdentity(session.user, finalAccepted);
                     localStorage.setItem('janIA_has_logged_in', 'true');
 
-                    // DB Check for User
-                    const { data: profile } = await supabase.from('profiles').select('accepted_terms').eq('id', session.user.id).maybeSingle();
-                    if (profile?.accepted_terms) {
+                    if (finalAccepted) {
                         setHasAcceptedTerms(true);
                         setTermsModalOpen(false);
-                        localStorage.setItem('janIA_guest_terms_accepted', 'true');
-                    } else if (localStorage.getItem('janIA_guest_terms_accepted')) {
-                        setHasAcceptedTerms(true);
-                        setTermsModalOpen(false);
+                        if (!localAccepted) localStorage.setItem('janIA_guest_terms_accepted', 'true');
                     } else {
                         setHasAcceptedTerms(false);
                         setTermsModalOpen(true);
                     }
                 } else {
                     // Guest Check
+                    janIACore.updateUserIdentity(null);
                     const guestAccepted = localStorage.getItem('janIA_guest_terms_accepted');
                     if (!guestAccepted) {
                         setTermsModalOpen(true);
@@ -341,10 +351,20 @@ const JanIAAgent = () => {
             const saveChat = async () => {
                 // If it's a new chat, generate a title
                 let title = localStorage.getItem(`janIA_title_${chatId}`);
-                if (!title) {
-                    title = await janIACore.generateChatTitle(messages);
-                    localStorage.setItem(`janIA_title_${chatId}`, title);
+
+                // If no title exists, or it's the generic default, try to generate a smart one
+                if (!title || title === 'Nuevo Avalúo' || title === 'Consulta Inmobiliaria') {
+                    // Try to generate smart title
+                    const smartTitle = await generateSmartTitle(messages);
+                    if (smartTitle) {
+                        title = smartTitle;
+                        localStorage.setItem(`janIA_title_${chatId}`, title);
+                    }
                 }
+
+                // Fallback if still empty
+                if (!title) title = 'Consulta Inmobiliaria';
+
                 const currentMemory = janIACore.getMemory();
 
                 // 1. Await Save
@@ -385,6 +405,55 @@ const JanIAAgent = () => {
 
     // LOCK: Prevent double-send race conditions
     const isSendingRef = useRef(false);
+
+    // 💳 PAYMENT HANDLER (Strict & Explicit)
+    const handlePlanClick = async (plan) => {
+        console.log("💳 [JanIA Payment] Selected Plan:", plan);
+
+        // 1. Identify User
+        if (!user) {
+            setAuthModalOpen(true);
+            return;
+        }
+
+        // 💎 ORO KING LOGIC: Redirect to Chat for Quote (Uber Style)
+        if (plan.id === 'oro') {
+            await handleSendMessage("Quiero cotizar el Plan Oro King para mi empresa/lote. 🏆");
+            return;
+        }
+
+        // 2. Validate Amount (Fixes "Zero Amount" Error)
+        // If the property data wasn't sufficient to calculate a price, amount might be 0.
+        // In that case, we can't charge. We should prompt for data or contact.
+        if (!plan.amount || plan.amount < 1000) {
+            console.warn("⚠️ [JanIA Payment] Precio Invalido/Cero:", plan);
+            // Fallback: Notify user that calculation is needed
+            setToast({
+                message: "JanIA necesita más datos de tu inmueble (Área/Estrato) para calcular el precio exacto antes de cobrar. Por favor indícaselos en el chat.",
+                type: 'error'
+            });
+            // Optionally: Send a system framing message to chat? 
+            // For now, toast is safe.
+            return;
+        }
+
+        // 3. Set State
+        setPaidPlan(plan.id);
+
+        // 4. Trigger Checkout
+        try {
+            // Ensure Amount is a valid string/number for the service
+            const safePlan = {
+                ...plan,
+                amount: plan.amount || 0 // Fallback
+            };
+            console.log("🚀 Initiating Checkout with:", safePlan);
+            await initiateCheckout(safePlan);
+        } catch (err) {
+            console.error("Payment Trigger Error:", err);
+            setToast({ message: "Error al iniciar pago. Intenta de nuevo.", type: 'error' });
+        }
+    };
 
     const handleSendMessage = async (text, files = []) => {
         if ((!text && files.length === 0) || isSendingRef.current) return;
@@ -488,7 +557,6 @@ const JanIAAgent = () => {
                 const step = response.plan.next_step;
                 const toolName = step?.type === 'tool' ? step.name : null;
 
-                // --- CUSTOM COMPONENT MAPPING (BYPASS AUTH IF LOGGED IN) ---
                 if (toolName === 'auth_gate' || toolName === 'trigger_auth') {
                     if (!user) {
                         botMsg.component = 'auth'; // Solo mostrar si no hay sesión
@@ -498,9 +566,57 @@ const JanIAAgent = () => {
                     }
                 } else if (toolName === 'offer_upgrade' || toolName === 'offer_plans') {
                     botMsg.component = 'plan_card';
+                    botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])]; // Freeze filter state
+                } else if (toolName === 'pricing_calculator') {
+                    // 📄 CAPTURE DATA FOR PDF
+                    console.log("📄 [PDF TRIGGER]: Capturing valuation data...", step.args);
+                    const cleanVal = (v) => {
+                        if (!v) return 0;
+                        if (typeof v === 'number') return v;
+                        return parseFloat(v.toString().replace(/[^0-9.]/g, ''));
+                    };
+
+                    setReportData({
+                        address: janIACore.memory.property_data?.direccion_normalizada || 'Ubicación en Chat',
+                        area: cleanVal(step.args.area),
+                        value: cleanVal(step.args.valor),
+                        date: new Date().toLocaleDateString()
+                    });
+
+                    botMsg.component = 'pdf_download'; // Trigger UI component
+
                 } else if (toolName === 'start_bogota_flow') {
                     botMsg.component = 'options';
                     botMsg.options = ["Ver Políticas", "Aceptar y Continuar"];
+                } else if (toolName === 'get_location_details') {
+                    // STREET VIEW TRIGGER
+                    // If we found a location, show it visualy to prove "vision"
+                    if (janIACore.memory.property_data?.lat) {
+                        botMsg.component = 'street_view';
+                        botMsg.location = {
+                            lat: janIACore.memory.property_data.lat,
+                            lng: janIACore.memory.property_data.lng
+                        };
+                    }
+                } else if (toolName === 'generate_payment_link') {
+                    // 🎟️ PAYMENT TRIGGER
+                    botMsg.component = 'payment_link';
+                    botMsg.paymentData = {
+                        plan: step.args.plan,
+                        estrato: step.args.estrato || janIACore.memory.property_data?.estrato || 3
+                    };
+                } else if (toolName === 'generate_report_download') {
+                    // 📄 PDF DOWNLOAD TRIGGER form JanIA
+                    console.log("📄 [PDF TRIGGER]: Generating Download Link...", step.args);
+                    setReportData({
+                        address: janIACore.memory.property_data?.direccion_normalizada || 'Ubicación en Chat',
+                        area: janIACore.memory.property_data?.area || 0,
+                        value: janIACore.memory.property_data?.valor || 0,
+                        date: new Date().toLocaleDateString(),
+                        planType: step.args.plan || 'esmeralda'
+                    });
+                    setPaidPlan(step.args.plan || 'esmeralda'); // UNLOCK UI COMPONENT
+                    botMsg.component = 'pdf_download';
                 }
 
                 // Handle Workflow Actions - Step 2: Documental
@@ -519,6 +635,7 @@ const JanIAAgent = () => {
                     botMsg.component = 'auth_options';
                 } else if (lowerText.includes('plan') || lowerText.includes('precio') || lowerText.includes('costo') || lowerText.includes('tarifa') || lowerText.includes('comprar')) {
                     botMsg.component = 'plan_card';
+                    botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])];
                 }
             }
 
@@ -536,6 +653,34 @@ const JanIAAgent = () => {
             isSendingRef.current = false; // RELEASE LOCK
         }
     };
+
+    // 💰 EPAYCO RETURN LISTENER (PAYMENT SUCCESS)
+    useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        const ref_payco = query.get('ref_payco');
+
+        if (ref_payco && !localStorage.getItem(`processed_${ref_payco}`)) {
+            console.log("💰 [PAYMENT SUCCESS]: Epayco ref found:", ref_payco);
+
+            // 1. Mark as processed to prevent loops
+            localStorage.setItem(`processed_${ref_payco}`, 'true');
+
+            // 2. Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            // 3. Inject Confirmation to JanIA
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    type: 'system', // Internal system message
+                    text: "✅ [SISTEMA]: PAGO CONFIRMADO POR EPAYCO. ref: " + ref_payco,
+                    isHidden: true // Custom flag to hide bubble if needed, or show as 'System Alert'
+                }]);
+
+                // 4. Trigger JanIA's reaction automatically
+                handleUserMessage("[SISTEMA]: EL PAGO FUE EXITOSO. Genera el PDF inmediatamente usando la herramienta 'generate_report_download'.");
+            }, 1500); // 1.5s delay to let UI settle
+        }
+    }, []);
 
 
     // Helper: Convert File to Base64
@@ -745,7 +890,7 @@ const JanIAAgent = () => {
                                         }}
                                         className="bg-white/5 border border-white/10 px-2 py-1 rounded-full text-[9px] font-bold text-stone-300 hover:bg-brand-accent hover:text-black transition-all cursor-pointer"
                                     >
-                                        {user ? 'Mejorar' : 'Acceder'}
+                                        {user ? 'Ver Planes' : 'Acceder'}
                                     </div>
                                 </div>
                             )}
@@ -767,8 +912,11 @@ const JanIAAgent = () => {
                                     </div>
                                 </div>
                                 <div className="px-3 py-2 space-y-2">
-                                    <div className={`text-[10px] px-2 py-1 rounded-md font-bold text-center uppercase tracking-wider ${theme === 'dark' ? 'bg-white/5 text-brand-accent' : 'bg-brand-coffee-light/20 text-brand-gold'}`}>
-                                        {user ? 'Plan Café' : 'Plan Invitado'}
+                                    <div
+                                        onClick={() => navigate('/planes')}
+                                        className={`text-[10px] px-2 py-1.5 rounded-md font-bold text-center uppercase tracking-wider cursor-pointer hover:brightness-110 transition-all border border-transparent hover:border-white/20 ${theme === 'dark' ? 'bg-white/5 text-brand-accent' : 'bg-brand-coffee-light/20 text-brand-gold'}`}
+                                    >
+                                        {user ? 'Explorar Planes ➚' : 'Plan Invitado'}
                                     </div>
                                     {/* TERMS BADGE */}
                                     {hasAcceptedTerms && (
@@ -790,6 +938,11 @@ const JanIAAgent = () => {
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
                                             <span className="text-sm text-stone-300 group-hover:text-white font-medium">Registrarse</span>
                                         </button>
+
+                                        <button onClick={() => navigate('/planes')} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors border-t border-white/5 mt-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-brand-gold"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            <span className="text-sm text-stone-300 group-hover:text-brand-gold font-medium">Ver Planes y Precios</span>
+                                        </button>
                                     </>
                                 ) : (
                                     <button onClick={async () => {
@@ -807,9 +960,14 @@ const JanIAAgent = () => {
                                     </button>
                                 )}
                                 {user && (
-                                    <button onClick={() => { setProfileOpen(false); navigate('/perfil'); }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors border-t border-white/5 mt-1">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-white"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
-                                        <span className="text-sm text-stone-300 group-hover:text-white font-medium">Editar perfil</span>
+                                    <button onClick={() => { setProfileOpen(false); navigate('/perfil'); }} className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-brand-gold/10 hover:bg-brand-gold/20 text-left group transition-all border border-brand-gold/20 hover:border-brand-gold/50 mt-1 shadow-[0_0_15px_rgba(204,172,78,0.1)]">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-brand-gold group-hover:scale-110 transition-transform">
+                                            <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813a3.75 3.75 0 002.576-2.576l.813-2.846A.75.75 0 019 4.5zM9 15a.75.75 0 01.75.75v1.5h1.5a.75.75 0 010 1.5h-1.5v1.5a.75.75 0 01-1.5 0v-1.5h-1.5a.75.75 0 010-1.5h1.5v-1.5A.75.75 0 019 15z" clipRule="evenodd" />
+                                        </svg>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-brand-gold font-bold leading-tight">Vecy Network</span>
+                                            <span className="text-[9px] text-brand-gold/70 leading-tight">Ganar Dinero / Mi Perfil</span>
+                                        </div>
                                     </button>
                                 )}
                             </div>
@@ -896,13 +1054,13 @@ const JanIAAgent = () => {
                         </div>
                     )}
                 </div>
-            </aside>
+            </aside >
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 flex flex-col relative z-0 overflow-hidden h-full">
+            < main className="flex-1 flex flex-col relative z-0 overflow-hidden h-full" >
 
                 {/* Top Nav */}
-                <header className="absolute top-0 left-0 w-full h-16 flex items-center justify-between px-4 md:px-6 pt-6 z-50 pointer-events-none">
+                < header className="absolute top-0 left-0 w-full h-16 flex items-center justify-between px-4 md:px-6 pt-6 z-50 pointer-events-none" >
                     <div className="flex items-center gap-3 pointer-events-auto">
                         {!sidebarOpen && (
                             <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2.5 rounded-full text-stone-200 hover:text-white backdrop-blur-md bg-white/10 border border-white/10 shadow-lg">
@@ -917,18 +1075,19 @@ const JanIAAgent = () => {
                             <span className="text-[10px] md:text-xs font-bold text-brand-accent tracking-wider">VECY AVALÚOS</span>
                             <span className="text-[8px] md:text-[10px] text-[#00ff22]">● Conectado</span>
                         </div>
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-neutral-900 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-brand-accent/50 transition-all overflow-hidden p-1.5 border border-white/10">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-brand-accent/50 transition-all overflow-hidden">
                             <img
-                                src="/animacion-vecy-blanco.gif"
-                                alt="User"
-                                className="w-full h-full object-contain opacity-90"
+                                src="/LogoVecyGold.gif"
+                                alt="Vecy Avalúos"
+                                className="w-full h-full"
+                                loading="lazy"
                             />
                         </div>
                     </div>
-                </header>
+                </header >
 
                 {/* Chat Stream with Fixed Scroll */}
-                <div className="flex-1 flex flex-col w-full min-h-0 relative overflow-hidden">
+                < div className="flex-1 flex flex-col w-full min-h-0 relative overflow-hidden" >
                     <div className={`flex-1 px-4 pt-4 pb-0 scroll-smooth custom-scrollbar ${messages.length > 1 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
                         <div className="flex flex-col max-w-4xl mx-auto w-full space-y-2 pb-0 min-h-full">
                             {/* Header Spacer - Ensures JanIA is never beheaded */}
@@ -974,10 +1133,17 @@ const JanIAAgent = () => {
                                                 </h1>
                                                 <p className="text-lg md:text-xl text-stone-300 font-light max-w-2xl mx-auto px-4">
                                                     {(() => {
-                                                        const { name } = getNeighborGreeting(user?.user_metadata?.full_name || user?.email?.split('@')[0]);
-                                                        // Use name if user is logged in, else 'vecino/a'
-                                                        const displayName = user ? name : 'vecino/a';
-                                                        return `Tu avaluadora experta ¿Qué inmueble vamos a avaluar hoy ${displayName}?`;
+                                                        if (!user) return `Tu avaluadora experta. ¡Bienvenido/a a Vecy Avalúos!`;
+
+                                                        const rawName = user.user_metadata?.full_name || user.email?.split('@')[0];
+                                                        const firstName = rawName ? rawName.trim().split(' ')[0] : '';
+
+                                                        // Gender Logic (Basic Heuristic)
+                                                        const isFemale = firstName.endsWith('a') ||
+                                                            ['Isabel', 'Beatriz', 'Carmen', 'Luz', 'Jani', 'Maria', 'Consuelo'].some(n => firstName.includes(n));
+                                                        const welcomeWord = isFemale ? 'Bienvenida' : 'Bienvenido';
+
+                                                        return `Tu avaluadora experta. ¡${welcomeWord} ${firstName} a Vecy Avalúos!`;
                                                     })()}
                                                 </p>
                                             </div>
@@ -1090,10 +1256,44 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
-                                    {/* Auth & Identity Components (JanIA 3.0) */}
+                                    {/* Generic Options Component (JanIA 3.0) */}
                                     {(msg?.component === 'auth' || msg?.component === 'auth_options') && (
                                         <div className="mt-4 ml-2 animate-fade-in-up">
                                             <AuthOptions onSelect={handleAuthSelect} />
+                                        </div>
+                                    )}
+
+                                    {/* 🛰️ COMPONENT: STREET VIEW / SATELLITE VISION */}
+                                    {msg?.component === 'street_view' && msg?.location && (
+                                        <div className="w-full mt-4 animate-fade-in-up flex justify-start pl-2">
+                                            <div className="relative group overflow-hidden rounded-2xl border border-white/20 shadow-2xl max-w-md w-full">
+                                                {/* Header UI */}
+                                                <div className="absolute top-0 left-0 w-full p-3 bg-gradient-to-b from-black/80 to-transparent z-20 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                                        <span className="text-[10px] font-mono font-bold text-white uppercase tracking-widest">Live Sat Feed</span>
+                                                    </div>
+                                                    <div className="text-[9px] font-mono text-emerald-400">
+                                                        COORD: {msg.location.lat.toFixed(4)}, {msg.location.lng.toFixed(4)}
+                                                    </div>
+                                                </div>
+
+                                                {/* Image from Google Street View Static API */}
+                                                <img
+                                                    src={`https://maps.googleapis.com/maps/api/streetview?size=640x360&location=${msg.location.lat},${msg.location.lng}&fov=120&pitch=10&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
+                                                    alt="Vista de Fachada"
+                                                    className="w-full h-48 md:h-60 object-cover transform transition-transform duration-700 group-hover:scale-110"
+                                                />
+
+                                                {/* Footer Scanlines Effect */}
+                                                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 pointer-events-none bg-[length:100%_2px,3px_100%]"></div>
+
+                                                <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black/90 to-transparent z-20">
+                                                    <p className="text-[10px] text-stone-300 font-light text-center">
+                                                        <span className="font-bold text-brand-gold">JanIA Vision™:</span> Confirmando ubicación del inmueble...
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
@@ -1103,15 +1303,71 @@ const JanIAAgent = () => {
                                             <div className="w-full max-w-4xl scale-95 md:scale-100 origin-top">
                                                 <PricingCards
                                                     propertyData={janIACore.memory.property_data}
+                                                    filter={janIACore.memory.plan_filter} // Smart filtering
                                                     onSelect={(plan) => {
-                                                        initiateCheckout({
-                                                            amount: plan.amount,
-                                                            name: `${plan.name} - Vecy Avalúos`,
-                                                            description: `Avalúo profesional para el inmueble en ${janIACore.memory.property_data?.barrio || 'Bogotá'}`
-                                                        });
+                                                        // [REAL MODE] - Trigger ePayco (New Handler)
+                                                        handlePlanClick(plan);
                                                     }}
                                                 />
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* 💎 COMPONENT: PDF DOWNLOAD (Dynamic - PAID PLANS ONLY) */}
+                                    {msg?.component === 'pdf_download' && reportData && paidPlan && (
+                                        <div className="w-full mt-4 animate-fade-in-up flex justify-center">
+                                            <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+                                                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-brand-gold/20 text-brand-gold">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-white mb-1">
+                                                    {paidPlan === 'oro' ? 'Avalúo Certificado RAA' : 'Informe Profesional'}
+                                                </h3>
+                                                <p className="text-xs text-stone-300 mb-4">
+                                                    Documento oficial generado con éxito.
+                                                </p>
+
+                                                <PDFDownloadLink
+                                                    document={
+                                                        <ProfessionalReport
+                                                            planType={paidPlan}
+                                                            propertyData={reportData}
+                                                            userName={user?.user_metadata?.full_name || reportData.solicitante}
+                                                            userPhotos={attachments.filter(a => a.type.startsWith('image/')).map(a => a.preview)}
+                                                        />
+                                                    }
+                                                    fileName={`Vecy_Avaluo_${paidPlan}_${new Date().getTime()}.pdf`}
+                                                    className="inline-flex items-center gap-2 font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg hover:scale-105 bg-brand-gold hover:bg-white text-black hover:shadow-brand-gold/50"
+
+                                                >
+                                                    {({ loading }) => (loading ? 'Generando PDF...' : '📥 Descargar PDF')}
+                                                </PDFDownloadLink>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 🎟️ COMPONENT: PAYMENT LINK BUTTON (Direct Checkout) */}
+                                    {msg?.component === 'payment_link' && msg?.paymentData && (
+                                        <div className="w-full mt-4 animate-fade-in-up flex justify-center">
+                                            <button
+                                                onClick={() => {
+                                                    // Calculation Logic (Mirrored from PricingCards)
+                                                    const { plan, estrato } = msg.paymentData;
+                                                    let amount = 0;
+                                                    const s = parseInt(estrato || 3);
+                                                    if (plan.includes('cafe')) amount = s <= 3 ? 29997 : 49997;
+                                                    else if (plan.includes('esmeralda')) amount = s <= 3 ? 99997 : 149997;
+
+                                                    handlePlanClick({ id: plan.replace('plan_', ''), amount });
+                                                }}
+                                                className="group relative bg-gradient-to-r from-brand-gold to-[#f0e68c] hover:to-white text-black font-black uppercase tracking-widest py-4 px-10 rounded-full shadow-[0_0_40px_rgba(204,172,78,0.5)] transition-all transform hover:scale-105 hover:-translate-y-1 active:scale-95 border-2 border-white/50"
+                                            >
+                                                <span className="flex items-center gap-2 relative z-10">
+                                                    <span>💳 PAGAR PLAN {msg.paymentData.plan.toUpperCase().replace('PLAN_', '')}</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                                </span>
+                                                <div className="absolute inset-0 bg-white/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                            </button>
                                         </div>
                                     )}
 
@@ -1172,10 +1428,10 @@ const JanIAAgent = () => {
                             <div ref={messagesEndRef} className="h-4" />
                         </div>
                     </div>
-                </div>
+                </div >
 
                 {/* Input Area */}
-                <div className="w-full p-4 flex justify-center bg-transparent flex-none z-10">
+                < div className="w-full p-4 flex justify-center bg-transparent flex-none z-10" >
                     <div className="w-full max-w-3xl space-y-3">
                         {/* Attachments Preview Area */}
                         {attachments.length > 0 && (
@@ -1201,7 +1457,7 @@ const JanIAAgent = () => {
                             </div>
                         )}
 
-                        <div className="bg-white/10 border border-white/20 rounded-full px-4 py-3 md:py-4 flex items-center gap-4 transition-all shadow-lg backdrop-blur-md">
+                        <div className="bg-white/10 border border-white/20 rounded-3xl px-4 py-3 flex items-end gap-3 transition-all shadow-lg backdrop-blur-xl hover:bg-white/15">
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -1212,31 +1468,46 @@ const JanIAAgent = () => {
                             />
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="p-2 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors"
+                                className="p-2 mb-1 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors flex-shrink-0"
                                 title="Adjuntar (PDF/Imágenes)"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                             </button>
 
-                            <input
-                                type="text"
+                            <textarea
                                 value={input}
-                                onChange={(e) => setInput(e.target.value)}
+                                onChange={(e) => {
+                                    setInput(e.target.value);
+                                    // Auto-resize
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = e.target.scrollHeight + 'px';
+                                }}
                                 onKeyDown={(e) => {
+                                    // Mobile Logic: Enter = New Line
+                                    const isMobile = window.innerWidth < 768;
+
                                     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                                        if (isMobile) return; // Allow default (newline)
+
                                         e.preventDefault();
                                         handleSendMessage(input, attachments.map(a => a.file));
+                                        setInput(''); // Clear input
+                                        e.target.style.height = 'auto'; // Reset height
                                     }
                                 }}
-                                placeholder="Pega un link, escribe un mensaje o sube un PDF..."
-                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm"
+                                placeholder="Escribe un mensaje..."
+                                rows={1}
+                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm resize-none py-3 max-h-[120px] overflow-y-auto font-sans leading-relaxed whitespace-pre-wrap"
                                 onFocus={() => { setProfileOpen(false); setSettingsOpen(false); }}
                             />
 
                             <button
-                                onClick={() => handleSendMessage(input, attachments.map(a => a.file))}
+                                onClick={() => {
+                                    handleSendMessage(input, attachments.map(a => a.file));
+                                    setInput(''); // Reset
+                                }}
                                 disabled={!input.trim() && attachments.length === 0}
-                                className={`p-2 rounded-full transition-all ${input.trim() || attachments.length > 0 ? 'bg-brand-accent text-black scale-110 shadow-lg' : 'text-stone-500'}`}
+                                className={`p-2 mb-1 rounded-full transition-all flex-shrink-0 ${input.trim() || attachments.length > 0 ? 'bg-brand-accent text-black scale-110 shadow-lg' : 'text-stone-500'}`}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
                             </button>
@@ -1246,135 +1517,139 @@ const JanIAAgent = () => {
                         {/* Disclaimer - STANDARD VECY COMPONENT */}
                         <DisclaimerText />
                     </div>
-                </div>
+                </div >
 
-            </main>
+            </main >
 
             {/* AUTH MODAL OVERLAY */}
-            {authModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="relative w-full max-w-sm">
-                        <button
-                            onClick={() => setAuthModalOpen(false)}
-                            className="absolute -top-12 right-0 p-2 text-stone-400 hover:text-white transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+            {
+                authModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="relative w-full max-w-sm">
+                            <button
+                                onClick={() => setAuthModalOpen(false)}
+                                className="absolute -top-12 right-0 p-2 text-stone-400 hover:text-white transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
 
-                        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-lg overflow-hidden p-6 relative">
-                            {/* Background Decor */}
-                            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.05),_transparent_60%)] pointer-events-none" />
+                            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-lg overflow-hidden p-6 relative">
+                                {/* Background Decor */}
+                                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.05),_transparent_60%)] pointer-events-none" />
 
-                            <div className="text-center mb-6 relative z-10">
-                                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#4a3b32] to-[#2c2420] rounded-full flex items-center justify-center border border-brand-gold/30 mb-4 shadow-xl shadow-black/30">
-                                    <img src="/perfil.png" alt="JanIA" className="w-full h-full object-cover rounded-full" />
+                                <div className="text-center mb-6 relative z-10">
+                                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#4a3b32] to-[#2c2420] rounded-full flex items-center justify-center border border-brand-gold/30 mb-4 shadow-xl shadow-black/30">
+                                        <img src="/perfil.png" alt="JanIA" className="w-full h-full object-cover rounded-full" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-1 tracking-wide">Únete a Vecy Avalúos</h3>
+                                    <p className="text-xs text-brand-gold/80 font-medium">Guarda tus chats y gestiona tus avalúos</p>
                                 </div>
-                                <h3 className="text-xl font-bold text-white mb-1 tracking-wide">Únete a Vecy Avalúos</h3>
-                                <p className="text-xs text-brand-gold/80 font-medium">Guarda tus chats y gestiona tus avalúos</p>
-                            </div>
 
-                            <AuthOptions onSelect={(provider) => {
-                                if (provider === 'email') {
-                                    setAuthModalOpen(false);
-                                    handleAuthSelect('email'); // Triggers chat flow for email
-                                } else {
-                                    handleAuthSelect(provider); // Handles OAuth redirect
-                                }
-                            }} />
+                                <AuthOptions onSelect={(provider) => {
+                                    if (provider === 'email') {
+                                        setAuthModalOpen(false);
+                                        handleAuthSelect('email'); // Triggers chat flow for email
+                                    } else {
+                                        handleAuthSelect(provider); // Handles OAuth redirect
+                                    }
+                                }} />
 
-                            <div className="mt-6 text-center">
-                                <p className="text-[10px] text-stone-500">
-                                    Al continuar, aceptas nuestros <Link to="/terminos" onClick={() => setAuthModalOpen(false)} className="underline hover:text-white">Términos</Link> y <Link to="/privacidad" onClick={() => setAuthModalOpen(false)} className="underline hover:text-white">Política de Privacidad</Link>.
-                                </p>
+                                <div className="mt-6 text-center">
+                                    <p className="text-[10px] text-stone-500">
+                                        Al continuar, aceptas nuestros <Link to="/terminos" onClick={() => setAuthModalOpen(false)} className="underline hover:text-white">Términos</Link> y <Link to="/privacidad" onClick={() => setAuthModalOpen(false)} className="underline hover:text-white">Política de Privacidad</Link>.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* TERMS GATE MODAL (PHASE 5.1) - REDESIGNED */}
-            {termsModalOpen && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white/20 backdrop-blur-3xl border border-white/20 rounded-[32px] p-8 max-w-md w-full relative shadow-[0_0_50px_rgba(204,172,78,0.25)] overflow-hidden">
+            {
+                termsModalOpen && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white/20 backdrop-blur-3xl border border-white/20 rounded-[32px] p-8 max-w-md w-full relative shadow-[0_0_50px_rgba(204,172,78,0.25)] overflow-hidden">
 
-                        {/* Background Shine */}
-                        <div className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 animate-shine pointer-events-none"></div>
+                            {/* Background Shine */}
+                            <div className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 animate-shine pointer-events-none"></div>
 
-                        <div className="text-center mb-8 relative z-10">
-                            {/* Icon Container */}
-                            <div className="w-20 h-20 mx-auto bg-brand-gold/20 rounded-full flex items-center justify-center mb-6 ring-1 ring-white/10 shadow-[0_0_30px_rgba(204,172,78,0.2)]">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-brand-gold drop-shadow-sm">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
-                                </svg>
+                            <div className="text-center mb-8 relative z-10">
+                                {/* Icon Container */}
+                                <div className="w-20 h-20 mx-auto bg-brand-gold/20 rounded-full flex items-center justify-center mb-6 ring-1 ring-white/10 shadow-[0_0_30px_rgba(204,172,78,0.2)]">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-brand-gold drop-shadow-sm">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
+                                    </svg>
+                                </div>
+
+                                <h3 className="text-2xl font-bold text-white mb-3 font-outfit tracking-tight">¡Bienvenido, Vecino!</h3>
+                                <p className="text-stone-400 text-sm leading-relaxed px-4 font-light">
+                                    Antes de iniciar, acepta nuestras políticas de <strong className="text-orange-400 font-medium">"Inteligencia Colectiva"</strong> para proteger tus datos.
+                                </p>
                             </div>
 
-                            <h3 className="text-2xl font-bold text-white mb-3 font-outfit tracking-tight">¡Bienvenido, Vecino!</h3>
-                            <p className="text-stone-400 text-sm leading-relaxed px-4 font-light">
-                                Antes de iniciar, acepta nuestras políticas de <strong className="text-orange-400 font-medium">"Inteligencia Colectiva"</strong> para proteger tus datos.
-                            </p>
-                        </div>
-
-                        <div className="space-y-4 mb-8 relative z-10">
-                            <div className="flex gap-4 text-xs text-stone-400 justify-center font-medium tracking-wide">
-                                <Link to="/terminos" target="_blank" className="flex items-center gap-1.5 hover:text-brand-gold transition-colors duration-300 group">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                                    <span className="text-stone-700 font-bold bg-white/50 px-2 py-0.5 rounded">Leer Términos</span>
-                                </Link>
-                                <span className="text-stone-500">|</span>
-                                <Link to="/privacidad" target="_blank" className="flex items-center gap-1.5 hover:text-brand-gold transition-colors duration-300 group">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
-                                    <span className="text-stone-700 font-bold bg-white/50 px-2 py-0.5 rounded">Leer Privacidad</span>
-                                </Link>
+                            <div className="space-y-4 mb-8 relative z-10">
+                                <div className="flex gap-4 text-xs text-stone-400 justify-center font-medium tracking-wide">
+                                    <Link to="/terminos" target="_blank" className="flex items-center gap-1.5 hover:text-brand-gold transition-colors duration-300 group">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                        <span className="text-stone-700 font-bold bg-white/50 px-2 py-0.5 rounded">Leer Términos</span>
+                                    </Link>
+                                    <span className="text-stone-500">|</span>
+                                    <Link to="/privacidad" target="_blank" className="flex items-center gap-1.5 hover:text-brand-gold transition-colors duration-300 group">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
+                                        <span className="text-stone-700 font-bold bg-white/50 px-2 py-0.5 rounded">Leer Privacidad</span>
+                                    </Link>
+                                </div>
                             </div>
+
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        // 1. Reset Logic (Fresh Chat)
+                                        janIACore.reset();
+                                        setMessages([]);
+
+                                        // 2. Persistence (Immediate)
+                                        localStorage.setItem('janIA_guest_terms_accepted', 'true');
+                                        if (user) {
+                                            // Async update, don't block UI
+                                            supabase.from('profiles').update({ accepted_terms: true }).eq('id', user.id).then(({ error }) => {
+                                                if (error) console.error("Error updating terms:", error);
+                                            });
+                                        }
+
+                                        // 3. UI Update (Close Modal)
+                                        setTermsModalOpen(false);
+                                        setHasAcceptedTerms(true);
+
+                                        // 4. Initial Greeting (New Chat with Avatar Fix)
+                                        const greeting = handleInitialGreeting(user);
+                                        // FIXED: Added component: 'greeting' and type: 'bot' to trigger avatar rendering
+                                        const msg = {
+                                            id: Date.now(),
+                                            text: greeting,
+                                            type: 'bot',
+                                            sender: 'JanIA', // Explicit sender for potential future use
+                                            component: 'greeting' // Critical for Avatar
+                                        };
+                                        setMessages([msg]);
+                                        janIACore.history.push({ role: 'assistant', content: greeting });
+
+                                    } catch (e) { console.error(e); }
+                                }}
+                                className="group relative w-full py-4 bg-gradient-to-r from-brand-accent to-brand-gold text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(204,172,78,0.6)] hover:brightness-110 shadow-lg shadow-brand-accent/30 relative overflow-hidden z-10"
+                            >
+                                <span className="relative z-10 drop-shadow-sm flex items-center justify-center gap-2">
+                                    ACEPTAR Y CONTINUAR 🚀
+                                </span>
+                                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"></div>
+                            </button>
                         </div>
-
-                        <button
-                            onClick={async () => {
-                                try {
-                                    // 1. Reset Logic (Fresh Chat)
-                                    janIACore.reset();
-                                    setMessages([]);
-
-                                    // 2. Persistence (Immediate)
-                                    localStorage.setItem('janIA_guest_terms_accepted', 'true');
-                                    if (user) {
-                                        // Async update, don't block UI
-                                        supabase.from('profiles').update({ accepted_terms: true }).eq('id', user.id).then(({ error }) => {
-                                            if (error) console.error("Error updating terms:", error);
-                                        });
-                                    }
-
-                                    // 3. UI Update (Close Modal)
-                                    setTermsModalOpen(false);
-                                    setHasAcceptedTerms(true);
-
-                                    // 4. Initial Greeting (New Chat with Avatar Fix)
-                                    const greeting = handleInitialGreeting(user);
-                                    // FIXED: Added component: 'greeting' and type: 'bot' to trigger avatar rendering
-                                    const msg = {
-                                        id: Date.now(),
-                                        text: greeting,
-                                        type: 'bot',
-                                        sender: 'JanIA', // Explicit sender for potential future use
-                                        component: 'greeting' // Critical for Avatar
-                                    };
-                                    setMessages([msg]);
-                                    janIACore.history.push({ role: 'assistant', content: greeting });
-
-                                } catch (e) { console.error(e); }
-                            }}
-                            className="group relative w-full py-4 bg-gradient-to-r from-brand-accent to-brand-gold text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(204,172,78,0.6)] hover:brightness-110 shadow-lg shadow-brand-accent/30 relative overflow-hidden z-10"
-                        >
-                            <span className="relative z-10 drop-shadow-sm flex items-center justify-center gap-2">
-                                ACEPTAR Y CONTINUAR 🚀
-                            </span>
-                            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"></div>
-                        </button>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* GLASS UI ALERTS */}
             <GlassToast

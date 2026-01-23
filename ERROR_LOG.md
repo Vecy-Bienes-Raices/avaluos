@@ -4,12 +4,25 @@
 
 ## 🔴 ERRORES ACTIVOS (Prioridad Alta)
 
-### 1. [UX/AI] Alucinación de Enlaces (Grave)
+### 1. [CRÍTICO] ePayco "Amount Type" Error
 
-- **Síntoma:** JanIA muestra texto como `[Enlace a la Política...]` en lugar de un link clickeable real.
-- **Causa:** El modelo ignora la instrucción de usar `/politicas` y genera su propio placeholder genérico.
-- **Solución Propuesta:** Inyectar el link como una constante absoluta en el Prompt de Sistema ("SIEMPRE usa: ...").
-- **ESTADO:** 🟢 COMPLETADO. Se inyectaron links absolutos (netlify.app) para Privacidad y Términos por separado.
+- **Síntoma:** El modal de pago mostraba un error o cargaba infinito al intentar procesar pagos con miles (ej. 50.000).
+- **Causa:** La API de ePayco recibía el monto como string formateado ("$50.000") en lugar de un número entero limpio.
+- **Solución:** Se implementó limpieza estricta: `Number(str.replace(/[^0-9.-]+/g, ""))`.
+- **ESTADO:** 🟢 SOLUCIONADO (Deep Intervention).
+
+### 2. [UX] Amnesia de Invitado a Usuario
+
+- **Síntoma:** Al registrarse, JanIA olvidaba lo que el usuario le había contado como invitado.
+- **Causa:** El proceso de `updateUserIdentity` reseteaba el historial o no fusionaba el contexto.
+- **Solución:** Implementación de "Brain Sync" en `janIACore.js`.
+- **ESTADO:** 🟢 SOLUCIONADO. Historial unificado.
+
+### 3. [UX] Ceguera Temporal (Vision Loss)
+
+- **Síntoma:** JanIA "veía" la imagen en el turno 1, pero si el usuario preguntaba algo en el turno 2, decía "no veo ninguna imagen".
+- **Solución:** Implementación de `vision_buffer` permanente en la clase Core.
+- **ESTADO:** 🟢 SOLUCIONADO.
 
 ### 2. [DEV/React] "Ghost Syntax" por Inyección Markdown (Crítico)
 
@@ -61,3 +74,17 @@
 - **Causa:** La petición `getUserChats` se disparaba antes de que `saveChatToHistory` (Supabase) completara su escritura.
 - **Solución:** Se añadió `await` estricto en el guardado antes de refrescar el estado.
 - **ESTADO:** 🟢 SOLUCIONADO. Sincronización perfecta.
+
+### 5. [API/Model] 'Mensaje sin contenido' (Gemini 3 Validation)
+
+- **Síntoma:** El chat mostraba "Mensaje sin contenido" inmediatamente después de activar los modelos Gemini 3.
+- **Causa:** Los modelos `gemini-3-pro-preview` requieren una "Thought Signature" (firma de pensamiento) en el retorno de las llamadas de función para validar la consistencia del razonamiento. Al no enviarla, la API rechazaba la respuesta, resultando en texto vacío.
+- **Solución:** Implementación del protocolo `thought_signature` en `prompts.js` y `janIACore.js` para pasar explícitamente el hash de razonamiento entre Cortex y Reflex.
+- **ESTADO:** 🟢 SOLUCIONADO.
+
+### 6. [LOGIC] JanIA Lost / JSON Parse Error
+
+- **Síntoma:** JanIA dejaba de responder o se "perdía" en el flujo cuando Cortex generaba un JSON inválido.
+- **Causa:** Falta de manejo de errores en `_activateCortex`.
+- **Solución:** Se implementó un `SAFE PLAN` de contingencia en `janIACore.js`.
+- **ESTADO:** 🟢 SOLUCIONADO. Recuperación automática.

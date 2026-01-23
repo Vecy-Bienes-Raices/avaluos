@@ -19,7 +19,7 @@ export const initiateCheckout = async (planData) => {
 
         const handler = window.ePayco.checkout.configure({
             key: import.meta.env.VITE_EPAYCO_PUBLIC_KEY,
-            test: true // Force test mode for debugging
+            test: import.meta.env.VITE_EPAYCO_TEST === 'true' // Dynamic environment sourcing
         });
 
         const data = {
@@ -28,7 +28,7 @@ export const initiateCheckout = async (planData) => {
             description: planData.description || 'Avalúo profesional inmobiliario',
             invoice: `INV-${Date.now()}`,
             currency: 'cop',
-            amount: String(planData.amount), // Ensure string format
+            amount: Number(String(planData.amount).replace(/[^0-9.-]+/g, "")), // Strict Number() cast per instructions
             tax_base: '0',
             tax: '0',
             country: 'co',
@@ -36,10 +36,11 @@ export const initiateCheckout = async (planData) => {
 
             external: 'false',
             
-            // VALIDATION FIX: ALWAYS force production HTTPS URLs for callbacks during debugging
-            // ePayco strictly validates these fields. Localhost or http:// causes "epaycoResponse is not a valid URL"
-            confirmation: 'https://vecy-avaluos.netlify.app/api/payment-confirmation',
-            response: 'https://vecy-avaluos.netlify.app/payment-response', 
+            // VALIDATION FIX: 
+            // 'confirmation': Must be HTTPS and Public (No Localhost). using Prod for now or empty if no backend.
+            confirmation: 'https://vecy-avaluos.netlify.app/payment-confirmation', 
+            // 'response': Client redirect. Using window.location.origin allows testing on Localhost.
+            response: `${window.location.origin}`, // Redirect back to the chat application 
 
             //Atributos cliente
             // name_billing: 'Andres Perez',

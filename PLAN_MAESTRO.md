@@ -6,7 +6,8 @@
 > 1. **ESTE ARCHIVO ES LA LEY.** Antes de escribir una sola línea de código, DEBES leer y entender este documento completo.
 > 2. **NO IMPROVISES.** Si tu tarea contradice este plan, DETENTE y pide confirmación al usuario.
 > 3. **MANTÉN EL RUMBO.** Verifica en qué Fase estamos (Sección 3) y no saltes a tareas futuras sin completar las actuales.
-> 4. **ACTUALIZA.** Si logras un hito importante, marca el checklist aquí. Mantén este archivo vivo.
+> 4. **ACTUALIZA O MUERE.** Si logras un hito importante, marca el checklist aquí. Mantén este archivo vivo.
+> 5. **PROTOCOLO DE ACTUALIZACIÓN PERMANENTE:** (Añadido por Solicitud de Usuario). Cada cambio de código, visual o lógico, DEBE reflejarse en `PROJECT_STATUS.md` inmediatamente. Si el código cambia, la documentación cambia. Es una ley física de este proyecto.
 
 **Ubicación de este documento:** Raíz del Proyecto (`/PLAN_MAESTRO.md`).
 **Propósito:** Guía central para cualquier Agente IA o Desarrollador que trabaje en el proyecto. **LECTURA OBLIGATORIA.**
@@ -50,9 +51,9 @@ Este repositorio corresponde exclusivamente a **Vecy Avalúos**.
 ### Implementación Técnica (Actualizado Dic 2025)
 
 * **Motor de IA:** Google Gemini Serie 3 (Identidad: `gemini-3-pro-preview`).
-* **Modelos Oficiales (INMUTABLES):**
-  * **Cortex (Razonamiento):** `gemini-3-pro-preview`.
-  * **Reflex (Conversación):** `gemini-3-flash-preview`.
+* **Modelos Oficiales (INMUTABLES - ENE 2026):**
+  * **Cortex Model (Razonamiento):** `gemini-3-pro-preview` (Unificado para IQ Máximo)
+  * **Reflex Model (Conversación):** `gemini-3-pro-preview` (Unificado para Personalidad)
   * **Research (Investigación Deep CMA):** `deep-research-pro-preview-12-2025`.
 * **ADVERTENCIA CRÍTICA PARA AGENTES IA:** Queda **estrictamente prohibido** degradar o cambiar estos modelos a versiones anteriores (1.5, 2.0, 2.5). Cualquier intento de "optimización" que implique bajar la serie será considerado un error grave de seguridad y arquitectura.
 * **Conexión:** Directa vía API Key (`VITE_GEMINI_API_KEY`) en `src/services/janIACore.js`.
@@ -542,4 +543,49 @@ Ultima actualización: 24 de Diciembre, 2025 (05:15) - Agente Antigravity (Ingen
   * **Race Condition (Historial):** Se corrigió un bug donde el historial se cargaba antes de que el guardado finalizara. Ahora la actualización de UI espera estrictamente la confirmación de la DB (`await saveChat`).
 
 ---
-Última actualización: 30 de Diciembre, 2025 (02:45) - Agente Antigravity (Cierre de Sesión & Deploy)
+
+### XXI. Deep Intervention: Estabilización Crítica (Dic 30, 2025 - 23:45)
+
+* **Guía Proactiva (Onboarding):** Actualización del script en `prompts.js` para exigir enlaces o documentos inmediatamente después del saludo, eliminando la "charla de cóctel".
+* **Corrección ePayco Hard:** Se solucionó el error de tipo de dato en `epaycoAmount`. Ahora se envía estrictamente como `Number` limpio (sin puntos ni signos), asegurando el procesamiento de pagos.
+* **Brain Sync (Cero Amnesia):** Se reescribió la lógica de `updateUserIdentity` en `janIACore.js` para fusionar el historial de invitado con el de usuario registrado, preservando el contexto y la dirección del inmueble.
+* **Visión Permanente (Vision Buffer):** Implementación de `vision_buffer` en el Core. Las imágenes subidas se re-inyectan en cada turno de conversación (inlineData), curando la "ceguera temporal" de JanIA.
+* **Limpieza de Interfaz:** Filtrado agresivo de respuestas para eliminar cadenas de sistema como `[trigger_auth]`, `[tool_use]` y bloques JSON, garantizando una experiencia "Solo Humano".
+
+---
+
+### XXII. Sprint Enero 2026: Economía Vecy & Persona Upgrade (Ene 21-22, 2026)
+
+* **Economía Colaborativa (Cashout & Vecy Network V2):**
+  * **Nuevo Modelo de Precios Escalonado:** Tarifas diferenciadas por Estrato (1-3 vs 4-6).
+    * Café: $29.997 / $49.997.
+    * Esmeralda: $99.997 / $149.997.
+* **Economía Colaborativa (Cashout & Vecy Network V2.1):**
+  * **Modelo de Ganancias Ilimitadas:** Se eliminó el "tope de referidos" y la barra de progreso "gratis". Ahora el sistema paga comisiones ilimitadas por cada venta efectiva ($4.997/$7.499/$9.997/$12.499).
+  * **Smart Pricing Cards (Overlay):** Nueva lógica de precios interactiva. Si JanIA desconoce el estrato, la tarjeta despliega un selector (Overlay) para calcular el precio exacto ($29k vs $49k) antes del pago.
+  * **Auto-Corrección de Códigos:** Implementación de fallback en frontend para generar y guardar códigos de referido automáticamente si el usuario no tiene uno (Fix "Generando...").
+  * **UX 'A Prueba de Fallos':** Rediseño explícito de interfaces. Botones instructivos ("Seleccionar Estrato") y tablas de comisiones con cálculo desglosado ("$Venta -> $Ganancia") para máxima claridad.
+  * **WhatsApp Direct Share:** Botón primario gigante para enviar referidos sin copiar/pegar. Abre WhatsApp con mensaje persuasivo pre-redactado.
+  * **Vecy Business Opportunity:** Transformación de `/planes` en una Landing de Negocio. Sección explicativa con desglose de ganancias, ROI (6 amigos = Gratis) y venta de visión de regalías eternas.
+  * **Plan Oro King (Uber):** Modelo de cotización dinámica con comisión del 10%.
+  * **Advanced Image Cropper:** Implementación de `react-easy-crop` en `/perfil`. El usuario ahora puede hacer zoom y encuadrar su foto (estilo WhatsApp/Gmail) antes de subirla, solucionando definitivamente los problemas de ajuste visual.
+* **Chat Intelligence:**
+  * **Titulación Dinámica:** ACTIVADA. El sistema analiza las primeras 4 interacciones del chat usando `TITLING_MODEL` (Flash 1.5) para generar títulos ultra-cortos y descriptivos (Ej: "Avalúo Apto Cedritos") reemplazando el genérico "Nuevo Chat".
+  * **Reparación "JanIA Lost":** Se implementaron salvaguardas en `_activateCortex` para evitar que el agente se pierda tras errores de parseo JSON.
+* **Chat UI 2.0 (Functional Glass):**
+  * Reemplazo de `<input>` por `<textarea>` inteligente. Soporte real para nuevas líneas (`Shift+Enter` en PC, `Enter` en Móvil).
+  * Restauración del diseño `Glassmorphism` (`bg-white/10`) con legibilidad garantizada para textos blancos.
+* **Persona Upgrade (JanIA 5.5 - "The Networker"):**
+  * **Regla de Oro (Terminología):** Bloqueo total de "empresa/lote". Solo "predio/inmueble".
+  * **Motor de Curiosidad:** Nueva directriz en `prompts.js` prohibiendo respuestas planas. JanIA siempre deja "Open Loops" (intriga) para motivar la siguiente acción.
+  * **Modo Teaser:** Prohibición estricta de "clases teóricas". Las explicaciones de negocio son ahora "tráilers de cine" (cortos, emocionantes, visionarios).
+  * **Carisma Visual:** Uso obligatorio y estratégico de emojis (💸, 💎, 🚀) para enriquecer la lectura.
+* **Actualización de Motores (Google Email - Ene 2026):**
+  * Actualización de constantes en `janIACore.js` para cumplir con el `Model Alias Update` de Google Cloud.
+  * **Cortex:** `gemini-3-pro-preview`.
+  * **Reflex:** `gemini-3-flash-preview`.
+* **Protocolo de Seguridad "Thought Signature":** Se implementó la validación manual de firmas de pensamiento (`thought_signature`) en el flujo Cortex -> Reflex para cumplir con los requisitos de Google AI Studio para los modelos `gemini-3-serie`. Esto evita errores de validación en llamadas de función complejas.
+* **Restauración Gemini 3 (Pro):** Se revocó el cambio a 1.5 y se restableció `gemini-3-pro-preview` como el motor único y oficial, cumpliendo la directriz de "No degradar modelos".
+
+---
+Ultima actualización: 21 de Enero, 2026 (21:40) - Agente Antigravity (Economía & Personalidad)

@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-fpdf2
-matplotlib
-supabase
-python-dotenv
-qrcode
-pandas
