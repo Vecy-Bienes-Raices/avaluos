@@ -42,9 +42,9 @@ export const generateAndSendReport = async (planType, appraisalData, user) => {
         // 2. GENERATE PDF BLOB (Client-Side Rendering)
         const blob = await pdf(
             <ReportComponent
-                propertyData={appraisalData.property_data?.details || { address: "Dirección Pendiente" }}
+                propertyData={appraisalData.property_data || {}}
                 appraisalData={appraisalData}
-                estimatedValue={appraisalData.valuation_price || 0}
+                estimatedValue={appraisalData.property_data?.price_estimate || appraisalData.valuation_price || 0}
                 userName={user.user_metadata?.full_name || user.email || "Usuario Vecy"}
                 planType={cleanPlan.toUpperCase()}
                 date={new Date().toLocaleDateString()}
@@ -83,7 +83,7 @@ export const generateAndSendReport = async (planType, appraisalData, user) => {
             name: user.user_metadata?.full_name || 'Usuario',
             link: publicLink,
             plan: cleanPlan,
-            address: appraisalData.property_data?.details?.address || 'Propiedad'
+            address: appraisalData.property_data?.direccion_normalizada || appraisalData.property_data?.barrio || 'Propiedad en Bogotá'
         });
 
         // 6. NOTIFY ADMIN (WhatsApp)

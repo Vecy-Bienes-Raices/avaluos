@@ -94,7 +94,7 @@ const createStyles = (theme) => StyleSheet.create({
     disclaimer: { fontSize: 7, color: '#888', textAlign: 'justify', marginBottom: 5 }
 });
 
-const CafeReport = ({ propertyAddress, area, estimatedValue, userName, planType = 'cafe', date }) => {
+const CafeReport = ({ propertyData, estimatedValue, userName, planType = 'cafe', date }) => {
     const theme = getTheme(planType);
     const styles = createStyles(theme);
 
@@ -131,11 +131,11 @@ const CafeReport = ({ propertyAddress, area, estimatedValue, userName, planType 
                     </View>
                     <View style={styles.row}>
                         <Text style={styles.label}>INMUEBLE:</Text>
-                        <Text style={styles.value}>{propertyAddress || 'Dirección no registrada'}</Text>
+                        <Text style={styles.value}>{propertyData?.address || propertyData?.direccion_normalizada || 'Dirección no registrada'}</Text>
                     </View>
                     <View style={styles.row}>
                         <Text style={styles.label}>ÁREA:</Text>
-                        <Text style={styles.value}>{area ? `${area} m²` : '---'}</Text>
+                        <Text style={styles.value}>{propertyData?.area ? `${propertyData.area} m²` : '---'}</Text>
                     </View>
                 </View>
 
@@ -168,7 +168,7 @@ const CafeReport = ({ propertyAddress, area, estimatedValue, userName, planType 
                     <View style={{ marginTop: 30, padding: 15, backgroundColor: '#F0FDF9', borderRadius: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.primary, marginBottom: 5 }}>ANÁLISIS DE MERCADO</Text>
                         <Text style={{ fontSize: 9, color: '#555' }}>
-                            Este informe incluye análisis de big data de ofertas similares en el sector de {propertyAddress || 'la zona'}.
+                            Este informe incluye análisis de big data de ofertas similares en el sector de {propertyData?.address || propertyData?.barrio || 'la zona'}.
                             La precisión de este avalúo es del 92% comparado con el mercado real.
                         </Text>
                     </View>

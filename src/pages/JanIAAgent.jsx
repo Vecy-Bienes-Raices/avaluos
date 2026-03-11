@@ -10,6 +10,7 @@ import AuthOptions from '../components/VecyPhoenix/AuthOptions';
 import PricingCards from '../components/PricingCards';
 import { initiateCheckout, verifyPayment } from '../services/epaycoService';
 import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile, deleteChat, clearUserHistory, generateSmartTitle } from '../services/historyService';
+import { liquidarServiciosVecy } from '../services/pricingService'; // Import liquidarServiciosVecy
 import { GlassToast, GlassConfirm } from '../components/VecyAlerts';
 import { GlassAvatar } from '../components/GlassAvatar'; // 💎 NEW IMPORT
 import { PDFDownloadLink } from '@react-pdf/renderer'; // 📄 PDF Generation
@@ -98,26 +99,56 @@ const JanIAAgent = () => {
             // window.history.pushState({ path: newUrl }, '', newUrl);
         }
 
-        // 2. EPAYCO CONFIRMATION
+        // 2. EPAYCO CONFIRMATION OR PAYMENT RESPONSE FLAG
         const ref_payco = query.get('ref_payco');
+        const paymentFlagStr = localStorage.getItem('janIA_payment_success_flag');
 
-        if (ref_payco && !localStorage.getItem(`processed_${ref_payco}`)) {
-            console.log("💰 [PAYMENT SUCCESS]: Epayco ref found:", ref_payco);
+        const processPaymentSuccess = (transactionRef, amount, planName, statusText = 'Aceptada') => {
+            console.log("💰 [PAYMENT SUCCESS]: Processing completion for:", transactionRef);
+            
+            // Mark as processed
+            localStorage.setItem(`processed_${transactionRef}`, 'true');
 
-            // 1. Mark as processed to prevent loops
-            localStorage.setItem(`processed_${ref_payco}`, 'true');
+            // Trigger Success Flow (JanIA Response)
+            localStorage.setItem('janIA_pending_action', "[SISTEMA]: PAGO APROBADO EXITOSAMENTE. El dinero entró a la cuenta. Continúa el mensaje agradeciendo la compra por el plan y dándole el botón de descarga del pdf usando estrictamente la herramienta 'generate_report_download'.");
 
-            // 2. Clean URL (Remove query params)
+            // FIRE FULL BACKEND WORKFLOW (PDF + Email)
+            const appraisalData = janIACore.memory || {};
+            const cleanPlan = planName || 'esmeralda';
+
+            console.log("🚀 [Payment Success] Triggering Report Generation via Service para plan:", cleanPlan);
+
+            generateAndSendReport(cleanPlan, appraisalData, user).then(res => {
+                if (res.success) {
+                    console.log("✅ [JanIA] Reporte generado y enviado exitosamente.");
+                } else {
+                    console.error("❌ [JanIA] Falló la generación del reporte:", res.error);
+                }
+            });
+        };
+
+        if (paymentFlagStr) {
+            // Regresamos redirigidos desde /payment-response
+            try {
+                const pData = JSON.parse(paymentFlagStr);
+                if (!localStorage.getItem(`processed_${pData.ref}`)) {
+                    processPaymentSuccess(pData.ref, pData.amount, pData.plan);
+                }
+                localStorage.removeItem('janIA_payment_success_flag'); // Clean up
+            } catch (e) {
+                console.error("Error parsing payment flag", e);
+            }
+        } else if (ref_payco && !localStorage.getItem(`processed_${ref_payco}`)) {
+            // Flujo Modal directo sin ruteo (fallback)
+            console.log("💰 [PAYMENT SUCCESS]: Epayco ref found in URL:", ref_payco);
             window.history.replaceState({}, document.title, window.location.pathname);
 
-            // 3. Inject Pending Status
             setMessages(prev => [...prev, {
                 type: 'system',
                 text: "⏳ [SISTEMA]: Verificando estado real de la transacción con el banco...",
                 isHidden: false
             }]);
 
-            // 4. Verify Real Status with Epayco API
             verifyPayment(ref_payco).then(transaction => {
                 if (transaction && transaction.status === 1) { // 1 = Aceptada
                     setMessages(prev => [...prev, {
@@ -125,45 +156,24 @@ const JanIAAgent = () => {
                         text: `✅ [SISTEMA]: PAGO APROBADO (${transaction.invoice}). Monto: $${transaction.amount}`,
                         isHidden: true
                     }]);
-
-                    // Trigger Success Flow (JanIA Response)
-                    handleUserMessage("[SISTEMA]: PAGO APROBADO EXITOSAMENTE. El dinero entró. Genera el PDF inmediatamente usando 'generate_report_download' y agradécele.");
-
-                    // 5. 🔔 FIRE FULL BACKEND WORKFLOW (PDF + Email + WhatsApp)
-                    const appraisalData = janIACore.memory || {};
-                    const planName = (transaction.description || 'esmeralda').split(' ')[0].toLowerCase(); // Infer plan
-
-                    console.log("🚀 [Payment Success] Triggering Report Generation via Service...");
-
-                    generateAndSendReport(planName, appraisalData, user).then(res => {
-                        if (res.success) {
-                            console.log("✅ [JanIA] Reporte generado y enviado exitosamente.");
-                        } else {
-                            console.error("❌ [JanIA] Falló la generación del reporte:", res.error);
-                        }
-                    });
+                    const planName = (transaction.description || 'esmeralda').split(' ')[0].toLowerCase();
+                    processPaymentSuccess(ref_payco, transaction.amount, planName);
 
                 } else if (transaction && (transaction.status === 2 || transaction.status === 4)) {
-                    // Rejected or Failed
                     setMessages(prev => [...prev, {
                         type: 'system',
                         text: `❌ [SISTEMA]: PAGO RECHAZADO (${transaction.statusText}).`,
                         isHidden: false
                     }]);
-                    // Trigger Failure Flow
-                    handleUserMessage("[SISTEMA]: El pago fue RECHAZADO por el banco. Dile amablemente que intente de nuevo o use otro medio de pago.");
-
+                    localStorage.setItem('janIA_pending_action', "[SISTEMA]: El pago fue RECHAZADO por el banco. Dile amablemente que intente de nuevo o use otro medio de pago.");
                 } else {
-                    // Pending or Other
-                    setMessages(prev => [...prev, {
-                        type: 'system',
-                        text: `⚠️ [SISTEMA]: Estado de pago: ${transaction?.statusText || 'Desconocido'}.`,
-                        isHidden: false
-                    }]);
+                    setMessages(prev => [...prev, { type: 'system', text: `⚠️ [SISTEMA]: Estado de pago: ${transaction?.statusText || 'Desconocido'}.`, isHidden: false }]);
                 }
             });
-        } else if (refCode) {
-            // Clean URL if just referral
+        }
+        
+        // Clean URL if just referral
+        else if (refCode) {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, []);
@@ -623,56 +633,87 @@ const JanIAAgent = () => {
                 name_billing: user.user_metadata?.full_name || user.email
             };
             console.log("🚀 Initiating Checkout with:", safePlan);
-            await initiateCheckout(safePlan);
+            const result = await initiateCheckout(safePlan);
+
+            if (result && result.status === 'success') {
+                const pData = result.data;
+                console.log("🎉 [Epayco Callback Data]:", pData);
+                // x_cod_response: 1 = Aceptada, 2 = Rechazada, 3 = Pendiente, 4 = Fallida
+                if (pData.x_cod_response === 1 || pData.x_cod_response === 3) {
+                    setToast({ message: "¡Validando tu pago!", type: 'success' });
+                    setPaidPlan(plan.id);
+
+                    // Infer plan details for backend
+                    const amountPaid = parseFloat(pData.x_amount) || plan.amount;
+                    let planType = plan.id; // Default to chosen
+                    
+                    // Mark transaction as processed
+                    localStorage.setItem(`processed_${pData.x_ref_payco}`, 'true');
+
+                    // 1. Generate Report in Background
+                    console.log("🚀 [Payment Success] Triggering Report Generation via Service para plan:", planType);
+                    generateAndSendReport(planType, janIACore.memory || {}, user).then(res => {
+                        if (res.success) console.log("✅ [JanIA] Reporte PDF generado.");
+                        else console.error("❌ [JanIA] Falló la generación:", res.error);
+                    });
+
+                    // 2. Trigger System Prompt for JanIA
+                    const sysMsg = {
+                        id: Date.now(),
+                        type: 'system',
+                        text: `✅ [SISTEMA]: PAGO APROBADO EXITOSAMENTE (Ref: ${pData.x_ref_payco}). El usuario pagó el plan. Agradécele muy brevemente e INMEDIATAMENTE invoca la herramienta 'generate_report_download' de manera obligatoria para entregar el Avalúo en PDF ahora mismo.`,
+                        isHidden: true
+                    };
+                    setMessages(prev => [...prev, sysMsg]);
+
+                    setIsLoading(true);
+                    setThinkingText("Generando tu PDF...");
+
+                    // 3. Make JanIA answer the event and call the tool 
+                    try {
+                        const responseIter = await janIACore.processMessage(
+                            sysMsg.text, 
+                            session?.access_token, 
+                            chatId, 
+                            {}, 
+                            (step) => setThinkingText(step)
+                        );
+                        
+                        for await (const chunk of responseIter) {
+                            if (chunk.type === 'message') {
+                                setMessages(prev => {
+                                    const newPrev = [...prev];
+                                    const lastMsg = newPrev[newPrev.length - 1];
+                                    if (lastMsg && lastMsg.type === 'bot') {
+                                        newPrev[newPrev.length - 1] = { ...lastMsg, text: chunk.content };
+                                    } else {
+                                        newPrev.push({ id: Date.now(), text: chunk.content, type: 'bot' });
+                                    }
+                                    return newPrev;
+                                });
+                            }
+                            // Note: 'download_report' is handled by JanIA's UI automatically
+                        }
+                    } catch (aiError) {
+                        console.error("AI Error generating report response:", aiError);
+                        setMessages(prev => [...prev, { id: Date.now(), text: "¡Tu pago fue aprobado exitosamente! Puedes revisar tu correo electrónico donde hemos enviado el comprobante y en breve te llegará el Avalúo, o puedes recargar la página para visualizar tu plan activo.", type: 'bot' }]);
+                    } finally {
+                        setIsLoading(false);
+                        setThinkingText('');
+                    }
+
+                } else {
+                    setToast({ message: `Pago no aprobado. (Estado: ${pData.x_response})`, type: 'error' });
+                }
+            } else if (result && result.status === 'closed') {
+                console.log("Usuario cerró el modal de ePayco.");
+            }
         } catch (err) {
             console.error("Payment Trigger Error:", err);
             setToast({ message: "Error al iniciar pago. Intenta de nuevo.", type: 'error' });
         }
     };
 
-    // --- EPAYCO CHECKOUT LOGIC ---
-    const handleEpaycoCheckout = (plan) => {
-        if (!window.ePayco) {
-            console.error("ePayco script not loaded");
-            setConfirmModal({
-                isOpen: true,
-                title: "Error de Conexión",
-                message: "No pudimos conectar con la pasarela de pagos. Por favor recarga la página.",
-                onConfirm: () => setConfirmModal({ isOpen: false }),
-                type: 'danger'
-            });
-            return;
-        }
-
-        const handler = window.ePayco.checkout.configure({
-            key: '491d6a0b6e992cf924edd8d3d088aff5', // PUBLIC KEY
-            test: true
-        });
-
-        // Get User Data for Pre-fill
-        const userEmail = user?.email || user?.user_metadata?.email || '';
-        const userName = user?.user_metadata?.full_name || 'Usuario Vecy';
-
-        const data = {
-            name: plan.name,
-            description: plan.description,
-            invoice: `VECY-${Date.now()}`,
-            currency: 'cop',
-            amount: plan.amount,
-            tax_base: '0',
-            tax: '0',
-            country: 'co',
-            lang: 'es',
-            email: userEmail,
-            name_billing: userName,
-            response: `${window.location.origin}/payment-response`,
-            confirmation: `${window.location.origin}/payment-confirmation`,
-            method: 'GET'
-        };
-
-        console.log("🚀 OPENING EPAYCO CHECKOUT:", data);
-        handler.open(data);
-    };
 
     const handleSendMessage = async (text, files = []) => {
         if ((!text && files.length === 0) || isSendingRef.current) return;
@@ -857,15 +898,17 @@ const JanIAAgent = () => {
                     };
                 } else if (toolName === 'generate_report_download') {
                     // 📄 PDF DOWNLOAD TRIGGER form JanIA
-                    console.log("📄 [PDF TRIGGER]: Generating Download Link...", step.args);
+                    console.log("📄 [PDF TRIGGER]: Generating Download Link...", step?.args);
+                    const incomingPlan = step?.args?.plan || janIACore.memory.plan_filter?.[0] || 'esmeralda';
+                    
                     setReportData({
-                        address: janIACore.memory.property_data?.direccion_normalizada || 'Ubicación en Chat',
-                        area: janIACore.memory.property_data?.area || 0,
-                        value: janIACore.memory.property_data?.valor || 0,
+                        address: janIACore.memory.property_data?.direccion_normalizada || 'Bogotá D.C.',
+                        area: janIACore.memory.property_data?.area || 50,
+                        value: janIACore.memory.property_data?.precio_estimado || 0,
                         date: new Date().toLocaleDateString(),
-                        planType: step.args.plan || 'esmeralda'
+                        planType: incomingPlan
                     });
-                    setPaidPlan(step.args.plan || 'esmeralda'); // UNLOCK UI COMPONENT
+                    setPaidPlan(incomingPlan); // UNLOCK UI COMPONENT
                     botMsg.component = 'pdf_download';
 
                 } else if (toolName === 'trigger_reward_card') {
@@ -883,8 +926,9 @@ const JanIAAgent = () => {
                 }
             }
 
+            // OJO: Solo asignar el response.component si botMsg.component no se seteó arriba
             if (response.plan || forceAuth) {
-                botMsg.component = response.component || botMsg.component;
+                botMsg.component = botMsg.component || response.component;
             }
 
             setMessages(prev => [...prev, botMsg]);
@@ -901,34 +945,6 @@ const JanIAAgent = () => {
             isSendingRef.current = false; // RELEASE LOCK
         }
     };
-
-    // 💰 EPAYCO RETURN LISTENER (PAYMENT SUCCESS)
-    useEffect(() => {
-        const query = new URLSearchParams(window.location.search);
-        const ref_payco = query.get('ref_payco');
-
-        if (ref_payco && !localStorage.getItem(`processed_${ref_payco}`)) {
-            console.log("💰 [PAYMENT SUCCESS]: Epayco ref found:", ref_payco);
-
-            // 1. Mark as processed to prevent loops
-            localStorage.setItem(`processed_${ref_payco}`, 'true');
-
-            // 2. Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-
-            // 3. Inject Confirmation to JanIA
-            setTimeout(() => {
-                setMessages(prev => [...prev, {
-                    type: 'system', // Internal system message
-                    text: "✅ [SISTEMA]: PAGO CONFIRMADO POR EPAYCO. ref: " + ref_payco,
-                    isHidden: true // Custom flag to hide bubble if needed, or show as 'System Alert'
-                }]);
-
-                // 4. Trigger JanIA's reaction automatically
-                handleUserMessage("[SISTEMA]: EL PAGO FUE EXITOSO. Genera el PDF inmediatamente usando la herramienta 'generate_report_download'.");
-            }, 1500); // 1.5s delay to let UI settle
-        }
-    }, []);
 
 
     // Helper: Convert File to Base64
@@ -1404,13 +1420,19 @@ const JanIAAgent = () => {
                                                     {[
                                                         { icon: 'home', text: 'Avaluar Propiedad', cmd: 'Quiero un avalúo profesional' },
                                                         { icon: 'doc', text: 'Cargar Archivos', cmd: 'Necesito procesar archivos' },
-                                                        { icon: 'user', text: localStorage.getItem('janIA_has_logged_in') ? 'Iniciar sesión' : 'Registrarse', cmd: 'AUTH_TRIGGER' }
+                                                        { 
+                                                            icon: 'user', 
+                                                            text: user || localStorage.getItem('janIA_has_logged_in') ? 'Mi Perfil' : 'Iniciar sesión', 
+                                                            cmd: user || localStorage.getItem('janIA_has_logged_in') ? 'GO_PROFILE' : 'AUTH_TRIGGER' 
+                                                        }
                                                     ].map((chip, i) => (
                                                         <button
                                                             key={i}
                                                             onClick={() => {
                                                                 if (chip.cmd === 'AUTH_TRIGGER') {
                                                                     setAuthModalOpen(true);
+                                                                } else if (chip.cmd === 'GO_PROFILE') {
+                                                                    navigate('/perfil');
                                                                 } else {
                                                                     handleSendMessage(chip.cmd);
                                                                 }
@@ -1565,15 +1587,13 @@ const JanIAAgent = () => {
                                                                                             const userStratum = janIACore.memory.property_data?.estrato || 3;
                                                                                             const isHigh = userStratum > 3;
 
-                                                                                            // 3. Calculate Official Price (Match PricingCards.jsx)
-                                                                                            let amount = 0;
-                                                                                            if (cleanId === 'cafe') {
-                                                                                                amount = isHigh ? 49997 : 29997;
-                                                                                            } else if (cleanId === 'esmeralda') {
-                                                                                                amount = isHigh ? 149997 : 99997;
-                                                                                            } else if (cleanId === 'oro') {
-                                                                                                amount = 0; // Trigger Quote Logic
-                                                                                            }
+                                                                                            // 3. Calculate Official Price using Global Service
+                                                                                            const calculatedPricing = liquidarServiciosVecy({ 
+                                                                                                plan: cleanId, 
+                                                                                                estrato: userStratum, 
+                                                                                                areaM2: janIACore.memory.property_data?.area || 0 
+                                                                                            });
+                                                                                            const amount = calculatedPricing.total_a_pagar;
 
                                                                                             // 4. Construct Safe Plan Object
                                                                                             const directPlan = {
@@ -1595,6 +1615,18 @@ const JanIAAgent = () => {
                                                                                             const lowerText = msgText.toLowerCase();
                                                                                             const isRegistrationIntent = ["registrarme", "quiero registrarme", "acepto el registro"].some(t => lowerText.includes(t));
                                                                                             const isNegativeIntent = ["no ", "rechazar", "cancelar"].some(t => lowerText.includes(t));
+                                                                                            
+                                                                                            // FIX BUCLE PAGOS: if msg says 'pagar plan...', route to checkout!
+                                                                                            if (lowerText.startsWith("pagar plan")) {
+                                                                                                const planInferido = lowerText.replace("pagar plan", "").trim();
+                                                                                                console.log("💳 [Auto-Routing] Convirtiendo texto a pago directo:", planInferido);
+                                                                                                const planKey = ['CAFÉ', 'CAFE', 'ESMERALDA', 'ORO'].find(k => planInferido.toUpperCase().includes(k)) || 'ORO';
+                                                                                                const cleanId = planKey === 'CAFÉ' || planKey === 'CAFE' ? 'cafe' : planKey.toLowerCase();
+                                                                                                const userStratum = janIACore.memory.property_data?.estrato || 3;
+                                                                                                const calc = liquidarServiciosVecy({ plan: cleanId, estrato: userStratum, areaM2: janIACore.memory.property_data?.area || 0 });
+                                                                                                handlePlanClick({ id: cleanId, name: `Plan ${planKey}`, amount: calc.total_a_pagar });
+                                                                                                return;
+                                                                                            }
 
                                                                                             // Si es INTENCIÓN DE REGISTRO y NO ES NEGATIVO y NO HAY USUARIO
                                                                                             if (isRegistrationIntent && !isNegativeIntent && !user) {
@@ -1802,12 +1834,14 @@ const JanIAAgent = () => {
                                         <div className="w-full mt-4 animate-fade-in-up flex justify-center">
                                             <button
                                                 onClick={() => {
-                                                    // Calculation Logic (Mirrored from PricingCards)
+                                                    // Calculation Logic (Unified Central Pricing)
                                                     const { plan, estrato } = msg.paymentData;
-                                                    let amount = 0;
-                                                    const s = parseInt(estrato || 3);
-                                                    if (plan.includes('cafe')) amount = s <= 3 ? 29997 : 49997;
-                                                    else if (plan.includes('esmeralda')) amount = s <= 3 ? 99997 : 149997;
+                                                    const calculatedPricing = liquidarServiciosVecy({ 
+                                                        plan: plan.replace('plan_', ''), 
+                                                        estrato: parseInt(estrato || 3), 
+                                                        areaM2: janIACore.memory.property_data?.area || 0 
+                                                    });
+                                                    const amount = calculatedPricing.total_a_pagar;
 
                                                     handlePlanClick({ id: plan.replace('plan_', ''), amount });
                                                 }}
