@@ -28,6 +28,12 @@
 15. **Visual Polish:** Refactored `GlassAvatar` component to ensure profile pictures fill the circular container perfectly (0% gap), improving UI elegance.
 16. **Interactive Image Cropper:** Evolved the Avatar solution. Implemented a WhatsApp-style Cropper Modal (`react-easy-crop`). Users can now zoom, drag, and fit their photo perfectly inside the circle before uploading. The ultimate fix for "gap" issues.
 17. **Standardized Chat Titles:** Strict "Code + Address" format enforced (e.g. "AP KRA 96 # 73-49"). AI now detects property type (AP, CA, LT) and address to generate clean, organized record titles automatically.
+18. **CRITICAL FIX - Invalid Hooks:** Surgically removed misplaced `useEffect` in `JanIAAgent.jsx` using node scripts to fix "Invalid hook call".
+19. **Secure Credentials Restored:** Reconstructed lost `.env` file and secured it in `.gitignore` after accidental deletion.
+20. **Supabase Client Hardening:** `supabaseClient.js` now mocks auth/functions prevents White Screen crashes if keys are missing.
+21. **Personality Resurrection:** Fixed "Generic Bot" loop. `_fallbackReflex` now forcibly injects `PERSONALITY_PROMPT` to ensure JanIA never loses character, even in error states.
+22. **Brain Transplant (Fix Amnesia):** Fallback Mechanism now receives `[MEMORIA RAM ACTUAL]` injection. JanIA remembers user name and context even when running on backup circuits.
+23. **ePayco Restoration:** Re-enabled `VITE_EPAYCO_TEST=true` in .env to fix payment rejection issues.
 
 ## 3. Deuda Técnica / Alertas
 

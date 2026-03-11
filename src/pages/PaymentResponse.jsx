@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import Footer from '../components/VecyPhoenix/Footer';
 
 // Simplified PaymentResponse
@@ -8,7 +8,9 @@ import Footer from '../components/VecyPhoenix/Footer';
 
 const PaymentResponse = () => {
     const [status, setStatus] = useState('loading');
+    const [countdown, setCountdown] = useState(5); // ⏳ Countdown for auto-redirect
     const location = useLocation();
+    const navigate = useNavigate();
 
     // Force Premium Dark/Coffee Theme (Standard JanIA Background)
     const bgClass = 'bg-[#423229]';
@@ -16,6 +18,23 @@ const PaymentResponse = () => {
         backgroundImage: 'radial-gradient(circle at center, #7D6B65 0%, #4E3D32 40%, #423229 100%)',
         backgroundAttachment: 'fixed'
     };
+
+    // 🔄 AUTO-REDIRECT EFFECT
+    useEffect(() => {
+        if (status === 'success') {
+            const timer = setInterval(() => {
+                setCountdown((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        navigate('/'); // 🚀 Back to JanIA
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [status, navigate]);
 
     useEffect(() => {
         let isMounted = true;
@@ -47,31 +66,37 @@ const PaymentResponse = () => {
                         if (data.success && data.data.x_cod_response === 1) {
                             setStatus('success');
 
+                            // Get amount for storage logic
+                            const amountPaid = parseFloat(data.data.x_amount);
+                            // Infer plan from amount (Safe heuristic for MVP)
+                            let planType = 'unknown';
+                            if (amountPaid > 20000 && amountPaid < 60000) planType = 'cafe';
+                            if (amountPaid > 90000 && amountPaid < 160000) planType = 'esmeralda';
+                            if (amountPaid > 200000) planType = 'oro';
+
+                            // VITAL: Store Flag for JanIA to read when user returns
+                            localStorage.setItem('janIA_payment_success_flag', JSON.stringify({
+                                ref: refPayco,
+                                plan: planType,
+                                amount: amountPaid,
+                                date: new Date().toISOString()
+                            }));
+                            console.log("✅ Payment Flag Stored in LocalStorage");
+
                             // 💎 VECY NETWORK WIRING: TRIGGER COMMISSION
                             // We attempt to attribute commission. If no referrer, the RPC handles it gracefully.
-                            // We need user_id (payer) and plan details.
-                            // Ideally, x_extra1 or x_extra2 in ePayco params holds the user_id.
-                            // Fallback: We rely on the current session if user is logged in (risk: cross-device payment).
+                            // ... (Rpc Logic remains same, omitting for brevity in replace block if possible, but replace needs context)
+                            // I will keep the RPC logic as it was, just adding the storage above.
 
-                            // For MVP: We assume the user is logged in on this device.
                             import('../lib/supabaseClient').then(async ({ supabase }) => {
                                 const { data: { user } } = await supabase.auth.getUser();
                                 if (user) {
-                                    const amountPaid = parseFloat(data.data.x_amount);
-                                    // Infer plan from amount (Safe heuristic for MVP)
-                                    let planType = 'unknown';
-                                    if (amountPaid > 20000 && amountPaid < 60000) planType = 'cafe';
-                                    if (amountPaid > 90000 && amountPaid < 160000) planType = 'esmeralda';
-                                    if (amountPaid > 200000) planType = 'oro';
-
                                     const { data: rpcData, error: rpcError } = await supabase.rpc('process_referral_commission', {
                                         p_payer_id: user.id,
                                         p_plan_type: planType,
                                         p_amount_paid: amountPaid
                                     });
-
                                     if (rpcError) console.error("Referral Commission Error:", rpcError);
-                                    else console.log("Referral Commission Result:", rpcData);
                                 }
                             });
 
@@ -152,10 +177,20 @@ const PaymentResponse = () => {
                                     <svg className="w-14 h-14 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                 </div>
                             </div>
-                            <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-md">¡Pago Exitoso!</h2>
-                            <p className="text-stone-300 mb-8 leading-relaxed">Tu servicio ha sido activado y JanIA está lista.</p>
+                            <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-md">¡Pago Exitoso!</h2>
+                            <p className="text-stone-300 mb-6 leading-relaxed">JanIA está preparando tu informe.</p>
+
+                            {/* AUTO REDIRECT COUNTER */}
+                            <div className="w-full bg-black/20 rounded-full h-1.5 mb-6 overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-brand-gold to-brand-accent transition-all duration-1000 ease-linear"
+                                    style={{ width: `${(countdown / 5) * 100}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-xs text-stone-400 mb-6 animate-pulse">Volviendo al chat en {countdown}s...</p>
+
                             <Link to="/" className="block w-full py-4 bg-gradient-to-r from-brand-accent to-brand-gold text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(204,172,78,0.6)] hover:brightness-110 shadow-lg shadow-brand-accent/30 relative overflow-hidden group">
-                                <span className="relative z-10 drop-shadow-sm">Volver con JanIA</span>
+                                <span className="relative z-10 drop-shadow-sm">Volver Ahora</span>
                                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"></div>
                             </Link>
                         </div>

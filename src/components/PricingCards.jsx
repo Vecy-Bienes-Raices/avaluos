@@ -52,12 +52,11 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
             image: '/cafe.png',
             price: 'Desde $29.997',
             features: [
-                'Estratos 1-3: $29.997',
-                'Estratos 4-6: $49.997',
-                'Reporte PDF al Instante.',
-                '3 Inmuebles Comparables.',
-                '💸 Gana por cada Referido (Venta Efectiva).',
-                '🚫 ¡Sin límites de ganancias!'
+                'Análisis de Mercado Inmediato.',
+                'Valor Estratificado (E1-3: $29k | E4-6: $49k).',
+                'Reporte PDF con Comparables.',
+                '💸 Gana hasta $7.499 por Referido.',
+                '🚀 Plan Carrera: Escala a Socio Estratega.'
             ],
             style: {
                 cardBg: 'bg-[#5D493A]/15 backdrop-blur-2xl',
@@ -107,12 +106,11 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
             image: '/esmeralda.png',
             price: 'Desde $99.997',
             features: [
-                'Estratos 1-3: $99.997',
-                'Estratos 4-6: $149.997',
-                'Analítica de Mercado + Normativa.',
-                'Mapa de Calor Urbano.',
-                '💸 Gana por cada Referido (Venta Efectiva).',
-                '🚫 ¡Sin límites de ganancias!'
+                'Analítica PRO de Datos + POT.',
+                'Valor Estratificado (E1-3: $99k | E4-6: $149k).',
+                'Mapa de Calor y Riesgos.',
+                '💸 Gana hasta $12.499 por Referido.',
+                '💎 Socio Estratega: Activa Ingresos Pasivos.'
             ],
             style: {
                 cardBg: 'bg-[#0DBB83]/10 backdrop-blur-2xl',

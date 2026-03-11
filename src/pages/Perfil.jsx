@@ -8,6 +8,7 @@ import ImageCropperModal from '../components/ImageCropperModal';
 import { pdf } from '@react-pdf/renderer';
 import CafeReport from '../components/reports/CafeReport';
 import { sendAdminNotification, triggerEmailWorkflow } from '../services/notificationService';
+import Footer from '../components/VecyPhoenix/Footer';
 
 const Perfil = () => {
     const { theme } = useTheme();
@@ -69,12 +70,12 @@ const Perfil = () => {
                     .eq('referrer_id', user.id);
 
                 // Calculate Rank & Goals
-                // Logic: 0-5 (Pionero), 6-20 (Zafiro), 20+ (Diamante)
+                // Logic: 0-5 (Pionero), 6-20 (Socio Estratega), 20+ (Embajador Vecy)
                 const currentCount = refCount || 0;
                 let currentRank = 'Pionero';
                 let nextGoal = 6;
-                if (currentCount >= 6) { currentRank = 'Zafiro'; nextGoal = 20; }
-                if (currentCount >= 20) { currentRank = 'Diamante'; nextGoal = 50; }
+                if (currentCount >= 6) { currentRank = 'Socio Estratega'; nextGoal = 20; }
+                if (currentCount >= 20) { currentRank = 'Embajador Vecy'; nextGoal = 50; }
 
                 setReferrals({
                     count: currentCount,
@@ -470,14 +471,37 @@ const Perfil = () => {
                         {activeTab === 'network' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                                 {/* Header Section */}
-                                <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-brand-gold/20 to-transparent p-6 rounded-2xl border border-brand-gold/30">
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-brand-gold mb-1">Rango: {referrals.rank} 🚀</h3>
-                                        <p className="text-sm text-stone-300">Tu influencia está creciendo. ¡Sigue así!</p>
+                                <div className="space-y-4">
+                                    <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-brand-gold/20 to-transparent p-6 rounded-2xl border border-brand-gold/30 relative overflow-hidden group">
+                                        <div className="relative z-10">
+                                            <h3 className="text-2xl font-bold text-brand-gold mb-1">Rango: {referrals.rank} 🚀</h3>
+                                            <p className="text-sm text-stone-300">Tu influencia está creciendo. ¡Sigue así!</p>
+                                        </div>
+                                        <div className="mt-4 md:mt-0 text-right relative z-10">
+                                            <p className="text-xs text-stone-400 uppercase tracking-widest font-bold">Saldo Disponible</p>
+                                            <p className="text-3xl font-mono text-emerald-400 font-bold">${referrals.balance.toLocaleString()}</p>
+                                        </div>
+                                        {/* Subtle background glow for Embajadores */}
+                                        {referrals.rank === 'Embajador Vecy' && (
+                                            <div className="absolute inset-0 bg-brand-gold/5 blur-3xl rounded-full -translate-x-1/2 -translate-y-1/2 scale-150 animate-pulse"></div>
+                                        )}
                                     </div>
-                                    <div className="mt-4 md:mt-0 text-right">
-                                        <p className="text-xs text-stone-400 uppercase tracking-widest font-bold">Saldo Disponible</p>
-                                        <p className="text-3xl font-mono text-emerald-400 font-bold">${referrals.balance.toLocaleString()}</p>
+
+                                    {/* RANK PROGRESS BAR */}
+                                    <div className="bg-white/5 border border-white/10 p-4 rounded-xl">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-[10px] uppercase font-bold text-stone-400 tracking-tighter">Meta: {referrals.rank === 'Embajador Vecy' ? 'Máximo Rango' : `Rango ${referrals.rank === 'Pionero' ? 'Socio Estratega' : 'Embajador Vecy'}`}</span>
+                                            <span className="text-[10px] font-mono text-brand-gold">{referrals.count} / {referrals.nextGoal} Ventas</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-brand-gold to-emerald-500 transition-all duration-1000 shadow-[0_0_10px_rgba(204,172,78,0.5)]"
+                                                style={{ width: `${Math.min(100, (referrals.count / referrals.nextGoal) * 100)}%` }}
+                                            ></div>
+                                        </div>
+                                        <p className="text-[9px] text-stone-500 mt-2 italic text-right">
+                                            {referrals.rank === 'Embajador Vecy' ? '¡Eres un Embajador Global!' : `Faltan ${referrals.nextGoal - referrals.count} ventas para desbloquear ingresos pasivos.`}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -503,8 +527,8 @@ const Perfil = () => {
                                                 <div>
                                                     <p className="text-sm font-bold text-emerald-400 mb-1">Modelo de Ganancias Ilimitadas</p>
                                                     <p className="text-xs text-stone-300 leading-relaxed">
-                                                        Gana comisiones específicas por <b>cada amigo</b> que adquiera un plan (Café, Esmeralda u Oro).
-                                                        Entre más refieras, más dinero acumulas en tu saldo disponible.
+                                                        Gana comisiones inteligentes por <b>cada amigo</b> que adquiera un plan.
+                                                        El sistema detecta automáticamente el estrato para maximizar tu renta.
                                                     </p>
                                                 </div>
 
@@ -513,41 +537,41 @@ const Perfil = () => {
 
                                                     {/* CAFÉ */}
                                                     <div>
-                                                        <p className="font-bold text-brand-gold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">☕ Referidos Plan Café Express</p>
+                                                        <p className="font-bold text-brand-gold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">☕ Plan Café Express</p>
                                                         <div className="space-y-1.5 text-stone-300">
-                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                                                                <span>1. Venta $29.997</span>
-                                                                <span className="text-emerald-400 font-bold">→ Referido = $4.997 COP</span>
+                                                            <div className="flex justify-between items-center">
+                                                                <span>Estratos 1-3</span>
+                                                                <span className="text-emerald-400 font-bold">+ $4.997 COP</span>
                                                             </div>
-                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                                                                <span>2. Venta $49.997</span>
-                                                                <span className="text-emerald-400 font-bold">→ Referido = $7.499 COP</span>
+                                                            <div className="flex justify-between items-center">
+                                                                <span>Estratos 4-6</span>
+                                                                <span className="text-emerald-400 font-bold">+ $7.499 COP</span>
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     {/* ESMERALDA */}
                                                     <div>
-                                                        <p className="font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">💎 Referidos Plan Esmeralda Plus</p>
+                                                        <p className="font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">💎 Plan Esmeralda Plus</p>
                                                         <div className="space-y-1.5 text-stone-300">
-                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                                                                <span>1. Venta $99.997</span>
-                                                                <span className="text-emerald-400 font-bold">→ Referido = $9.997 COP</span>
+                                                            <div className="flex justify-between items-center">
+                                                                <span>Estratos 1-3</span>
+                                                                <span className="text-emerald-400 font-bold">+ $9.997 COP</span>
                                                             </div>
-                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                                                                <span>2. Venta $149.997</span>
-                                                                <span className="text-emerald-400 font-bold">→ Referido = $12.499 COP</span>
+                                                            <div className="flex justify-between items-center">
+                                                                <span>Estratos 4-6</span>
+                                                                <span className="text-emerald-400 font-bold">+ $12.499 COP</span>
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     {/* ORO */}
                                                     <div>
-                                                        <p className="font-bold text-amber-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">👑 Referidos Plan Oro King</p>
+                                                        <p className="font-bold text-amber-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">👑 Plan Oro King</p>
                                                         <div className="text-stone-300">
-                                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                                            <div className="flex justify-between items-center">
                                                                 <span>Cada Referido genera:</span>
-                                                                <span className="text-emerald-400 font-bold">10% sobre valor cotizado</span>
+                                                                <span className="text-emerald-400 font-bold">10% Neto</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -564,7 +588,7 @@ const Perfil = () => {
                                     <button
                                         onClick={() => {
                                             const code = referrals.code;
-                                            const text = encodeURIComponent(`Hola! 👋 Te recomiendo Vecy Avalúos para valorar tu inmueble en segundos. Es inteligencia artificial real. Usa mi link: https://vecyavaluos.com/?ref=${code}`);
+                                            const text = encodeURIComponent(`Hola! 👋 Te recomiendo Vecy Avalúos para valorar tu inmueble en segundos. Es inteligencia artificial real. Usa mi link: ${window.location.origin}/?ref=${code}`);
                                             window.open(`https://wa.me/?text=${text}`, '_blank');
                                         }}
                                         className="w-full py-4 bg-[#25D366] hover:bg-[#20bd5a] text-black font-bold rounded-xl shadow-[0_0_20px_rgba(37,211,102,0.4)] hover:shadow-[0_0_30px_rgba(37,211,102,0.6)] transition-all flex items-center justify-center gap-2 group transform active:scale-95"
@@ -580,7 +604,7 @@ const Perfil = () => {
                                         <button
                                             onClick={() => {
                                                 const code = referrals.code;
-                                                navigator.clipboard.writeText(`https://vecyavaluos.com/?ref=${code}`);
+                                                navigator.clipboard.writeText(`${window.location.origin}/?ref=${code}`);
                                                 showModal({ title: 'Copiado', message: 'Link copiado al portapapeles.', type: 'success' });
                                             }}
                                             className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
@@ -592,9 +616,13 @@ const Perfil = () => {
                                         <button
                                             onClick={handleCashout}
                                             disabled={referrals.balance <= 0}
-                                            className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all group ${referrals.balance > 0 ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 hover:border-emerald-500 cursor-pointer' : 'bg-stone-800/10 border-stone-700/30 opacity-50 cursor-not-allowed'}`}
+                                            className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all group relative overflow-hidden ${referrals.balance > 0 ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 hover:border-emerald-500 cursor-pointer' : 'bg-stone-800/10 border-stone-700/30 opacity-50 cursor-not-allowed'}`}
                                         >
-                                            <span className="text-xl mb-1 group-hover:scale-110 transition-transform">💸</span>
+                                            {/* Pulse Animation Overlay */}
+                                            {referrals.balance >= 50000 && (
+                                                <span className="absolute inset-0 bg-emerald-500/20 animate-pulse pointer-events-none"></span>
+                                            )}
+                                            <span className={`text-xl mb-1 group-hover:scale-110 transition-transform ${referrals.balance >= 50000 ? 'animate-bounce' : ''}`}>💸</span>
                                             <span className={`font-bold text-xs ${referrals.balance > 0 ? 'text-emerald-400' : 'text-stone-500'}`}>Canjear</span>
                                         </button>
                                     </div>
@@ -604,8 +632,8 @@ const Perfil = () => {
 
                     </div>
 
-                    <p className="text-center text-[10px] text-stone-600 mt-4">
-                        * Los reportes del Plan Esmeralda y Oro son revisados manualmente por peritos certificados.
+                    <p className="text-center text-[10px] text-stone-400 mt-4">
+                        * Los reportes del Plan Oro son revisados manualmente y aprobados por peritos certificados.
                     </p>
                 </div>
             </div>
@@ -621,6 +649,10 @@ const Perfil = () => {
                     onCropComplete={handleUploadCroppedImage}
                 />
             )}
+
+            <div className="w-full max-w-5xl mt-12 mb-4">
+                <Footer compact={true} />
+            </div>
         </div>
     );
 };

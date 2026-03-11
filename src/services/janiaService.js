@@ -42,10 +42,10 @@ export const initChat = async () => {
     }
 
     try {
-        // Use gemini-1.5-flash for speed and cost-effectiveness
-        // Fallback or Update: 'gemini-1.5-flash' is the stable designation for "latest"
+        // Use gemini-3-flash-preview per PLAN_MAESTRO.md
+        // Updated to Series 3 for consistency with Reflex Model
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
+            model: "gemini-3-flash-preview",
             systemInstruction: SYSTEM_PROMPT 
         });
 
@@ -112,7 +112,7 @@ export const analyzeAndExtractData = async (lastUserMessage) => {
 
     try {
         // A specialized model instance just for extraction (lower temp for precision)
-        const extractionModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const extractionModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         
         const extractionPrompt = `
         Analiza el siguiente mensaje de un usuario interesado en un avalúo inmobiliario:

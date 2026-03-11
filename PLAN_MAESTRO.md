@@ -588,4 +588,21 @@ Ultima actualización: 24 de Diciembre, 2025 (05:15) - Agente Antigravity (Ingen
 * **Restauración Gemini 3 (Pro):** Se revocó el cambio a 1.5 y se restableció `gemini-3-pro-preview` como el motor único y oficial, cumpliendo la directriz de "No degradar modelos".
 
 ---
-Ultima actualización: 21 de Enero, 2026 (21:40) - Agente Antigravity (Economía & Personalidad)
+Ultima actualización: 23 de Enero, 2026 (13:50) - Agente Antigravity (Restauración de Personalidad & Fix Crítico)
+
+### XXIII. JanIA 5.6: Resurrección de Personalidad & Estabilidad (Ene 23, 2026)
+
+* **Cirugía de Hooks (React Core):** Eliminación quirúrgica (vía script Node) de un `useEffect` global errante en `JanIAAgent.jsx` que bloqueaba el renderizado ("Invalid hook call").
+* **Protocolo de Seguridad de Credenciales:**
+  * **Recuperación:** Reconstrucción del archivo `.env` tras pérdida accidental.
+  * **Blindaje:** Configuración de `.gitignore` verificado.
+  * **Resiliencia:** Refactorización de `supabaseClient.js`. Ahora el cliente utiliza "Mock Objects" para `auth` y `functions` si faltan las llaves, evitando que la app colapse en pantalla blanca.
+* **Resurrección de Personalidad (Anti-Lobotomía):**
+  * **Diagnóstico:** Se identificó que el sistema de fallback (`_fallbackReflex`) usaba un prompt genérico ("Eres JanIA, sé breve").
+  * **Solución:** Inyección forzada del `PERSONALITY_PROMPT` en el fallback. Ahora, si el cerebro principal falla, el sistema de emergencia responde con la misma identidad de "Socia Avaluadora" y no como un robot genérico.
+* **Brain Transplant (Fix Amnesia):**
+  * **Problema:** FallbackReflex olvidaba el nombre del usuario porque el prompt de emergencia no incluía memoria.
+  * **Solución:** Se inyectó `[MEMORIA RAM ACTUAL]` (nombre, título, datos inmueble) directamente en el prompt de sistema del modelo de respaldo.
+* **Restauración ePayco:** Activación explícita de `VITE_EPAYCO_TEST=true` y `CLIENT_ID` en el archivo `.env` para permitir pruebas de pago exitosas.
+* **Componentes UI Restaurados:** Recuperación del componente `DisclaimerText` que había sido eliminado accidentalmente, causando `ReferenceError`.
+* **Configuración de Correo:** Sincronización de secretos `GMAIL_USER` y `GMAIL_APP_PASSWORD` en Supabase Functions para garantizar el envío de reportes PDF.

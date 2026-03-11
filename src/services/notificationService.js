@@ -3,6 +3,8 @@
  * Maneja el envío de alertas a WhatsApp (CallMeBot) y triggers de Correo.
  */
 
+import { supabase } from '../lib/supabaseClient';
+
 const CALLMEBOT_API_KEY = '293812'; // Placeholder or Default? I'll use a placeholder placeholder and ask user. 
 // Actually, I can't guess it. I'll put a comment.
 
@@ -48,39 +50,26 @@ _Mensaje generado automáticamente por JanIA_`;
  * que se encarga de generar PDF final y enviar Email con Resend.
  */
 export const triggerEmailWorkflow = async (data) => {
-    const WEBHOOK_URL = 'https://hook.eu2.make.com/6cx5oxt0uegqtl66w2j532b0v3y6cvxy'; // URL Found in Vecy Agenda
-
     try {
-        const payload = {
-            // METADATA
-            source: 'VecyAvaluos_App',
-            fecha_solicitud: new Date().toLocaleString('es-CO'),
-
-            // VECY AGENDA SCHEMA ALIGNMENT (Strict Keys)
-            solicitante_nombre: data.name || 'Usuario Vecy',
-            solicitante_email: data.email,
-            solicitante_celular: data.phone || 'No registrado', // Make needs this reference
-            servicio_solicitado: `Descarga Avalúo - Plan ${data.plan ? data.plan.toUpperCase() : 'GENERAL'}`,
-            
-            // CUSTOM FIELDS FOR THIS PROCESS
-            link_descarga_pdf: data.link,
-            mensaje_adicional: "El usuario ha descargado su reporte de valoración.",
-            
-            // ADMIN COPY CONFIG
-            admin_email: 'vecybienesraices@gmail.com',
-            send_copy_to_admin: true,
-            
-            ...data
-        };
-
-        // We use 'no-cors' if submitting to a webhook that doesn't set CORS headers
-        await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        console.log("📨 [NotificationService] Triggering Edge Function: send-appraisal-report");
+        
+        const { data: funcData, error } = await supabase.functions.invoke('send-appraisal-report', {
+            body: {
+                user_name: data.name || 'Usuario Vecy',
+                user_email: data.email,
+                user_phone: data.phone || 'N/A',
+                property_summary: data.address || 'Inmueble valorado por Vecy',
+                plan: data.plan || 'General',
+                ref_payco: `REF-${Date.now().toString().slice(-6)}`, // Auto-gen ref if missing
+                pdf_link: data.link // MANDATORY for Attachment
+            }
         });
-        console.log("✅ Email Workflow Triggered (Make)");
+
+        if (error) throw error;
+        console.log("✅ Email Sent via Supabase Edge Function:", funcData);
+
     } catch (e) {
-        console.error("❌ Email Workflow Failed:", e);
+        console.error("❌ Email Edge Function Failed:", e);
+        // Fallback or Alert?
     }
 };

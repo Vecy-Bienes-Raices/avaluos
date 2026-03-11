@@ -88,3 +88,38 @@
 - **Causa:** Falta de manejo de errores en `_activateCortex`.
 - **Solución:** Se implementó un `SAFE PLAN` de contingencia en `janIACore.js`.
 - **ESTADO:** 🟢 SOLUCIONADO. Recuperación automática.
+
+### 7. [CRÍTICO/HUMANO] "Invalid Hook Call" & Loop Code
+
+- **Síntoma:** Pantalla blanca total. Error React "Invalid hook call".
+- **Causa:** Un bloque `useEffect` duplicado quedó huérfano fuera del componente `JanIAAgent` (scope global) tras una edición anterior fallida.
+- **Acción Correctora:** Se intentó borrar con herramientas de edición estándar pero fallaron por coincidencia de texto. Se tuvo que crear un **Script Quirúrgico en Node.js** (`remove_fix.cjs`) para eliminar el bloque por índices de caracteres exactos.
+- **Lección:** Cuando el editor de texto falla encontrando bloques grandes, usar scripts de manipulación de archivos directos.
+
+### 8. [ACCIDENTE] Borrado de .env (Cagada del Agente)
+
+- **Síntoma:** "Supabase URL missing", app crasheada, envío de correos fallido.
+- **Causa:** El agente ejecutó un comando de limpieza agresivo y borró el archivo `.env` local sin tener respaldo.
+- **Acción Correctora:**
+  1. Se pidió perdón al usuario (transparencia).
+  2. Se reconstruyó la plantilla.
+  3. Se pidieron las claves al usuario y se restauró el archivo.
+  4. Se blindó el código (`supabaseClient.js`) para que no crashee si esto vuelve a pasar.
+
+### 9. [REGRESIÓN] ReferenceError: DisclaimerText
+
+- **Síntoma:** Pantalla negra tras arreglar los hooks.
+- **Causa:** Al limpiar el archivo `JanIAAgent.jsx`, el agente borró accidentalmente la definición del componente `DisclaimerText`.
+- **Solución:** Se re-inyectó el componente funcional al inicio del archivo.
+
+### 10. [LÓGICA] Lobotomía de Personalidad (Respuestas Genéricas)
+
+- **Síntoma:** JanIA respondía "Hola, soy una IA..." perdiendo su encanto de "Socia".
+- **Causa:** El sistema de Fallback (usado cuando el cerebro principal falla por conexión) tenía un prompt hardcodeado aburrido.
+- **Solución:** Se actualizó `_fallbackReflex` en `janIACore.js` para usar el `PERSONALITY_PROMPT` completo. Ahora JanIA es encantadora incluso cuando falla.
+
+### 11. [LÓGICA] Amnesia en Fallback (Olvida Nombre)
+
+- **Síntoma:** JanIA preguntaba "¿Cuál es tu nombre?" incluso a usuarios logueados.
+- **Causa:** El mecanismo de respaldo (`_fallbackReflex`) no recibía la memoria (`this.memory`) en el prompt, y el prompt de personalidad le obligaba a preguntar el nombre "si no lo sabe".
+- **Solución:** Se inyectó el bloque `[MEMORIA RAM ACTUAL]` en el prompt de sistema del Fallback.

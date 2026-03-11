@@ -41,12 +41,12 @@ const AuthOptions = ({ onSelect }) => {
                 <div className="flex-grow border-t border-white/20"></div>
             </div>
 
-            {/* EMAIL BUTTON - Glass/Gold Premium */}
+            {/* EMAIL BUTTON - Premium Gold Gradient */}
             <button
                 onClick={() => onSelect('email')}
-                className="flex items-center justify-center gap-3 bg-white/5 text-stone-200 font-medium py-3.5 px-6 rounded-xl hover:bg-brand-gold/10 border border-white/10 hover:border-brand-gold/30 transition-all group text-base backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
+                className="flex items-center justify-center gap-3 bg-gradient-to-r from-brand-gold-dark to-brand-gold hover:from-brand-gold hover:to-brand-gold-light text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-brand-gold/20 hover:shadow-brand-gold/40 hover:-translate-y-0.5 group w-full text-base backdrop-blur-xl border-none"
             >
-                <FontAwesomeIcon icon={faEnvelope} className="text-stone-400 group-hover:text-brand-gold transition-colors w-4 h-4" />
+                <FontAwesomeIcon icon={faEnvelope} className="text-white group-hover:scale-110 transition-transform w-4 h-4" />
                 Continuar con Correo
             </button>
         </div>

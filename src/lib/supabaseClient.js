@@ -18,9 +18,18 @@ if (supabaseUrl && supabaseAnonKey) {
 }
 
 // Export the client (or a safe proxy/null if failed)
+// Export the client (or a safe proxy/null if failed)
 export const supabase = supabaseClient || {
     from: () => ({ 
         select: () => ({ data: [], error: { message: 'Supabase not initialized' } }),
         insert: () => ({ select: () => ({ data: [], error: { message: 'Database mode disabled' } }) })
-    })
+    }),
+    functions: {
+        invoke: () => Promise.resolve({ data: null, error: { message: 'Functions disabled' } })
+    },
+    auth: {
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        msg: "Auth disabled"
+    }
 };

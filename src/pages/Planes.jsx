@@ -21,7 +21,7 @@ const Planes = () => {
     };
 
     return (
-        <div className={`min-h-screen w-full flex flex-col items-center justify-center p-6 text-stone-200 transition-colors duration-500 ${bgClass}`} style={bgStyle}>
+        <div className={`min-h-screen w-full flex flex-col items-center justify-center pt-6 px-6 text-stone-200 transition-colors duration-500 ${bgClass}`} style={bgStyle}>
             {/* Header / Back Button */}
             <div className="absolute top-8 left-8">
                 <button
@@ -80,20 +80,39 @@ const Planes = () => {
                         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                             <span className="text-emerald-400">1.</span> Ganancias Directas
                         </h3>
-                        <p className="text-xs text-stone-400 mb-4">Gana dinero inmediato por cada amigo que compre un plan con tu link.</p>
+                        <p className="text-xs text-stone-400 mb-4">Gana dinero de forma inteligente según el estrato del inmueble referido.</p>
 
-                        <div className="space-y-3 font-mono text-xs">
-                            <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
-                                <span className="text-stone-300">Plan Café ($29k)</span>
-                                <span className="text-emerald-400 font-bold">+ $5.000 COP</span>
+                        <div className="space-y-4 font-mono text-[10px]">
+                            {/* CAFE */}
+                            <div className="space-y-1">
+                                <p className="text-brand-gold uppercase font-bold text-[9px]">☕ Plan Café</p>
+                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+                                    <span className="text-stone-300">Estratos 1-3</span>
+                                    <span className="text-emerald-400 font-bold">+ $4.997 COP</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+                                    <span className="text-stone-300">Estratos 4-6</span>
+                                    <span className="text-emerald-400 font-bold">+ $7.499 COP</span>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
-                                <span className="text-stone-300">Plan Esmeralda ($99k)</span>
-                                <span className="text-emerald-400 font-bold">+ $10.000 COP</span>
+
+                            {/* ESMERALDA */}
+                            <div className="space-y-1">
+                                <p className="text-emerald-500 uppercase font-bold text-[9px]">💎 Plan Esmeralda</p>
+                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+                                    <span className="text-stone-300">Estratos 1-3</span>
+                                    <span className="text-emerald-400 font-bold">+ $9.997 COP</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+                                    <span className="text-stone-300">Estratos 4-6</span>
+                                    <span className="text-emerald-400 font-bold">+ $12.499 COP</span>
+                                </div>
                             </div>
+
+                            {/* ORO */}
                             <div className="flex justify-between items-center bg-gradient-to-r from-brand-gold/10 to-transparent p-2 rounded-lg border border-brand-gold/20">
-                                <span className="text-brand-gold">Plan Oro King</span>
-                                <span className="text-emerald-400 font-bold">10% Comisión</span>
+                                <span className="text-brand-gold font-bold">👑 Oro King</span>
+                                <span className="text-emerald-400 font-bold">10% Neto</span>
                             </div>
                         </div>
                     </div>
@@ -107,7 +126,7 @@ const Planes = () => {
                             <span className="text-white">2.</span> Autosostenibilidad
                         </h3>
                         <p className="text-xs text-stone-300 mb-6 font-light">
-                            ¿Cómo recuperar los $29.997 que pagaste por tu Plan Café? Es matemática simple:
+                            ¿Cómo recuperar tu inversión? Si tus amigos compran un Plan Café (Estratos 1-3), solo necesitas:
                         </p>
 
                         <div className="flex flex-col items-center justify-center gap-2 mb-4">
@@ -117,8 +136,9 @@ const Planes = () => {
                                 ¡AVALÚO GRATIS!
                             </div>
                         </div>
-                        <p className="text-[10px] text-stone-500 text-center italic">
-                            * 6 Referidos x $5.000 = $30.000 (Recuperaste tu inversión).
+                        <p className="text-[10px] text-stone-500 text-center italic leading-tight">
+                            * 6 Referidos x $4.997 = $29.982<br />
+                            (Break-even instantáneo)
                         </p>
                     </div>
 
@@ -157,10 +177,7 @@ const Planes = () => {
 
                 </div>
             </div>
-            {/* Footer */}
-            <div className="w-full mt-8">
-                <Footer />
-            </div>
+            <Footer />
         </div>
     );
 };

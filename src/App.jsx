@@ -7,9 +7,11 @@ const Perfil = lazy(() => import('./pages/Perfil'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const PaymentResponse = lazy(() => import('./pages/PaymentResponse'));
 const PaymentConfirmation = lazy(() => import('./pages/PaymentConfirmation'));
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const PrivacyPolicy = lazy(() => import('./pages/Privacy'));
 const TermsAndConditions = lazy(() => import('./pages/Terms'));
 const AllyDashboard = lazy(() => import('./components/VecyPhoenix/AllyDashboard'));
+const SoyPerito = lazy(() => import('./pages/SoyPerito')); // 🚖 New Appraiser Landing
+const Network = lazy(() => import('./pages/Network')); // 💰 Network Marketing Page
 
 import { ModalProvider } from './context/ModalContext';
 import GlobalModal from './components/GlobalModal';
@@ -21,39 +23,45 @@ const LoadingSpinner = () => (
     </div>
 );
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 function App() {
     return (
         <ModalProvider>
-            <Router>
-                <GlobalModal />
-                <Suspense fallback={<LoadingSpinner />}>
-                    <Routes>
-                        {/* Main Landing Page (JanIA Agent) */}
-                        <Route path="/" element={<JanIAAgent />} />
+            <ErrorBoundary>
+                <Router>
+                    <GlobalModal />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <Routes>
+                            {/* Main Landing Page (JanIA Agent) */}
+                            <Route path="/" element={<JanIAAgent />} />
 
-                        {/* Report Page (Dynamic: :id can be 'portales' or a DB ID) */}
-                        <Route path="/avaluo/:id" element={<AvaluoPortales />} />
+                            {/* Report Page (Dynamic: :id can be 'portales' or a DB ID) */}
+                            <Route path="/avaluo/:id" element={<AvaluoPortales />} />
 
-                        {/* Navigation Pages */}
-                        <Route path="/planes" element={<Planes />} />
-                        <Route path="/perfil" element={<Perfil />} />
+                            {/* Navigation Pages */}
+                            <Route path="/planes" element={<Planes />} />
+                            <Route path="/network" element={<Network />} />
+                            <Route path="/perfil" element={<Perfil />} />
 
-                        {/* Auth Callback */}
-                        <Route path="/auth/callback" element={<AuthCallback />} />
+                            {/* Auth Callback */}
+                            <Route path="/auth/callback" element={<AuthCallback />} />
 
-                        {/* Payment Routes */}
-                        <Route path="/payment-response" element={<PaymentResponse />} />
-                        <Route path="/payment-confirmation" element={<PaymentConfirmation />} />
+                            {/* Payment Routes */}
+                            <Route path="/payment-response" element={<PaymentResponse />} />
+                            <Route path="/payment-confirmation" element={<PaymentConfirmation />} />
 
-                        {/* Legal Pages */}
-                        <Route path="/privacidad" element={<PrivacyPolicy />} />
-                        <Route path="/terminos" element={<TermsAndConditions />} />
+                            {/* Legal Pages */}
+                            <Route path="/privacidad" element={<PrivacyPolicy />} />
+                            <Route path="/terminos" element={<TermsAndConditions />} />
 
-                        {/* Ally Dashboard */}
-                        <Route path="/socios" element={<AllyDashboard />} />
-                    </Routes>
-                </Suspense>
-            </Router>
+                            {/* Ally Dashboard */}
+                            <Route path="/socios" element={<AllyDashboard />} />
+                            <Route path="/soy-perito" element={<SoyPerito />} />
+                        </Routes>
+                    </Suspense>
+                </Router>
+            </ErrorBoundary>
         </ModalProvider>
     );
 }

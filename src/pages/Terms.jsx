@@ -2,23 +2,16 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/VecyPhoenix/Footer';
 
-import { useTheme } from '../context/ThemeContext';
-
-const TermsAndConditions = () => {
+const Terms = () => {
     const navigate = useNavigate();
-    const { theme } = useTheme();
-
-    // Theme Classes
-    const bgClass = theme === 'dark' ? 'bg-[#0f0f0f] text-stone-200' : 'bg-[#423229] text-stone-200';
-    const cardClass = theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white/10 border-white/20';
 
     return (
-        <div className={`min-h-screen flex flex-col font-sans selection:bg-brand-accent/30 selection:text-brand-accent transition-colors duration-500 ${bgClass}`}>
+        <div className="min-h-screen flex flex-col font-sans selection:bg-brand-accent/30 selection:text-brand-accent bg-[#423229] text-stone-200">
 
-            {/* Background Ambience (Optional enhancement to body gradient) */}
-            <div className={`fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 ${theme === 'dark' ? 'opacity-30' : 'opacity-100'}`}>
-                <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[150px]"></div>
+            {/* Background Ambience */}
+            <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-30">
+                <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px]"></div>
             </div>
 
             <div className="relative z-10 flex-grow max-w-4xl mx-auto px-6 py-12 md:py-20">
@@ -32,8 +25,8 @@ const TermsAndConditions = () => {
                     Volver con JanIA
                 </button>
 
-                {/* Glass Card Container (Dark Glass) */}
-                <div className={`glass-panel backdrop-blur-md shadow-lg p-8 md:p-12 rounded-3xl border transition-colors duration-500 ${cardClass}`}>
+                {/* Glass Card Container */}
+                <div className="glass-panel backdrop-blur-md shadow-lg p-8 md:p-12 rounded-3xl border bg-white/10 border-white/20">
 
                     {/* Header */}
                     <header className="mb-10 border-b border-white/10 pb-8">
@@ -50,65 +43,70 @@ const TermsAndConditions = () => {
                         <section>
                             <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">1. Aceptación de los Términos</h2>
                             <p>
-                                Al acceder y utilizar la plataforma <strong>Vecy Avalúos</strong> y sus servicios asociados (incluyendo el agente IA "JanIA"), usted acepta cumplir y estar sujeto a estos Términos y Condiciones. Si no está de acuerdo, por favor absténgase de usar nuestros servicios.
+                                Al acceder y utilizar <strong>Vecy Avalúos</strong>, usted acepta cumplir con estos Términos y Condiciones. Si no está de acuerdo con alguno de estos términos, no utilice nuestra plataforma.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">2. Descripción del Servicio</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">2. Servicios Ofrecidos</h2>
                             <p>
-                                Vecy Avalúos actúa como una plataforma tecnológica intermediaria que facilita la realización de avalúos inmobiliarios. Nuestro servicio combina:
+                                Vecy Avalúos proporciona una plataforma de valuación inmobiliaria asistida por Inteligencia Artificial (JanIA). Nuestros servicios incluyen:
                             </p>
                             <ul className="list-disc pl-5 space-y-2 mt-2">
-                                <li><strong>Análisis Automatizado:</strong> Recopilación y pre-procesamiento de datos mediante Inteligencia Artificial.</li>
-                                <li><strong>Certificación Profesional:</strong> Revisión y firma final por parte de un Avaluador registrado.</li>
+                                <li>Pre-evaluaciones automatizadas mediante IA</li>
+                                <li>Conexión con avaluadores profesionales certificados</li>
+                                <li>Generación de informes técnicos de avalúo</li>
+                                <li>Asesoría sobre el valor comercial de propiedades</li>
                             </ul>
-                            <p className="mt-2 text-stone-400 italic">
-                                Nota: Los resultados preliminares mostrados por JanIA en el chat son estimaciones y no constituyen un documento legal hasta ser firmados por un experto.
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">3. Limitaciones de Responsabilidad</h2>
+                            <p>
+                                <strong>JanIA es una herramienta de asistencia</strong>. Aunque nuestros algoritmos proporcionan estimaciones basadas en datos del mercado, <strong>el avalúo final siempre es realizado y firmado por un profesional certificado</strong>. Vecy Avalúos no se hace responsable por decisiones comerciales tomadas únicamente con base en las estimaciones preliminares de la IA.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">3. Pagos y Tarifas</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">4. Uso Aceptable</h2>
                             <p>
-                                El usuario acepta pagar las tarifas vigentes por el servicio de avalúo. Los pagos se procesan a través de pasarelas seguras (ePayco). Vecy Avalúos retiene una comisión por el uso de la plataforma, y el remanente es transferido al profesional asignado. No hay reembolsos una vez el avaluador ha iniciado la revisión del caso.
+                                Usted se compromete a:
                             </p>
-                        </section>
-
-                        <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">4. Responsabilidades</h2>
-                            <p>
-                                El usuario es responsable de la veracidad de la información y documentos suministrados. Vecy Avalúos no se hace responsable por valuaciones inexactas derivadas de información falsa, incompleta o manipulada proporcionada por el cliente.
-                            </p>
+                            <ul className="list-disc pl-5 space-y-2 mt-2">
+                                <li>Proporcionar información veraz y actualizada sobre su propiedad</li>
+                                <li>No manipular o falsificar documentos legales</li>
+                                <li>Utilizar la plataforma únicamente para fines legítimos de avalúo</li>
+                                <li>No intentar acceder a áreas restringidas del sistema</li>
+                            </ul>
                         </section>
 
                         <section>
                             <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">5. Propiedad Intelectual</h2>
                             <p>
-                                Todo el software, algoritmos, diseños ("JanIA", "Vecy") y contenidos de la plataforma son propiedad exclusiva de Vecy Avalúos S.A.S.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">6. Asistente de Navegación e Investigación</h2>
-                            <p>
-                                El usuario reconoce que JanIA actúa como un asistente técnico que procesa información pública (POT, portales inmobiliarios, bases de datos abiertas) bajo instrucción directa del usuario. La plataforma no realiza "web scraping" masivo ni indiscriminado, sino análisis puntuales bajo demanda para enriquecer la precisión del avalúo.
+                                Todo el contenido, algoritmos, diseño y funcionalidad de la plataforma son propiedad exclusiva de Vecy Avalúos. Los modelos de IA y bases de datos de propiedades están protegidos por derechos de autor y secretos comerciales.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">7. Inteligencia Colectiva (RAG)</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">6. Modificaciones</h2>
                             <p>
-                                El sistema utiliza tecnologías de Recuperación Aumentada (RAG) para mejorar sus modelos. Al usar el servicio, el usuario acepta que los datos técnicos y no sensibles del inmueble (área, ubicación, características físicas) alimenten una base de conocimiento vectorial anónima. Esto permite al sistema "recordar" transacciones comparables para beneficio de la comunidad, sin comprometer la identidad del titular.
+                                Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios entrarán en vigor inmediatamente después de su publicación en la plataforma. El uso continuado del servicio constituye la aceptación de los términos modificados.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">7. Contacto Legal</h2>
+                            <p>
+                                Para consultas legales o reclamos, contáctenos en: <a href="mailto:legal@vecyavaluos.com" className="text-brand-accent hover:underline">legal@vecyavaluos.com</a>
                             </p>
                         </section>
                     </div>
                 </div>
             </div>
 
-            {/* Footer (Outside content wrapper) */}
             <Footer />
         </div>
     );
 };
 
-export default TermsAndConditions;
+export default Terms;

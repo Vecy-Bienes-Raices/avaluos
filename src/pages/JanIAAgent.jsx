@@ -8,14 +8,20 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AuthOptions from '../components/VecyPhoenix/AuthOptions';
 import PricingCards from '../components/PricingCards';
-import { initiateCheckout } from '../services/epaycoService';
+import { initiateCheckout, verifyPayment } from '../services/epaycoService';
 import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile, deleteChat, clearUserHistory, generateSmartTitle } from '../services/historyService';
 import { GlassToast, GlassConfirm } from '../components/VecyAlerts';
 import { GlassAvatar } from '../components/GlassAvatar'; // 💎 NEW IMPORT
 import { PDFDownloadLink } from '@react-pdf/renderer'; // 📄 PDF Generation
 import ProfessionalReport from '../components/reports/ProfessionalReport'; // 📄 Professional Report Template (Cafe/Esmeralda/Oro)
-import { DisclaimerText, VecyStyles } from '../theme/VecyTheme';
-// Eliminado uuidv4 por crypto.randomUUID()
+import { sendAdminNotification } from '../services/notificationService'; // Fallback
+import { generateAndSendReport } from '../services/reportService.jsx'; // 📄 Full PDF Workflow
+import RewardModelCard from '../components/RewardModelCard';
+
+
+// ... [Keep existing code] ...
+
+
 
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -23,6 +29,14 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
     reader.onload = () => resolve(reader.result);
     reader.onerror = error => reject(error);
 });
+
+const DisclaimerText = () => (
+    <div className="mt-2 text-center">
+        <p className="text-[10px] text-stone-300 font-light tracking-wide">
+            JanIA es una inteligencia artificial y puede equivocarse sobre propiedades o precios. Verifica siempre nuestras <a href="/privacidad" target="_blank" className="underline hover:text-brand-gold">Políticas</a> y <a href="/terminos" target="_blank" className="underline hover:text-brand-gold">Condiciones</a>.
+        </p>
+    </div>
+);
 
 const JanIAAgent = () => {
     // Auth & Identity State
@@ -57,6 +71,102 @@ const JanIAAgent = () => {
             setSettingsOpen(false);
         }
     }, [sidebarOpen]);
+
+    // 💰 EPAYCO & REFERRAL LISTENER
+    useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+
+        // 1. CAPTURE REFERRAL CODE (ROBUST & LOUD)
+        const refCode = query.get('ref');
+        if (refCode) {
+            localStorage.setItem('vecy_referral_code', refCode);
+            console.log("🔗 Referral Code Captured & Persisted:", refCode);
+
+            // 🚨 IMMEDIATE FEEDBACK (LOUD MODAL instead of Toast)
+            setConfirmModal({
+                isOpen: true,
+                title: '¡Invitado Especial Detectado!',
+                message: `Has llegado con un código de referido VIP (${refCode}). Disfruta de beneficios exclusivos en tu primer avalúo.`,
+                confirmText: '¡Genial!',
+                cancelText: 'Cerrar',
+                onConfirm: () => setConfirmModal({ isOpen: false }),
+                isDanger: false
+            });
+
+            // KEEP URL DIRTY for now to avoid React state reset issues
+            // const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            // window.history.pushState({ path: newUrl }, '', newUrl);
+        }
+
+        // 2. EPAYCO CONFIRMATION
+        const ref_payco = query.get('ref_payco');
+
+        if (ref_payco && !localStorage.getItem(`processed_${ref_payco}`)) {
+            console.log("💰 [PAYMENT SUCCESS]: Epayco ref found:", ref_payco);
+
+            // 1. Mark as processed to prevent loops
+            localStorage.setItem(`processed_${ref_payco}`, 'true');
+
+            // 2. Clean URL (Remove query params)
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            // 3. Inject Pending Status
+            setMessages(prev => [...prev, {
+                type: 'system',
+                text: "⏳ [SISTEMA]: Verificando estado real de la transacción con el banco...",
+                isHidden: false
+            }]);
+
+            // 4. Verify Real Status with Epayco API
+            verifyPayment(ref_payco).then(transaction => {
+                if (transaction && transaction.status === 1) { // 1 = Aceptada
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        text: `✅ [SISTEMA]: PAGO APROBADO (${transaction.invoice}). Monto: $${transaction.amount}`,
+                        isHidden: true
+                    }]);
+
+                    // Trigger Success Flow (JanIA Response)
+                    handleUserMessage("[SISTEMA]: PAGO APROBADO EXITOSAMENTE. El dinero entró. Genera el PDF inmediatamente usando 'generate_report_download' y agradécele.");
+
+                    // 5. 🔔 FIRE FULL BACKEND WORKFLOW (PDF + Email + WhatsApp)
+                    const appraisalData = janIACore.memory || {};
+                    const planName = (transaction.description || 'esmeralda').split(' ')[0].toLowerCase(); // Infer plan
+
+                    console.log("🚀 [Payment Success] Triggering Report Generation via Service...");
+
+                    generateAndSendReport(planName, appraisalData, user).then(res => {
+                        if (res.success) {
+                            console.log("✅ [JanIA] Reporte generado y enviado exitosamente.");
+                        } else {
+                            console.error("❌ [JanIA] Falló la generación del reporte:", res.error);
+                        }
+                    });
+
+                } else if (transaction && (transaction.status === 2 || transaction.status === 4)) {
+                    // Rejected or Failed
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        text: `❌ [SISTEMA]: PAGO RECHAZADO (${transaction.statusText}).`,
+                        isHidden: false
+                    }]);
+                    // Trigger Failure Flow
+                    handleUserMessage("[SISTEMA]: El pago fue RECHAZADO por el banco. Dile amablemente que intente de nuevo o use otro medio de pago.");
+
+                } else {
+                    // Pending or Other
+                    setMessages(prev => [...prev, {
+                        type: 'system',
+                        text: `⚠️ [SISTEMA]: Estado de pago: ${transaction?.statusText || 'Desconocido'}.`,
+                        isHidden: false
+                    }]);
+                }
+            });
+        } else if (refCode) {
+            // Clean URL if just referral
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
 
     // --- 🗑️ DELETION HANDLERS (UPDATED FOR GLASS UI) ---
 
@@ -151,7 +261,11 @@ const JanIAAgent = () => {
         try {
             const saved = localStorage.getItem('janIA_chat_messages');
             if (saved && saved !== 'undefined') {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                // SAFETY CHECK: Ensure it's an array to avoid crash
+                if (Array.isArray(parsed)) {
+                    return parsed.map(m => ({ ...m, isHistory: true }));
+                }
             }
         } catch (e) {
             console.warn("Error cargando mensajes de JanIA:", e);
@@ -169,6 +283,22 @@ const JanIAAgent = () => {
 
     // Typing Animation (Dots cycling)
     const [typingDots, setTypingDots] = useState('');
+
+    // 🧠 BRAIN SYNC: Restore Core History from UI Messages (Fixes Amnesia)
+    useEffect(() => {
+        if (messages.length > 0 && janIACore.history.length === 0) {
+            console.log("🧠 [Brain Sync] Restoring Cortex History from UI...");
+            const restoredHistory = messages
+                .filter(m => m.type !== 'system' && m.text) // Filter out system messages
+                .map(m => ({
+                    role: m.type === 'user' ? 'user' : 'assistant',
+                    content: m.text,
+                    isHistory: true // Prevent re-animation
+                }));
+            janIACore.history = restoredHistory;
+        }
+    }, [messages]); // Runs when messages are loaded/updated
+
     useEffect(() => {
         if (isTyping) {
             const interval = setInterval(() => {
@@ -209,7 +339,7 @@ const JanIAAgent = () => {
             if (event === 'SIGNED_OUT') {
                 setUser(null);
                 setAuthLoading(false);
-                janIACore.updateUserIdentity(null);
+                janIACore.updateUserIdentity(null, false, chatId);
                 localStorage.removeItem('janIA_has_logged_in');
                 navigate('/');
                 return;
@@ -243,7 +373,7 @@ const JanIAAgent = () => {
                     } catch (e) { console.error("Memory Restore Fail:", e); }
                 }
 
-                janIACore.updateUserIdentity(session.user); // Triggers name greeting logic internally
+                janIACore.updateUserIdentity(session.user, false, chatId); // Phase 1: Identity initial sync
                 localStorage.setItem('janIA_has_logged_in', 'true');
 
                 // Async Profile Sync (Non-blocking for UI)
@@ -254,7 +384,26 @@ const JanIAAgent = () => {
                     const hasAccepted = profile?.policies_accepted || profile?.accepted_terms;
 
                     // SYNC CORE IDENTITY WITH POLICIES
-                    janIACore.updateUserIdentity(session.user, hasAccepted);
+                    janIACore.updateUserIdentity(session.user, hasAccepted, chatId);
+
+                    // 🔗 REFERRAL SYSTEM: Check & Link
+                    const refCode = localStorage.getItem('vecy_referral_code');
+                    if (refCode && refCode !== session.user.id) {
+                        console.log("🔗 [REFERRAL] Linking user to referrer:", refCode);
+                        // Attempt update without blocking flow
+                        supabase.from('profiles')
+                            .update({ referred_by: refCode })
+                            .eq('id', session.user.id)
+                            .is('referred_by', null) // Only set if empty (First Touch attribution)
+                            .then(({ error }) => {
+                                if (!error) {
+                                    console.log("✅ Referral Linked Success");
+                                    localStorage.removeItem('vecy_referral_code'); // Consume code
+                                } else {
+                                    console.warn("⚠️ Referral Link Failed (Maybe already set):", error);
+                                }
+                            });
+                    }
 
                     if (hasAccepted) {
                         setHasAcceptedTerms(true);
@@ -265,7 +414,7 @@ const JanIAAgent = () => {
                         setHasAcceptedTerms(true);
                         setTermsModalOpen(false);
                         supabase.from('profiles').update({ policies_accepted: true, accepted_terms: true }).eq('id', session.user.id);
-                        janIACore.updateUserIdentity(session.user, true);
+                        janIACore.updateUserIdentity(session.user, true, chatId);
                     } else {
                         // Neither local nor DB has it -> Open Gate
                         setHasAcceptedTerms(false);
@@ -303,7 +452,7 @@ const JanIAAgent = () => {
                     const finalAccepted = dbAccepted || !!localAccepted;
 
                     // Sync Core Identity WITH Policy State
-                    janIACore.updateUserIdentity(session.user, finalAccepted);
+                    janIACore.updateUserIdentity(session.user, finalAccepted, chatId);
                     localStorage.setItem('janIA_has_logged_in', 'true');
 
                     if (finalAccepted) {
@@ -316,7 +465,16 @@ const JanIAAgent = () => {
                     }
                 } else {
                     // Guest Check
-                    janIACore.updateUserIdentity(null);
+                    const guestName = localStorage.getItem('janIA_guest_name');
+                    janIACore.updateUserIdentity(null, false, chatId); // Reset to Guest with Current ChatId
+
+                    if (guestName) {
+                        const { name, title } = getNeighborGreeting(guestName);
+                        janIACore.memory.user_name = name;
+                        janIACore.memory.user_title = title;
+                        console.log("🧠 JanIA: Identidad de invitado recuperada de disco:", name);
+                    }
+
                     const guestAccepted = localStorage.getItem('janIA_guest_terms_accepted');
                     if (!guestAccepted) {
                         setTermsModalOpen(true);
@@ -406,6 +564,21 @@ const JanIAAgent = () => {
     // LOCK: Prevent double-send race conditions
     const isSendingRef = useRef(false);
 
+    // 🔒 PENDING ACTION STATE (Strict Registration Verification - Persistence Upgrade)
+    // 🔄 EFFECT: Execute Pending Action on User Login (LocalStorage based)
+    useEffect(() => {
+        if (user) {
+            const pendingMsg = localStorage.getItem('janIA_pending_action');
+            if (pendingMsg) {
+                console.log("🔓 User Authenticated. Executing pending action:", pendingMsg);
+                handleSendMessage(pendingMsg);
+                localStorage.removeItem('janIA_pending_action');
+                // Optional: Toast for user feedback
+                setToast({ message: "¡Registro exitoso! Continuando conversación...", type: "success" });
+            }
+        }
+    }, [user]);
+
     // 💳 PAYMENT HANDLER (Strict & Explicit)
     const handlePlanClick = async (plan) => {
         console.log("💳 [JanIA Payment] Selected Plan:", plan);
@@ -445,7 +618,9 @@ const JanIAAgent = () => {
             // Ensure Amount is a valid string/number for the service
             const safePlan = {
                 ...plan,
-                amount: plan.amount || 0 // Fallback
+                amount: plan.amount || 0, // Fallback
+                email_billing: user.email,
+                name_billing: user.user_metadata?.full_name || user.email
             };
             console.log("🚀 Initiating Checkout with:", safePlan);
             await initiateCheckout(safePlan);
@@ -455,16 +630,63 @@ const JanIAAgent = () => {
         }
     };
 
+    // --- EPAYCO CHECKOUT LOGIC ---
+    const handleEpaycoCheckout = (plan) => {
+        if (!window.ePayco) {
+            console.error("ePayco script not loaded");
+            setConfirmModal({
+                isOpen: true,
+                title: "Error de Conexión",
+                message: "No pudimos conectar con la pasarela de pagos. Por favor recarga la página.",
+                onConfirm: () => setConfirmModal({ isOpen: false }),
+                type: 'danger'
+            });
+            return;
+        }
+
+        const handler = window.ePayco.checkout.configure({
+            key: '491d6a0b6e992cf924edd8d3d088aff5', // PUBLIC KEY
+            test: true
+        });
+
+        // Get User Data for Pre-fill
+        const userEmail = user?.email || user?.user_metadata?.email || '';
+        const userName = user?.user_metadata?.full_name || 'Usuario Vecy';
+
+        const data = {
+            name: plan.name,
+            description: plan.description,
+            invoice: `VECY-${Date.now()}`,
+            currency: 'cop',
+            amount: plan.amount,
+            tax_base: '0',
+            tax: '0',
+            country: 'co',
+            lang: 'es',
+            email: userEmail,
+            name_billing: userName,
+            response: `${window.location.origin}/payment-response`,
+            confirmation: `${window.location.origin}/payment-confirmation`,
+            method: 'GET'
+        };
+
+        console.log("🚀 OPENING EPAYCO CHECKOUT:", data);
+        handler.open(data);
+    };
+
     const handleSendMessage = async (text, files = []) => {
         if ((!text && files.length === 0) || isSendingRef.current) return;
         isSendingRef.current = true;
 
+        // JanIA has full autonomy - no timeout restrictions
         // HEURISTIC: Name Capture (Simple)
         // If JanIA asked for name and user responds short text, assume it's name.
         // This is a basic patch to ensure name persists. 
         if (!janIACore.memory.user_name && text.split(' ').length < 4 && !text.includes('casa') && !text.includes('apto')) {
-            janIACore.memory.user_name = text.trim();
-            console.log("🧠 JanIA: Nombre capturado heurísticamente:", text);
+            const cleanName = text.trim();
+            janIACore.memory.user_name = cleanName;
+            localStorage.setItem('janIA_guest_name', cleanName); // Persist Guest Name
+            console.log("🧠 JanIA: Nombre capturado y persistido:", cleanName);
         }
 
         const newUserMsg = { id: Date.now(), text, type: 'user', attachments: attachments.map(a => ({ ...a, file: null })) }; // Don't store file obj in msg state to avoid lag
@@ -473,6 +695,14 @@ const JanIAAgent = () => {
         setAttachments([]);
         setIsTyping(true);
         setIsAnalyzing(true);
+        setThinkingText("JanIA está pensando..."); // Reset status
+
+        // 🛡️ RE-MEMORIZATION SAFETY CHECK
+        // If user is logged in, FORCE memory registration state
+        if (user && !janIACore.memory.is_registered) {
+            console.warn("⚠️ [JanIA Repair] User is logged in but memory forgot. Fixing...");
+            janIACore.updateUserIdentity(user, hasAcceptedTerms, chatId);
+        }
 
         // --- SUBIDA REAL A SUPABASE STORAGE ---
         let uploadedAttachments = [];
@@ -499,7 +729,11 @@ const JanIAAgent = () => {
         }
 
 
-        // REMOVED DUPLICATE setMessages CALL HERE
+        // Helper to handle Auth Selection
+        const handleAuthSelect = (provider) => {
+            console.log("🔐 [JanIA Auth] Selected:", provider);
+            // This will trigger the actual Supabase Auth in AuthOptions component
+        };
         // The user message was already added optimistically at the start of the function.
         // We proceed directly to AI processing using the uploadedAttachments variable.
         setIsTyping(true);
@@ -508,8 +742,8 @@ const JanIAAgent = () => {
         // --- COGNITIVE LOOP EXECUTION ---
         try {
             // FORCE SYSTEM SYNC: Update Identity before every interaction
-            janIACore.updateUserIdentity(user);
-            console.log("🔍 [DEBUG FRONTEND] IDENTITY SENT TO JANIA:", janIACore.memory);
+            janIACore.updateUserIdentity(user, hasAcceptedTerms, chatId);
+            console.log("🔍 [DEBUG FRONTEND] IDENTITY SENT TO JANIA (With ChatID):", janIACore.memory, "ChatId:", chatId);
 
             // MODO CAPTURA DE LEAD: Si no hay usuario y no tenemos nombre, el CorteX lo detectará
             if (!user && !janIACore.memory.user_name) {
@@ -542,31 +776,47 @@ const JanIAAgent = () => {
                 };
             }
 
-            // --- CLEANUP: Remove any accidental JSON artifacts ---
-            const cleanText = response.text.replace(/\{[\s\S]*"tool"[\s\S]*\}/g, '').trim();
+            // --- CLEANUP: Remove any accidental JSON/System artifacts ---
+            let cleanText = (response.text || '')
+                .replace(/\{[\s\S]*"thought_signature"[\s\S]*\}/g, '')
+                .replace(/\{[\s\S]*"next_step"[\s\S]*\}/g, '')
+                .replace(/\{[\s\S]*"thought_process"[\s\S]*\}/g, '')
+                .replace(/\[SYSTEM:[\s\S]*?\]/g, '') // Remove specific system tags
+                .replace(/`\[SYSTEM:[\s\S]*?\]`/g, '') // Remove backticked system tags
+                .replace(/\[BLOCK:.*?\]/g, '')
+                .replace(/tool_code:.*?(\n|$)/g, '')
+                .replace(/```json[\s\S]*?```/g, '')
+                .trim();
 
             // Add Bot Message
             let botMsg = {
                 type: 'bot',
-                text: cleanText,
+                text: cleanText || "...", // Fallback text
                 memory_debug: response.plan // Optional: Store for debug view
             };
 
-            // Post-processing triggers based on the plan or tool execution
-            if (response.plan) {
-                const step = response.plan.next_step;
+            // Post-processing triggers based on the plan OR text hints (Safety Net)
+            let forceAuth = false;
+            // Detectar si el modelo "alucinó" el comando en texto plano pero falló en el plan
+            if ((response.text || '').includes('trigger_auth') || (response.text || '').includes('[BLOCK:')) {
+                forceAuth = true;
+            }
+
+            if (response.plan || forceAuth) {
+                const step = response.plan?.next_step;
                 const toolName = step?.type === 'tool' ? step.name : null;
 
-                if (toolName === 'auth_gate' || toolName === 'trigger_auth') {
+                if (toolName === 'trigger_policy_card' || forceAuth) {
                     if (!user) {
-                        botMsg.component = 'auth'; // Solo mostrar si no hay sesión
+                        botMsg.component = 'policy_gate';
+                        console.log("📝 [POLICY TRIGGER]: Showing integrated registration card.");
+                        // setAuthModalOpen(false); // Do not open modal automatically
                     } else {
-                        // Si ya está logueado, JanIA debe continuar suavemente
-                        console.log("🔒 [AUTH BYPASS]: Usuario ya logueado, saltando auth_gate.");
+                        console.log("🔒 [AUTH BYPASS]: User already logged in.");
                     }
                 } else if (toolName === 'offer_upgrade' || toolName === 'offer_plans') {
                     botMsg.component = 'plan_card';
-                    botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])]; // Freeze filter state
+                    botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])];
                 } else if (toolName === 'pricing_calculator') {
                     // 📄 CAPTURE DATA FOR PDF
                     console.log("📄 [PDF TRIGGER]: Capturing valuation data...", step.args);
@@ -617,26 +867,24 @@ const JanIAAgent = () => {
                     });
                     setPaidPlan(step.args.plan || 'esmeralda'); // UNLOCK UI COMPONENT
                     botMsg.component = 'pdf_download';
+
+                } else if (toolName === 'trigger_reward_card') {
+                    // 🎁 VIRAL HOOK TRIGGER
+                    botMsg.component = 'reward_card';
                 }
 
                 // Handle Workflow Actions - Step 2: Documental
-                const action = response.plan.update_memory?.last_action || step?.name;
+                const action = response.plan?.update_memory?.last_action || step?.name;
                 if (action === 'trigger_file_upload') {
                     // Trigger the hidden file input ref with a small delay for UI smoothness
                     setTimeout(() => {
                         fileInputRef.current?.click();
                     }, 500);
                 }
-            } else {
-                // --- KEYWORD DETECTION (Fallback) ---
-                const lowerText = cleanText.toLowerCase();
+            }
 
-                if (lowerText.includes('registrar')) {
-                    botMsg.component = 'auth_options';
-                } else if (lowerText.includes('plan') || lowerText.includes('precio') || lowerText.includes('costo') || lowerText.includes('tarifa') || lowerText.includes('comprar')) {
-                    botMsg.component = 'plan_card';
-                    botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])];
-                }
+            if (response.plan || forceAuth) {
+                botMsg.component = response.component || botMsg.component;
             }
 
             setMessages(prev => [...prev, botMsg]);
@@ -645,7 +893,7 @@ const JanIAAgent = () => {
             console.error("JanIA Core Critical Error:", error);
             setMessages(prev => [...prev, {
                 type: 'bot',
-                text: "Lo siento, mis circuitos de razonamiento están sobrecargados. Intenta de nuevo. 🧠🔥"
+                text: "Lo siento, mi conexión ha tenido un breve parpadeo. ¿Podrías repetirme eso? 🤝✨"
             }]);
         } finally {
             setIsTyping(false);
@@ -702,6 +950,9 @@ const JanIAAgent = () => {
     };
 
     const handleAuthSelect = async (provider) => {
+        // 🔒 BRIDGE: Persist Memory before Redirect
+        persistMemory();
+
         if (provider === 'email') {
             setMessages(prev => [...prev, {
                 type: 'bot',
@@ -1079,7 +1330,7 @@ const JanIAAgent = () => {
                             <img
                                 src="/LogoVecyGold.gif"
                                 alt="Vecy Avalúos"
-                                className="w-full h-full"
+                                className="w-full h-full object-cover scale-[1.22]"
                                 loading="lazy"
                             />
                         </div>
@@ -1219,24 +1470,168 @@ const JanIAAgent = () => {
 
                                                 {/* MARKDOWN RENDERING SAFEGUARD - Simplified to avoid plugin crashes */}
                                                 {/* MARKDOWN RENDERING SAFEGUARD */}
-                                                {msg?.text ? (
-                                                    <div className={`prose prose-sm max-w-none ${msg?.type === 'user' ? 'text-black prose-p:text-black prose-headings:text-black prose-strong:text-black' : 'prose-invert'}`}>
-                                                        <ReactMarkdown
-                                                            remarkPlugins={[remarkGfm]}
-                                                            components={{
-                                                                strong: ({ children }) => <span className="font-bold text-brand-accent">{children}</span>,
-                                                                a: ({ node, ...props }) => <a {...props} className="text-brand-accent underline hover:text-brand-gold" target="_blank" rel="noopener noreferrer" />,
-                                                                ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>,
-                                                                li: ({ children }) => <li className="text-stone-300">{children}</li>,
-                                                                p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
-                                                            }}
-                                                        >
-                                                            {String(msg.text)}
-                                                        </ReactMarkdown>
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-stone-400 italic">Mensaje sin contenido</p>
-                                                )}
+                                                {(() => {
+                                                    if (!msg?.text) return <p className="text-stone-400 italic">Mensaje sin contenido</p>;
+
+                                                    const text = String(msg.text);
+                                                    // Specialized Pre-processing
+                                                    let processed = text
+                                                        // 1. Limpieza de comandos internos filtrados (fugas de Cortex/Reflex)
+                                                        .replace(/`?trigger_[a-z_]+`?/gi, '')
+                                                        .replace(/`?generate_[a-z_]+`?/gi, '')
+                                                        // 2. Mapeo de Enlaces Legales
+                                                        .replace(/{{Política de Privacidad}}/gi, '[Política de Privacidad](/privacidad)')
+                                                        .replace(/{{Términos y Condiciones}}/gi, '[Términos y Condiciones](/terminos)')
+                                                        .replace(/{{Mi Perfil}}/gi, '[Mi Perfil](/perfil)')
+                                                        .replace(/{{Vecy Network}}/gi, '[Vecy Network](/perfil)')
+                                                        // 3. Mapeo de Comandos Dinámicos (Encoding Robusto para evitar rotura de markdown)
+                                                        .replace(/{{Pagar Plan (.*?)}}/gi, (match, p1) => {
+                                                            const cmdData = encodeURIComponent(`PAY_PLAN_${p1.trim()}`);
+                                                            // RENDER WITHOUT CURLY BRACES
+                                                            return `[Pagar Plan ${p1.trim()}](/cmd/${cmdData})`;
+                                                        })
+                                                        .replace(/\[([^\]]+)\](?!\()/g, (match, p1) => {
+                                                            const cmdData = encodeURIComponent(`SEND_MESSAGE_${p1.trim()}`);
+                                                            return `[${p1}](/cmd/${cmdData})`;
+                                                        });
+
+                                                    return (
+                                                        <div className={`prose prose-sm max-w-none ${msg?.type === 'user' ? 'text-black prose-p:text-black prose-headings:text-black prose-strong:text-black' : 'prose-invert'}`}>
+                                                            <ReactMarkdown
+                                                                remarkPlugins={[remarkGfm]}
+                                                                components={{
+                                                                    strong: ({ children }) => <span className={`font-bold ${msg?.type === 'user' ? 'text-black' : 'text-brand-accent'}`}>{children}</span>,
+                                                                    a: ({ node, ...props }) => {
+                                                                        const href = props.href || '';
+                                                                        const isInternalCmd = href.startsWith('/cmd/');
+
+                                                                        if (isInternalCmd) {
+                                                                            const rawData = href.replace('/cmd/', '');
+                                                                            const fullCmd = decodeURIComponent(rawData);
+                                                                            const isPay = fullCmd.startsWith('PAY_PLAN_');
+                                                                            const isMsg = fullCmd.startsWith('SEND_MESSAGE_');
+                                                                            // CLEAN LABEL: Remove curly braces if present
+                                                                            const cleanLabel = String(props.children).replace(/{{|}}/g, '');
+
+                                                                            // Determinar Colores y Estilos Premium (Avisantes)
+                                                                            let btnClass = "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all transform active:scale-95 my-1.5 mx-1 shadow-lg ";
+
+                                                                            // PLAN COLORS MAP
+                                                                            const planColors = {
+                                                                                'CAFÉ': 'bg-gradient-to-r from-[#8D6E63] to-[#5D4037] text-white hover:brightness-110 shadow-stone-800/30 ring-1 ring-[#8D6E63]/50',
+                                                                                'ESMERALDA': 'bg-gradient-to-r from-emerald-500 to-emerald-700 text-white hover:brightness-110 shadow-emerald-900/30 ring-1 ring-emerald-500/50',
+                                                                                'ORO': 'bg-gradient-to-r from-yellow-500 via-brand-gold to-yellow-600 text-black hover:brightness-110 shadow-yellow-500/30 ring-1 ring-yellow-400/50'
+                                                                            };
+
+                                                                            if (isPay) {
+                                                                                const planType = fullCmd.replace('PAY_PLAN_', '').toUpperCase().trim();
+                                                                                const specificColor = Object.keys(planColors).find(key => planType.includes(key));
+
+                                                                                // Apply specific color or fallback to Gold
+                                                                                btnClass += specificColor ? planColors[specificColor] : planColors['ORO'];
+
+                                                                            } else if (isMsg) {
+                                                                                const lowerLabel = String(cleanLabel).toLowerCase();
+                                                                                // CLASIFICACIÓN ROBUSTA: Negativo tiene prioridad absoluta
+                                                                                const isNegative = ["no ", "no,", "rechazar", "cancelar", "retirarme"].some(w => lowerLabel.includes(w));
+                                                                                const isPositive = !isNegative && ["sí", "si", "acepto", "aceptar", "quiero", "registrarme"].some(w => lowerLabel.includes(w));
+
+                                                                                if (isPositive) {
+                                                                                    btnClass += "bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-500 text-white hover:brightness-110 shadow-emerald-500/40 border border-emerald-400/30";
+                                                                                } else if (isNegative) {
+                                                                                    btnClass += "bg-gradient-to-br from-rose-500 via-rose-600 to-rose-500 text-white hover:brightness-110 shadow-rose-500/40 border border-rose-400/30";
+                                                                                } else {
+                                                                                    // Volcanic Gold Styling for Neutral Buttons
+                                                                                    btnClass += "bg-black/80 backdrop-blur-md border border-brand-gold/40 text-brand-gold shadow-[0_4px_10px_rgba(0,0,0,0.5)] hover:shadow-[0_0_15px_rgba(204,172,78,0.3)] hover:border-brand-gold hover:bg-black hover:scale-[1.02]";
+                                                                                }
+                                                                            }
+
+                                                                            return (
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        e.stopPropagation(); // FORCE STOP BUBBLING
+                                                                                        console.log("👆 CLICK DETECTADO:", { cleanLabel, fullCmd, isPay, isMsg });
+
+                                                                                        if (isPay) {
+                                                                                            const planNameRaw = fullCmd.replace('PAY_PLAN_', '').trim();
+
+                                                                                            // 1. Identify Plan ID (clean)
+                                                                                            // Matches 'cafe', 'esmeralda', 'oro'
+                                                                                            const planKey = ['CAFÉ', 'ESMERALDA', 'ORO'].find(k => planNameRaw.toUpperCase().includes(k)) || 'ORO';
+                                                                                            const cleanId = planKey === 'CAFÉ' ? 'cafe' : planKey.toLowerCase();
+
+                                                                                            // 2. Get User Stratum from Memory
+                                                                                            const userStratum = janIACore.memory.property_data?.estrato || 3;
+                                                                                            const isHigh = userStratum > 3;
+
+                                                                                            // 3. Calculate Official Price (Match PricingCards.jsx)
+                                                                                            let amount = 0;
+                                                                                            if (cleanId === 'cafe') {
+                                                                                                amount = isHigh ? 49997 : 29997;
+                                                                                            } else if (cleanId === 'esmeralda') {
+                                                                                                amount = isHigh ? 149997 : 99997;
+                                                                                            } else if (cleanId === 'oro') {
+                                                                                                amount = 0; // Trigger Quote Logic
+                                                                                            }
+
+                                                                                            // 4. Construct Safe Plan Object
+                                                                                            const directPlan = {
+                                                                                                id: cleanId, // 'cafe', 'esmeralda', 'oro'
+                                                                                                name: `Plan ${planKey.charAt(0).toUpperCase() + planKey.slice(1).toLowerCase()}`,
+                                                                                                amount: amount,
+                                                                                                description: `Avalúo Certificado - Nivel ${planKey.charAt(0).toUpperCase() + planKey.slice(1).toLowerCase()}`
+                                                                                            };
+
+                                                                                            console.log("💳 [Smart Checkout] Triggering with Dynamic Price:", directPlan);
+
+                                                                                            // CALL CHECKOUT DIRECTLY
+                                                                                            handlePlanClick(directPlan);
+
+                                                                                        } else if (isMsg) {
+                                                                                            const msgText = fullCmd.replace('SEND_MESSAGE_', '');
+
+                                                                                            // LÓGICA DE REGISTRO SIMPLIFICADA
+                                                                                            const lowerText = msgText.toLowerCase();
+                                                                                            const isRegistrationIntent = ["registrarme", "quiero registrarme", "acepto el registro"].some(t => lowerText.includes(t));
+                                                                                            const isNegativeIntent = ["no ", "rechazar", "cancelar"].some(t => lowerText.includes(t));
+
+                                                                                            // Si es INTENCIÓN DE REGISTRO y NO ES NEGATIVO y NO HAY USUARIO
+                                                                                            if (isRegistrationIntent && !isNegativeIntent && !user) {
+                                                                                                console.log("🔒 [AUTH TRIGGER] Guardando intención y abriendo modal:", msgText);
+                                                                                                localStorage.setItem('janIA_pending_action', msgText);
+                                                                                                setAuthModalOpen(true); // FORCE UI UPDATE
+                                                                                                return;
+                                                                                            }
+
+                                                                                            // Envío normal
+                                                                                            console.log("📨 Enviando mensaje:", msgText);
+                                                                                            handleSendMessage(msgText);
+                                                                                        }
+                                                                                    }}
+                                                                                    className={btnClass}
+                                                                                >
+                                                                                    {cleanLabel}
+                                                                                    {!isPay && (
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                                                                                            <path fillRule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clipRule="evenodd" />
+                                                                                        </svg>
+                                                                                    )}
+                                                                                </button>
+                                                                            );
+                                                                        }
+                                                                        return <a {...props} className={`underline ${msg?.type === 'user' ? 'text-black font-bold hover:text-stone-800' : 'text-brand-gold font-bold hover:text-white underline-offset-4'}`} target="_blank" rel="noopener noreferrer" />;
+                                                                    },
+                                                                    ul: ({ children }) => <ul className={`list-disc pl-4 space-y-1 my-2 ${msg?.type === 'user' ? 'marker:text-black' : 'marker:text-stone-500'}`}>{children}</ul>,
+                                                                    li: ({ children }) => <li className={`${msg?.type === 'user' ? 'text-black' : 'text-stone-300'}`}>{children}</li>,
+                                                                    p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                                                                }}
+                                                            >
+                                                                {processed}
+                                                            </ReactMarkdown>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </>
                                     )}
@@ -1247,8 +1642,20 @@ const JanIAAgent = () => {
                                             {msg.options.map((opt, i) => (
                                                 <button
                                                     key={i}
-                                                    onClick={() => handleSendMessage(opt)}
-                                                    className="bg-white/5 hover:bg-brand-accent/20 text-white hover:text-brand-accent border border-white/10 hover:border-brand-accent/50 px-4 py-2 rounded-xl text-sm font-bold transition-all backdrop-blur-md"
+                                                    onClick={() => {
+                                                        // ⚡ ACTION INTERCEPTOR: Concrete Actions
+                                                        if (opt.includes("Formulario") || opt.includes("Referido") || opt.includes("Ganancias")) {
+                                                            // Force explicit immediate render of the component
+                                                            setMessages(prev => [...prev, {
+                                                                role: 'assistant',
+                                                                content: '¡Claro! Aquí tienes tu Panel de Prosperidad y el formulario de referidos. 👇',
+                                                                component: 'reward_card'
+                                                            }]);
+                                                            return;
+                                                        }
+                                                        handleSendMessage(opt);
+                                                    }}
+                                                    className="bg-gradient-to-r from-brand-gold-dark to-brand-gold hover:from-brand-gold hover:to-brand-gold-light text-white shadow-lg shadow-brand-gold/20 border-none px-5 py-2.5 rounded-xl text-sm font-bold transition-all transform active:scale-95 hover:-translate-y-0.5"
                                                 >
                                                     {opt}
                                                 </button>
@@ -1313,6 +1720,15 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
+                                    {/* 🎁 COMPONENT: REWARD CARD (Viral Hook) */}
+                                    {msg?.component === 'reward_card' && (
+                                        <div className="w-full mt-4 animate-fade-in-up flex justify-center">
+                                            <div className="w-full max-w-4xl scale-95 md:scale-100 origin-top">
+                                                <RewardModelCard user={user} />
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* 💎 COMPONENT: PDF DOWNLOAD (Dynamic - PAID PLANS ONLY) */}
                                     {msg?.component === 'pdf_download' && reportData && paidPlan && (
                                         <div className="w-full mt-4 animate-fade-in-up flex justify-center">
@@ -1346,6 +1762,41 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
+                                    {/* 🎥 COMPONENT: VECY CLIP PREVIEW (NEW) */}
+                                    {msg?.component === 'vecy_clip' && (
+                                        <div className="w-full mt-4 animate-fade-in-up flex justify-center">
+                                            <div className="relative group overflow-hidden rounded-2xl border border-brand-accent/50 shadow-[0_0_30px_rgba(212,175,55,0.2)] max-w-xs w-full aspect-[9/16] bg-black">
+                                                {/* Simulated Content */}
+                                                <img
+                                                    src="/perfil.png"
+                                                    alt="Cover"
+                                                    className="absolute inset-0 w-full h-full object-cover opacity-50 blur-sm scale-110"
+                                                />
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 text-center">
+                                                    <div className="w-16 h-16 rounded-full bg-brand-accent flex items-center justify-center mb-4 animate-pulse">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-black ml-1"><path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clipRule="evenodd" /></svg>
+                                                    </div>
+                                                    <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2 drop-shadow-lg">VECY CLIP</h3>
+                                                    <p className="text-xs text-brand-gold font-medium mb-6">Tu Inmueble Viral en 15s</p>
+                                                    <button className="bg-white text-black font-bold py-2 px-6 rounded-full hover:scale-105 transition-transform flex items-center gap-2">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                                                        Descargar Video
+                                                    </button>
+                                                </div>
+                                                {/* Tiktok-style overlays */}
+                                                <div className="absolute bottom-4 left-4 z-20 flex flex-col gap-1">
+                                                    <div className="h-2 w-20 bg-white/50 rounded"></div>
+                                                    <div className="h-2 w-12 bg-white/50 rounded"></div>
+                                                </div>
+                                                <div className="absolute right-2 bottom-10 z-20 flex flex-col gap-3 items-center">
+                                                    <div className="w-8 h-8 rounded-full bg-white/20"></div>
+                                                    <div className="w-8 h-8 rounded-full bg-white/20"></div>
+                                                    <div className="w-8 h-8 rounded-full bg-white/20"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* 🎟️ COMPONENT: PAYMENT LINK BUTTON (Direct Checkout) */}
                                     {msg?.component === 'payment_link' && msg?.paymentData && (
                                         <div className="w-full mt-4 animate-fade-in-up flex justify-center">
@@ -1366,35 +1817,70 @@ const JanIAAgent = () => {
                                                     <span>💳 PAGAR PLAN {msg.paymentData.plan.toUpperCase().replace('PLAN_', '')}</span>
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                                                 </span>
-                                                <div className="absolute inset-0 bg-white/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                             </button>
                                         </div>
                                     )}
 
-                                    {/* Policy & Auth Gate Component */}
-                                    {msg?.component === 'auth_gate' && (
-                                        <div className="mt-4 ml-2 flex flex-col gap-4 animate-fade-in-up max-w-[90%]">
-                                            <div className={`p-4 rounded-2xl border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-brand-coffee-darkest/10 border-brand-coffee-darkest/20'} backdrop-blur-xl shadow-2xl`}>
-                                                <div className="flex items-center gap-3 mb-3 text-brand-accent">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.744c0 5.548 4.076 10.21 9 11.109 4.924-.899 9-5.561 9-11.109 0-1.292-.204-2.536-.582-3.704A11.959 11.959 0 0112 2.714z" /></svg>
-                                                    <span className="font-bold uppercase tracking-widest text-xs">Portal de Seguridad & Identidad</span>
-                                                </div>
-                                                <p className="text-stone-300 text-sm mb-4 leading-relaxed">
-                                                    Para garantizar la **precisión técnica** y proteger tu información, por favor acepta mis <Link to="/privacidad" className="underline hover:text-brand-accent">Políticas de Privacidad</Link> y <Link to="/terminos" className="underline hover:text-brand-accent">Términos</Link> antes de iniciar el registro. 🤝✨
-                                                </p>
-                                                <div className="flex flex-col gap-3">
-                                                    <button
-                                                        onClick={() => {
-                                                            janIACore.memory.policies_accepted = true;
-                                                            // Logic: Accept triggers the unified auth component
-                                                            const notifyMsg = { id: Date.now(), type: 'bot', text: '¡Excelente! Ahora elige cómo prefieres guardar tu progreso en la nube:', component: 'auth' };
-                                                            setMessages(prev => [...prev, notifyMsg]);
-                                                        }}
-                                                        className="bg-brand-emerald hover:bg-emerald-400 text-black px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2"
-                                                    >
-                                                        SÍ, ACEPTO Y QUIERO REGISTRARME 💎
-                                                    </button>
-                                                </div>
+                                    {/* 💰 COMPONENT: REWARD MODEL (Vecy Network) */}
+                                    {msg?.component === 'reward_network_card' && (
+                                        <div className="w-full mt-4 animate-fade-in-up flex justify-center">
+                                            <RewardModelCard
+                                                onSelect={(action) => {
+                                                    if (action === 'start_now') {
+                                                        if (!user) setAuthModalOpen(true);
+                                                        else navigate('/perfil');
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* --- INTEGRATED POLICY GATE (Refined Flow) --- */}
+                                    {msg.component === 'policy_gate' && (
+                                        <div className="mt-4 p-6 rounded-[28px] bg-white/[0.03] border border-white/10 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-fade-in-up max-w-[92%] relative overflow-hidden group">
+                                            {/* Subtle background glow */}
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00c58d]/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-[#00c58d]/10 transition-all duration-700"></div>
+
+                                            <div className="flex items-center gap-2 mb-4 text-brand-gold">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.744c0 5.621 3.436 10.794 8.5 12.44a11.959 11.959 0 008.5-12.44 11.959 11.959 0 00-6.598-3.758c-1.63-.505-3.37-.505-5 0z" /></svg>
+                                                <span className="text-[12px] font-black uppercase tracking-[0.2em] font-outfit">PORTAL DE SEGURIDAD & IDENTIDAD</span>
+                                            </div>
+
+                                            <p className="text-[14px] text-stone-200 leading-relaxed mb-6 font-outfit font-light">
+                                                Para activar mi <strong className="text-white font-semibold italic">Red Neuronal de Razonamiento</strong> y mostrarte el valor real de tu propiedad en Bogotá —además de revelarte cómo puedes empezar a facturar con nuestro <strong className="text-brand-gold">modelo de ganancias compartidas</strong>—, necesito que formalicemos tu ingreso al ecosistema. 🤝✨
+                                                <br /><br />
+                                                Por favor revisa nuestras <Link to="/politicas" target="_blank" className="text-brand-gold underline underline-offset-4 hover:text-white transition-colors">Políticas</Link> y <Link to="/terminos" target="_blank" className="text-brand-gold underline underline-offset-4 hover:text-white transition-colors">Condiciones</Link>.
+                                            </p>
+
+                                            <div className="flex flex-col gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        const userName = janIACore.memory.user_name || 'socio';
+                                                        setMessages(prev => [...prev, {
+                                                            type: 'bot',
+                                                            text: `¡Excelente decisión! 💎 Por favor, elige cómo prefieres registrarte para continuar:`,
+                                                            component: 'auth_options'
+                                                        }]);
+                                                        setAuthModalOpen(true);
+                                                    }}
+                                                    className="w-full py-4 bg-[#00c58d] hover:bg-[#00e0a1] text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-[0_10px_30px_rgba(0,197,141,0.25)] hover:shadow-[0_15px_40px_rgba(0,197,141,0.4)] active:scale-95 border border-white/10"
+                                                >
+                                                    SÍ, ACEPTO Y QUIERO REGISTRARME 💎
+                                                </button>
+
+                                                <button
+                                                    onClick={() => {
+                                                        const userName = janIACore.memory.user_name || 'socio';
+                                                        setMessages(prev => [...prev, {
+                                                            type: 'bot',
+                                                            text: `La oportunidad que acabas de perder es grande. Piénsalo muy bien antes de irte **${userName}**... 😔💔`
+                                                        }]);
+                                                        janIACore.reset();
+                                                    }}
+                                                    className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl font-bold text-xs transition-all border border-red-500/20 hover:border-red-500/50"
+                                                >
+                                                    No, Acepto
+                                                </button>
                                             </div>
                                         </div>
                                     )}
@@ -1571,35 +2057,46 @@ const JanIAAgent = () => {
             {
                 termsModalOpen && (
                     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white/20 backdrop-blur-3xl border border-white/20 rounded-[32px] p-8 max-w-md w-full relative shadow-[0_0_50px_rgba(204,172,78,0.25)] overflow-hidden">
+                        <div className="bg-white/20 backdrop-blur-3xl border border-white/20 rounded-[32px] p-10 max-w-lg w-full relative shadow-[0_0_50px_rgba(204,172,78,0.25)] overflow-hidden">
 
                             {/* Background Shine */}
                             <div className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 animate-shine pointer-events-none"></div>
 
-                            <div className="text-center mb-8 relative z-10">
-                                {/* Icon Container */}
-                                <div className="w-20 h-20 mx-auto bg-brand-gold/20 rounded-full flex items-center justify-center mb-6 ring-1 ring-white/10 shadow-[0_0_30px_rgba(204,172,78,0.2)]">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-brand-gold drop-shadow-sm">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
-                                    </svg>
+                            {/* Icon Container - NOW LOGO GIF */}
+                            <div className="w-32 h-32 mx-auto flex items-center justify-center mb-8 relative">
+                                {/* Background Glow - larger container */}
+                                <div className="absolute inset-[-30%] bg-brand-gold/40 blur-3xl rounded-full animate-pulse"></div>
+                                {/* Logo with circular crop */}
+                                <div className="w-28 h-28 relative overflow-hidden rounded-full">
+                                    <img
+                                        src="/LogoVecyGold.gif"
+                                        alt="Vecy Logo"
+                                        className="w-full h-full object-cover scale-[1.22] relative z-10 drop-shadow-[0_0_15px_rgba(204,172,78,0.8)]"
+                                    />
                                 </div>
-
-                                <h3 className="text-2xl font-bold text-white mb-3 font-outfit tracking-tight">¡Bienvenido, Vecino!</h3>
-                                <p className="text-stone-400 text-sm leading-relaxed px-4 font-light">
-                                    Antes de iniciar, acepta nuestras políticas de <strong className="text-orange-400 font-medium">"Inteligencia Colectiva"</strong> para proteger tus datos.
-                                </p>
                             </div>
 
+                            <h3 className="text-2xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-4 text-center">¡Bienvenido/a a Vecy Avalúos!</h3>
+                            <p className="text-stone-300 text-sm leading-relaxed px-2 font-light text-center mb-6">
+                                Antes de iniciar, te invitamos a leer y aceptar nuestras <strong className="text-brand-gold font-medium">políticas de privacidad</strong> para la protección de tus datos y las <strong className="text-brand-gold font-medium">condiciones</strong> de nuestro uso y servicios.
+                            </p>
+
+
                             <div className="space-y-4 mb-8 relative z-10">
-                                <div className="flex gap-4 text-xs text-stone-400 justify-center font-medium tracking-wide">
-                                    <Link to="/terminos" target="_blank" className="flex items-center gap-1.5 hover:text-brand-gold transition-colors duration-300 group">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                                        <span className="text-stone-700 font-bold bg-white/50 px-2 py-0.5 rounded">Leer Términos</span>
+                                <div className="flex gap-3 justify-center">
+                                    <Link to="/terminos" target="_blank" className="group relative px-4 py-2 bg-gradient-to-br from-black via-stone-950 to-black border border-brand-gold/50 rounded-lg overflow-hidden transition-all duration-300 hover:border-brand-gold hover:shadow-[0_0_20px_rgba(204,172,78,0.4)]">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-brand-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                        <div className="relative flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-brand-gold group-hover:scale-110 transition-transform duration-300"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                            <span className="text-brand-gold font-semibold text-sm tracking-wide group-hover:text-brand-accent transition-colors duration-300">Leer Términos</span>
+                                        </div>
                                     </Link>
-                                    <span className="text-stone-500">|</span>
-                                    <Link to="/privacidad" target="_blank" className="flex items-center gap-1.5 hover:text-brand-gold transition-colors duration-300 group">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
-                                        <span className="text-stone-700 font-bold bg-white/50 px-2 py-0.5 rounded">Leer Privacidad</span>
+                                    <Link to="/privacidad" target="_blank" className="group relative px-4 py-2 bg-gradient-to-br from-black via-stone-950 to-black border border-brand-gold/50 rounded-lg overflow-hidden transition-all duration-300 hover:border-brand-gold hover:shadow-[0_0_20px_rgba(204,172,78,0.4)]">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-brand-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                        <div className="relative flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-brand-gold group-hover:scale-110 transition-transform duration-300"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>
+                                            <span className="text-brand-gold font-semibold text-sm tracking-wide group-hover:text-brand-accent transition-colors duration-300">Leer Privacidad</span>
+                                        </div>
                                     </Link>
                                 </div>
                             </div>
@@ -1648,8 +2145,7 @@ const JanIAAgent = () => {
                             </button>
                         </div>
                     </div>
-                )
-            }
+                )}
 
             {/* GLASS UI ALERTS */}
             <GlassToast
@@ -1667,9 +2163,8 @@ const JanIAAgent = () => {
                 onConfirm={confirmModal.onConfirm}
                 onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
             />
-        </div >
+        </div>
     );
 };
 
-// Export Agent Component
 export default JanIAAgent;

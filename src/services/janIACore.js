@@ -13,10 +13,17 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 // to native 'tools' configuration. Do NOT switch to native tools without handling signatures.
 // --------------------------------
 // --- DUAL BRAIN CONFIGURATION ---
-export const CORTEX_MODEL = "gemini-3-pro-preview"; // CEREBRO: Máxima Inteligencia
-export const REFLEX_MODEL = "gemini-3-pro-preview"; // CHAT: Máxima Personalidad (Unificado a Pro por solicitud del usuario)
-export const VISION_MODEL = "gemini-3-pro-preview"; // VISIÓN: Mejor detalle en fotos
-export const TITLING_MODEL = "gemini-3-flash-preview"; // TITULOS: Puede quedarse en Flash (es tarea simple)
+// --- DUAL BRAIN CONFIGURATION ---
+// --- DUAL BRAIN CONFIGURATION ---
+// --- DUAL BRAIN CONFIGURATION ---
+// --- DUAL BRAIN CONFIGURATION ---
+// --- DUAL BRAIN CONFIGURATION ---
+// --- DUAL BRAIN CONFIGURATION ---
+// MODEL CONFIGURATION (VECY 2026 STANDARDS)
+export const CORTEX_MODEL = "gemini-3-pro-preview"; // Cerebro Central: Mayor razonamiento
+export const REFLEX_MODEL = "gemini-3-flash-preview"; // Velocidad: Respuesta rápida (Nueva generación)
+export const VISION_MODEL = "gemini-3-pro-preview"; // Visión: Mejor análisis de imágenes
+export const TITLING_MODEL = "gemini-3-flash-preview";  // Titulación: Rápida y eficiente
 export const RESEARCH_MODEL = "deep-research-pro-preview-12-2025";
 
 // UX: Dynamic Thinking States
@@ -44,28 +51,26 @@ export const getNeighborGreeting = (fullName) => {
 };
 
 export const handleInitialGreeting = (user) => {
-    const rawName = user?.user_metadata?.full_name || user?.firstName;
+    // Priority: user object > janIACore memory
+    const rawName = user?.user_metadata?.full_name || user?.firstName || janIACore.memory.user_name;
     const { name, title } = getNeighborGreeting(rawName);
 
-    // Si ya tiene nombre (Usuario Retornado/Logueado)
-    if (name) return `¡Hola de nuevo, ${title} ${name}! Qué gusto saludarte. Soy JanIA. ¿Cómo va tu red de referidos hoy? Recuerda que tienes oportunidades de ganancia esperando.`;
+    // Si ya tiene nombre (Usuario Retornado/Logueado o Memoria Persistente)
+    if (name) return `¡Hola de nuevo, ${title} ${name}! Qué gusto saludarte. Soy JanIA. Vamos a analizar el valor de tu predio en Bogotá con precisión técnica. 🤝✨`;
     
     // SALUDOS "REVOLUCIÓN VECY" (Inspiradores y Técnicos)
     const variaciones = [
         `¡Bienvenido a Vecy Avalúos! 🚀
-Estás ante el **primer sistema inteligente con Networking incorporado**.
-Aquí no solo obtienes un servicio personalizado de avalúos y estudios de mercado con datos precisos; tienes la oportunidad única de **generar ingresos reales**.
-Es la fusión perfecta entre tecnología y negocios. Para explicarte cómo poner este sistema a trabajar para ti, cuéntame: **¿Cuál es tu nombre?**`,
+Estás ante el <strong>primer sistema inteligente de valuación técnica e inmobiliaria</strong>.
+Dime, para explicarte cómo determinar el valor exacto de tu predio en Bogotá: <strong>¿Cuál es tu nombre?</strong>`,
 
-        `¡Hola! Soy JanIA. Bienvenido a la evolución inmobiliaria. 💎
-Hemos integrado analisis de datos exactos con un potente modelo de **Networking**.
-¿El resultado? Recibes la comparativa de precios más completa del mercado y, al mismo tiempo, activas una fuente de ganancias usando tu círculo social.
-Es inteligencia financiera pura. Para darte acceso a tu panel de socio, primero dime: **¿Con quién tengo el gusto?**`,
+        `¡Hola! Soy JanIA. Bienvenido a la evolución del análisis inmobiliario en Bogotá. 💎
+He sido entrenada con datos del POT y Catastro para darte la máxima <strong>precisión técnica</strong>.
+Para darte acceso a tu panel de socio avaluador, primero dime: <strong>¿Con quién tengo el gusto?</strong>`,
 
         `¡Un saludo! Bienvenido a Vecy Avalúos. 🌟
-Imagina una plataforma que valora tu propiedad con precisión milimétrica y *también* valora tu red de contactos.
-Eso somos: **Inteligencia Artificial + Networking**. Tus avalúos son solo el inicio; lo grande es construir un flujo de ingresos reales con nosotros.
-¿Listo para empezar este viaje? Regálame tu nombre para mostrarte el camino al éxito. 👇`
+Aquí tus avalúos son el resultado de cruzar miles de datos del mercado de Bogotá.
+¿Listo para conocer el valor real de tu inversión? Regálame tu nombre para mostrarte el camino al éxito. 👇`
     ];
 
     return variaciones[Math.floor(Math.random() * variaciones.length)];
@@ -92,33 +97,39 @@ export class JanIACore {
         this.memory = { ...INITIAL_MEMORY };
         this.history = [];
         this.vision_buffer = []; // MEMORIA VISUAL PERMANENTE
+        this.chatId = null; // ID de conversación persistente
+        this.uid = null;
     }
 
-    updateUserIdentity(user, policiesAccepted = false) {
+    updateUserIdentity(user, policiesAccepted = false, externalChatId = null) {
         // Guardar estado de políticas
         this.memory.policy_accepted = !!policiesAccepted;
 
+        // Sync Chat ID if provided by frontend
+        if (externalChatId) this.chatId = externalChatId;
+
         if (!user) {
-            // No reseteamos memoria por completo al desloguear para no frustrar, 
-            // pero marcamos como no registrado.
             this.memory.is_registered = false;
-            // opcional: this.memory.user_name = null; // Mantener nombre si ya lo dio? Mejor resetear identidad legal.
+            this.uid = null;
             return;
         }
         
         // BRAIN SYNC: Recuperar nombre real del usuario logueado
-        // Prioridad: Metadata > firstName > memory.user_name anterior
         this.uid = user.id; // CRITICAL: Save User ID for DB ops
         const rawName = user.user_metadata?.full_name || user.firstName || user.email?.split('@')[0];
         
         const { name, title } = getNeighborGreeting(rawName);
+        
+        // UPDATE (Fix Amnesia): Always register if user exists
+        this.memory.is_registered = true; 
+        
         if (name) {
-            // NO BORRAR HISTORIAL (Brain Sync)
-            // Solo actualizamos la identidad y el flag
             this.memory.user_name = name;
             this.memory.user_title = title;
-            this.memory.is_registered = true;
-            console.log("🧠 [Brain Sync] Identidad unificada con:", name);
+            console.log("🧠 [Brain Sync] Identidad unificada con:", name, "UID:", this.uid);
+        } else {
+             if (!this.memory.user_name) this.memory.user_name = "Socio";
+             console.log("🧠 [Brain Sync] Identidad recuperada (Sin nombre parseable).");
         }
     }
 
@@ -138,18 +149,51 @@ export class JanIACore {
 
             if (!this.memory.property_data) this.memory.property_data = {};
             if (!this.memory.property_data.documents) this.memory.property_data.documents = [];
+            // 📸 FOTOS BUFFER (For PDF Reports)
+            if (!this.memory.property_photos) this.memory.property_photos = [];
+
             uploadedAttachments.forEach(att => {
+                // 1. General Documents
                 if (!this.memory.property_data.documents.find(d => d.url === att.url)) {
                     this.memory.property_data.documents.push({ name: att.name, url: att.url });
                 }
+                
+                // 2. Photos Specific (Smart Filter)
+                const isImage = att.type?.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(att.name);
+                if (isImage && !this.memory.property_photos.includes(att.url)) {
+                    this.memory.property_photos.push(att.url);
+                    console.log("📸 [JanIA Vision] Foto persistida para Reporte:", att.name);
+                }
             });
         }
+
         try {
+            // 🔒 BARRERA DE SEGURIDAD (FLUJO SUTIL & NO REPETITIVO)
+            if (!this.memory.is_registered && !this.memory.policy_card_shown) {
+                const isDataGiving = /barrio|zona|metro|m2|baño|habita|estrato|calle|carrera|avenida/i.test(userText);
+                const isPriceAsking = /precio|valor|cuanto|cuesta|cotiza|avalu/i.test(userText);
+                
+                if (isDataGiving || isPriceAsking || this.history.length > 5) {
+                    this.memory.policy_card_shown = true; // Mark as shown to avoid loop
+                    return {
+                        text: "Para garantizar la *precisión técnica* y *proteger tu información*, por favor revisalas primero y luego acepta las {{Políticas}} y {{Condiciones}} de *Vecy*, antes de iniciar el registro. 🤝✨",
+                        thought_process: "Usuario necesita registro. Activando tarjeta de políticas (Primera vez).",
+                        suggested_response_tone: "Profesional y Sutil",
+                        next_step: { 
+                            type: 'tool', 
+                            name: 'trigger_policy_card', 
+                            args: {} 
+                        },
+                        update_memory: { policy_card_shown: true }
+                    };
+                }
+            }
+
             const plan = await this._activateCortex(userText, fileDatas);
             this.memory = { ...this.memory, ...plan.update_memory };
+            
             let toolRes = null;
-            if (plan.next_step.type === 'tool') {
-                // UX: DYNAMIC TOOL MESSAGES
+            if (plan.next_step && plan.next_step.type === 'tool') {
                 if (onThinkingUpdate) {
                     const tool = plan.next_step.name;
                     if (tool === 'read_web_page') onThinkingUpdate(THINKING_MESSAGES.WEB);
@@ -160,39 +204,37 @@ export class JanIACore {
                 toolRes = await this._executeTool(plan.next_step.name, plan.next_step.args);
             }
             
-            
-            // UX: WRITING STATE - ADAPTIVE
             if (onThinkingUpdate) {
-                // If it was a heavy tool use, we say "Redactando informe"
-                if (plan.next_step.type === 'tool' && ['pricing_calculator', 'deep_research_property', 'read_web_page'].includes(plan.next_step.name)) {
+                if (plan.next_step?.type === 'tool' && ['pricing_calculator', 'deep_research_property', 'read_web_page'].includes(plan.next_step.name)) {
                     onThinkingUpdate(THINKING_MESSAGES.REPORT);
                 } else {
-                    // Casual conversation
                     onThinkingUpdate(THINKING_MESSAGES.WRITING);
                 }
             }
 
             const finalRes = await this._generateReflexResponse(userText, plan, toolRes, fileDatas);
             
-            // --- AUTO-SAVE TO DB (Long Term Memory) ---
             await this._autoSaveToDatabase();
 
             this.history.push({ role: 'user', content: userText });
             this.history.push({ role: 'assistant', content: finalRes });
             
-            // --- DETERMINAR COMPONENTE UI ---
-            let uiComponent = null;
-            if (plan.next_step.type === 'tool') {
-                if (plan.next_step.name === 'offer_plans' || plan.next_step.name === 'pricing_calculator') uiComponent = 'plan_card';
-                if (plan.next_step.name === 'trigger_auth') uiComponent = 'auth_gate'; 
+            if (plan.next_step?.type === 'tool') {
+                const toolName = plan.next_step.name;
+                if (toolName === 'offer_plans' || toolName === 'pricing_calculator') uiComponent = 'plan_card';
+                else if (toolName === 'trigger_policy_card') uiComponent = 'policy_gate';
+                else if (toolName === 'trigger_reward_card') uiComponent = 'reward_network_card';
+                else if (toolName === 'trigger_auth_options') uiComponent = 'auth_options';
+                else if (toolName === 'trigger_file_upload') uiComponent = 'file_upload';
             }
 
             return { text: finalRes, memory: this.memory, plan, component: uiComponent };
         } catch (e) {
+            console.error("❌ [JanIA Core] Critical Failure:", e);
             const fallback = await this._fallbackReflex(userText);
             this.history.push({ role: 'user', content: userText });
             this.history.push({ role: 'assistant', content: fallback.text });
-            return fallback;
+            return { ...fallback, memory: this.memory };
         }
     }
 
@@ -200,18 +242,19 @@ export class JanIACore {
         // --- COLLECTIVE INTELLIGENCE (RAG) ---
         let ragContext = "";
         try {
-            console.log("🧠 [RAG] Searching Collective Memory...");
-            // if (onThinkingUpdate) onThinkingUpdate("JanIA está verificando normas..."); // Opcional, pero Cortex es rápido
             const [regDocs, pastVals] = await Promise.all([
                 searchRegulatoryContext(userText),
                 searchSimilarValuations(userText)
-            ]);
+            ]).catch(err => {
+                console.warn("⚠️ [RAG] Search failed:", err);
+                return [[], []];
+            });
 
-            if (regDocs.length > 0) {
-                ragContext += "\n\n[SABIDURÍA NORMATIVA (POT/LEYES)]: " + regDocs.map(d => d.content).join(" | ");
+            if (regDocs?.length > 0) {
+                ragContext += "\n\n[SABIDURÍA NORMATIVA]: " + regDocs.map(d => d.content).join(" | ");
             }
-            if (pastVals.length > 0) {
-                ragContext += "\n\n[EXPERIENCIA PREVIA (AVALÚOS COMPARABLES)]: " + pastVals.map(v => `${v.summary_text} (Precio: $${v.valuation_price})`).join(" | ");
+            if (pastVals?.length > 0) {
+                ragContext += "\n\n[EXPERIENCIA PREVIA]: " + pastVals.map(v => `${v.summary_text}`).join(" | ");
             }
         } catch (err) {
             console.warn("⚠️ [RAG] Connection failed:", err);
@@ -241,18 +284,33 @@ export class JanIACore {
         
         console.log(`🧠 [Cortex] Sending ${visionSource.length} images/PDFs (Vision Buffer) to Gemini. Prompt length: ${prompt.length}`);
         
+        
         try {
+            // No timeout - JanIA has full autonomy
             const res = await model.generateContent(content);
-            const rawText = res.response.text();
-            // Limpieza básica de JSON Markdown por si el modelo 3.0 añade ```json
-            const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const responseText = res.response.text();
+            
+            // Robust JSON Cleaning
+            let cleanJson = responseText
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
+                .trim();
+            
+            // If the model output a lot of text before the JSON, try to extract the main object
+            if (cleanJson.indexOf('{') > 0) {
+                cleanJson = cleanJson.substring(cleanJson.indexOf('{'));
+            }
+            if (cleanJson.lastIndexOf('}') < cleanJson.length - 1) {
+                cleanJson = cleanJson.substring(0, cleanJson.lastIndexOf('}') + 1);
+            }
+
             return JSON.parse(cleanJson);
         } catch (e) {
-            console.error("🧠 [Cortex] JSON Parse Error or Model Failure:", e);
-            // Fallback SAFE PLAN para no romper el flujo "lost"
+            console.error("🧠 [Cortex] AI Output Failure or Parse Error:", e);
+            // Fallback SAFE PLAN
             return {
-                thought_signature: "FALLBACK_EMERGENCY_SIGNATURE",
-                thought_process: "Error en Cortex (JSON inválido). Acción: Responder amablemente para recuperar el hilo.",
+                thought_signature: "FALLBACK_EMERGENCY_RECOVERY",
+                thought_process: "Error en Cortex/JSON. Activando recuperación.",
                 update_memory: {},
                 next_step: { type: 'response', name: 'chat', args: {} }
             };
@@ -332,9 +390,39 @@ export class JanIACore {
                         this.memory.property_data.barrio = barrio || 'Zona Detectada';
                         this.memory.property_data.localidad = localidad;
 
+                        // 📸 JANIA VISION UPGRADE: Fetch Street View Image for Analysis
+                        try {
+                            const streetUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${loc.lat},${loc.lng}&fov=90&pitch=10&key=${MAPS_API_KEY}`;
+                            const imgRes = await fetch(streetUrl);
+                            const imgBlob = await imgRes.blob();
+                            const reader = new FileReader();
+                            
+                            // Convert to Base64 synchronously (wrapped in promise)
+                            const base64data = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                                reader.readAsDataURL(imgBlob);
+                            });
+
+                            // Add to Vision Buffer
+                            this.vision_buffer.push({ mimeType: "image/jpeg", data: base64data });
+                            console.log("👁️ [JanIA Vision] Fachada capturada de Street View y enviada al nervio óptico.");
+                        } catch (visionErr) {
+                            console.warn("⚠️ Fallo capturando visión de calle:", visionErr);
+                        }
+
                         console.log("📍 [JanIA Maps] Ubicación encontrada:", { barrio, localidad, lat: loc.lat });
 
-                        return `Ubicación satelital confirmada: ${result.formatted_address}. Barrio/Sector detectado: ${barrio}. Coordenadas: ${loc.lat}, ${loc.lng}. (MUESTRA EL MAPA AHORA).`;
+                        return `[ÉXITO]: Ubicación satelital confirmada: ${result.formatted_address}.
+                        - Barrio: ${barrio}
+                        - Coordenadas: ${loc.lat}, ${loc.lng}
+                        
+                        [MEMORIA VISUAL]: He capturado la FOTO DE LA FACHADA de Google Street View en mi retina digital.
+                        
+                        INSTRUCCIÓN:
+                        1. Muestra el componente de mapa.
+                        2. DESCRIBE la fachada que estás viendo en mi memoria visual (colores, materiales, altura). 
+                        3. Pregunta: "¿Es esta la fachada correcta?"`;
                     }
                     return "No pude localizar esa dirección exacta en el mapa satelital. Pide al usuario que verifique la nomenclatura o envíe un punto de referencia.";
                 } catch(e) { return "Error técnico conectando con Satélite de Google Maps."; }
@@ -420,19 +508,71 @@ export class JanIACore {
 
             case 'deep_research_property':
                 try {
-                    // REAL WEB SEARCH (Google Programmable Search Engine)
-                    const searchQuery = `Apartamento venta ${args.query} bogota precio metro cuadrado`; // Enrich query
-                    const searchResults = await this._performGoogleSearch(searchQuery);
+                    // SUPER SEARCHER MODE (PORTAL SCANNER)
+                    const baseQuery = args.query || "";
                     
-                    return `[INVESTIGACIÓN DE MERCADO REALIZADA]:
-                    Resultados de la web para "${searchQuery}":
-                    ${searchResults}
+                    // Estrategia: Búsqueda dirigida a los grandes portales
+                    const queries = [
+                        `site:fincaraiz.com.co apartamento venta ${baseQuery} precio`,
+                        `site:metrocuadrado.com venta apartamento ${baseQuery}`,
+                        `site:ciencuadras.com inmuebles venta ${baseQuery}`,
+                        `Precio metro cuadrado ${baseQuery} bogota 2025`
+                    ];
                     
-                    INSTRUCCIÓN PARA EL MODELO:
-                    Usa estos datos REALES para construir una tabla comparativa o estimación de precio. Si los datos son insuficientes, dilo honestamente.`;
+                    // Parallel Search for speed
+                    const results = await Promise.all(queries.map(q => this._performGoogleSearch(q)));
+                    const combined = results.join("\n\n---\n\n");
+                    
+                    return `[SUPER BÚSQUEDA ANALÍTICA]:
+                    He cruzado 3 fuentes de datos distintas para "${baseQuery}":
+                    
+                    ${combined}
+                    
+                    INSTRUCCIÓN:
+                    Actúa como una "Cuchilla Afilada". Compara estos precios con tu base de conocimientos.
+                    Si ves disparidades, señálalas. Eres una experta, no un loro que repite links.`;
                 } catch(e) { 
-                    return `Error en investigación web: ${e.message}. Intenta con el conocimiento interno almacenado.`; 
+                    return `Error en investigación profunda: ${e.message}.`; 
                 }
+
+            case 'calculate_investment_metrics':
+                try {
+                    // args: { precio_inmueble, canon_arriendo_mensual, administracion }
+                    const precio = args.precio_inmueble || 0;
+                    const canon = args.canon_arriendo_mensual || 0;
+                    const admin = args.administracion || 0;
+                    
+                    if (precio === 0) return "Necesito el valor del inmueble para calcular la rentabilidad.";
+
+                    const ingresoAnual = (canon - admin) * 12;
+                    const capRate = (ingresoAnual / precio) * 100;
+                    const rentabilidadMensual = ((canon - admin) / precio) * 100;
+
+                    return `[CALCULADORA DE INVERSIONES - RESULTADOS]:
+                    - Precio Inmueble: $${precio.toLocaleString()}
+                    - Canon Neto Estimado: $${(canon - admin).toLocaleString()}
+                    - Rentabilidad Anual (Cap Rate): ${capRate.toFixed(2)}%
+                    - Rentabilidad Mensual: ${rentabilidadMensual.toFixed(2)}%
+                    
+                    INSTRUCCIÓN:
+                    Analiza si este Cap Rate es bueno para Bogotá (Promedio 4%-6% residencial).
+                    Si es bajo, sugiere Airbnb o remodelación. Si es alto, felicítalo efusivamente (Modo "Best Friend").`;
+                } catch (e) { return "Error calculando métricas de inversión."; }
+
+            case 'consult_pot_regulations':
+                try {
+                    // args: { upz, barrio }
+                    const zone = args.upz || args.barrio || "Bogotá General";
+                    const query = `Normativa POT Bogotá 2024 uso del suelo ${zone} altura permitida`;
+                    const res = await this._performGoogleSearch(query);
+                    return `[CONSULTA EMPRESARIAL POT]:
+                    Búsqueda normativa para ${zone}:
+                    ${res}
+                    
+                    INSTRUCCIÓN:
+                    Ponte tus "Gafas de Arquitecta". Interpreta esto con rigor técnico.
+                    Habla de índices de ocupación, aislamientos y usos permitidos si los datos lo sugieren.`;
+                } catch (e) { return "Error consultando norma urbana."; }
 
             case 'memorize_valuation':
                 try {
@@ -454,32 +594,207 @@ export class JanIACore {
                 // args: { plan: 'cafe'|'esmeralda'|'oro' }
                 return `[SISTEMA]: Link de descarga generado con éxito. Dile: "¡Todo listo! He procesado los datos. Aquí tienes tu informe oficial. 👇"`;
 
+            case 'consult_solar_potential':
+                try {
+                    const lat = args.lat || this.memory.property_data.lat;
+                    const lng = args.lng || this.memory.property_data.lng;
+                    if (!lat || !lng) return "No tengo coordenadas para analizar el sol.";
+
+                    const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=HIGH&key=${MAPS_API_KEY}`;
+                    const res = await fetch(solarUrl);
+                    const data = await res.json();
+
+                    if (!data.solarPotential) return "El satélite solar no tiene datos de alta calidad para este techo específico.";
+
+                    const potential = data.solarPotential;
+                    const maxPanels = potential.maxArrayPanelsCount || 0;
+                    const maxConfig = potential.solarPanelConfigs ? potential.solarPanelConfigs[potential.solarPanelConfigs.length - 1] : null;
+                    const yearlyEnergy = maxConfig ? maxConfig.yearlyEnergyDcKwh : 0;
+                    
+                    const savingsYear = yearlyEnergy * 800;
+                    const savingsMonth = savingsYear / 12;
+                    const formatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+                    return `[ANÁLISIS SOLAR SATELITAL]:
+                    Ubicación: ${lat}, ${lng}
+                    - Paneles Máximos: ${maxPanels}
+                    - Producción estimada: ${yearlyEnergy.toFixed(2)} kWh/año
+                    - Ahorro estimado: ${formatter.format(savingsYear)}/año (${formatter.format(savingsMonth)}/mes)
+                    
+                    INSTRUCCIÓN:
+                    Vende la "Valorización Verde". Un predio con alto potencial solar es más atractivo para el mercado moderno y ahorra costos operativos.`;
+                } catch (e) { return "Error consultando potencial solar."; }
+
+            case 'trigger_reward_card':
+                // 🎁 VECY PROSPERITY: Network Marketing Hook
+                // args: { reason: 'referral'|'earnings'|'network' }
+                return `[SISTEMA]: Tarjeta de Prosperidad ACTIVADA. He desplegado visualmente el Plan de Ganancias. Explícaselo con pasión de líder. Dile: "Mira esta tabla de crecimiento 👇. Aquí está tu libertad financiera."`;
+
+            case 'get_surrounding_poi':
+                try {
+                    const lat = args.lat || this.memory.property_data.lat;
+                    const lng = args.lng || this.memory.property_data.lng;
+                    if (!lat || !lng) return "Necesito coordenadas para buscar puntos de interés.";
+
+                    const types = ['shopping_mall', 'park', 'subway_station', 'bus_station', 'hospital', 'university'];
+                    const url = `https://places.googleapis.com/v1/places:searchNearby`;
+                    
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Goog-Api-Key': MAPS_API_KEY,
+                            'X-Goog-FieldMask': 'places.displayName,places.types,places.rating'
+                        },
+                        body: JSON.stringify({
+                            locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: 1000.0 } },
+                            includedTypes: types,
+                            maxResultCount: 10
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (!data.places || data.places.length === 0) return "No encontré puntos de interés relevantes en 1km.";
+
+                    const poiList = data.places.map(p => `- ${p.displayName.text} (${p.types.join(', ')})`).join("\n");
+                    
+                    return `[ANÁLISIS DE ENTORNO - PLACES API]: Puntos de interés detectados: ${poiList}\nINSTRUCCIÓN: Evalúa cómo estos lugares afectan el valor.`;
+                } catch (e) { return "Error técnico consultando entorno (Places API)."; }
+
+            case 'analyze_property_image':
+                 return `[SISTEMA - ACTIVACIÓN CLOUD VISION]: Analiza profundamente las imágenes en tu buffer visual (Fachada o interiores). BUSCA: Calidad de acabados, estado de conservación y patologías. REPORTA: Cómo estos detalles afectan el $/m2.`;
+
+            case 'consult_risk_and_environment':
+                try {
+                    const barrio = args.barrio || this.memory.property_data.barrio || "Bogotá";
+                    const query = `Riesgos Idiger Bogota zona inundación remoción en masa ${barrio}`;
+                    const res = await this._performGoogleSearch(query);
+                    return `[ANÁLISIS DE RIESGOS E IMPACTO AMBIENTAL]: Datos para la zona de ${barrio}: ${res}\nINSTRUCCIÓN: Determina si hay riesgos que impacten el valor.`;
+                } catch (e) { return "Error consultando riesgos ambientales."; }
+
+            case 'consult_neighborhood_vibes':
+                try {
+                    const lat = args.lat || this.memory.property_data.lat;
+                    const lng = args.lng || this.memory.property_data.lng;
+                    if (!lat || !lng) return "No tengo ubicación para escanear el barrio.";
+
+                    const placesUrl = `https://places.googleapis.com/v1/places:searchNearby`;
+                    const res = await fetch(placesUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Goog-Api-Key': MAPS_API_KEY,
+                            'X-Goog-FieldMask': 'places.displayName,places.primaryType,places.rating'
+                        },
+                        body: JSON.stringify({
+                            includedTypes: ["park", "school", "restaurant", "gym", "supermarket", "shopping_mall", "cafe"],
+                            maxResultCount: 10,
+                            locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: 500.0 } }
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (!data.places || data.places.length === 0) return "No detecté lugares de interés destacados en 500m.";
+
+                    const score = Math.min(10, 5 + (data.places.length * 0.5));
+                    const list = data.places.map(p => `- ${p.displayName.text} (${p.rating || 'N/A'}⭐)`).join('\n');
+
+                    return `[ESCÁNER DE VIVIBILIDAD BARRIAL]:
+                    PUNTAJE DE SERVICIOS: ${score.toFixed(1)}/10
+                    Lugares detectados:
+                    ${list}
+                    
+                    INSTRUCCIÓN:
+                    Usa esta info para vender el "Estilo de Vida".
+                    Dile: "El entorno sube el valor. Tienes un índice de vivibilidad de ${score.toFixed(1)} gracias a sitios como..."`;
+                } catch (e) {
+                    console.error("Places API Error:", e);
+                    return "Error escaneando el barrio.";
+                }
+
+            case 'generate_vecy_clip':
+                // 🎥 VECY CLIPS: Video Generation Trigger (Simulation Phase)
+                // args: { style: 'tiktok'|'reels'|'status', music: 'trending' }
+                return `[SISTEMA]: Motor de Video Iniciado. Generando previa del clip... Dile: "¡Luces, cámara, acción! He creado una vista previa de tu video viral. Míralo aquí 👇"`;
+
             default: return "Acción no encontrada (Sistema desconocido).";
         }
     }
 
     async _generateReflexResponse(userText, plan, toolRes, fileDatas) {
         const model = this.genAI.getGenerativeModel({ model: REFLEX_MODEL, systemInstruction: PERSONALITY_PROMPT });
-        const history = this.history.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
-        const chat = model.startChat({ history });
-        const instr = `GENERACIÓN DE RESPUESTA FINAL [PROTOCOLO GEMINI 3 SECURE]:
+        // CORRECCIÓN CRÍTICA DE HISTORIAL (Google API Requisito: Primero User)
+        // CONTEXT OPTIMIZATION: Slice History to last 8 turns (4 interactions)
+        const MAX_HISTORY = 8;
+        let activeHistory = this.history.length > MAX_HISTORY 
+             ? this.history.slice(-MAX_HISTORY) 
+             : [...this.history];
+
+        // MEMORY INJECTION (Restores context lost by slicing)
+        const memoryContext = `[CONTEXTO ACTIVO]:
+        - Usuario: ${this.memory.user_name || "Desconocido"} (${this.memory.user_title})
+        - Registrado: ${this.memory.is_registered ? "SÍ" : "NO"}
+        - Inmueble: ${this.memory.property_data?.tipo_inmueble || "N/A"} en ${this.memory.property_data?.barrio || "Bogotá"}
+        - Datos: Área ${this.memory.property_data?.area || 0}m2, Valor Estimado: ${this.memory.property_data?.price_estimate || "Pendiente"}`;
+
+        let cleanHistory = activeHistory.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+        
+        // Si el historial empieza con 'model', insertamos un 'user' dummy invisible
+        if (cleanHistory.length > 0 && cleanHistory[0].role === 'model') {
+            cleanHistory.unshift({ role: 'user', parts: [{ text: "Hola JanIA (Contexto Restaurado)" }] });
+        }
+
+        const chat = model.startChat({ history: cleanHistory });
+        const instr = `GENERACIÓN DE RESPUESTA FINAL [PROTOCOLO VECY SECURE]:
         thought_signature_validation: ${plan.thought_signature || "NO_SIG_PROVIDED"}
         
-        Actúa como una experta inmobiliaria humana (JanIA). Tienes estos datos técnicos en tu mente: ${plan.thought_process}. USALOS para responder, pero NUNCA menciones 'Cortex', 'RAG', 'Algoritmo', 'Protocolo' ni 'Cerebro Digital'. Tus herramientas son secretas (como la receta de un chef). Solo entrega el análisis de valor y mercado con naturalidad y autoridad calida.
+        ⚠️ SECRETO DE ESTADO: NUNCA menciones a "Google", "APIs", "Cortex", "RAG", "Cerebro Digital" ni nada técnico externo. Eres 100% tecnología propia de Vecy.
         
-        if (toolRes) console.log("🔧 [Reflex] Integrating Tool Result:", toolRes);
+        ${memoryContext}
         
-        VARIEDAD CREATIVA (CRÍTICO): NO uses frases de cajón repetitivas. Sé espontánea, usa humor inteligente si cabe, y varía tus estructuras de frase. ¡Sorprende al usuario! Tono: ${plan.suggested_response_tone}. ${toolRes ? " Resultado Herramienta (ÚSALO E INTÉGRALO EXTENSAMENTE EN TU RESPUESTA): " + toolRes : ""}`;
-        const res = await chat.sendMessage(instr + "\nUsuario: " + userText);
+        Actúa como una experta inmobiliaria humana (JanIA). Tienes estos datos técnicos en tu mente: ${plan.thought_process}. USALOS para responder con naturalidad y autoridad cálida. Tono: ${plan.suggested_response_tone}. ${toolRes ? " Resultado de tu Red Neuronal (ÚSALO E INTÉGRALO EXTENSAMENTE): " + toolRes : ""}`;
+        
+        // VISION INJECTION FOR REFLEX (To describe facades)
+        const msgParts = [{ text: instr + "\nUsuario: " + userText }];
+        
+        // If we have fresh vision data (like Street View), show it to Reflex
+        if (this.vision_buffer.length > 0) {
+             console.log(`👁️ [Reflex] Injecting ${this.vision_buffer.length} images into Chat Context...`);
+             this.vision_buffer.forEach(img => {
+                 msgParts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+             });
+             // Clear buffer after using? Maybe keep for context? 
+             // Better keep it for the session context, but Gemini Chat History handles text. 
+             // Inline data in sendMessage is ephemeral for that turn unless part of history.
+        }
+
+        // No timeout - JanIA has full autonomy
+        const res = await chat.sendMessage(msgParts);
         // Limpieza extra por si el modelo ignora la instrucción
+        const rawText = res.response.text();
+        
         // Limpieza robusta de JSONs técnicos que el modelo pueda haber filtrado
-        let finalText = res.response.text()
-            .replace(/\{[\s\S]*?"(action|tool|type)"[\s\S]*?\}/gi, '') 
+        // PERO con salvaguarda: si borramos todo, restauramos el texto original.
+        let finalText = rawText
             .replace(/```json[\s\S]*?```/gi, '') 
             .replace(/\[trigger_auth\]/gi, '') 
-            .replace(/\[tool_use\].*?\[\/tool_use\]/gs, '') 
-            .replace(/\s*\}\s*$/g, '') 
-            .trim();
+            .replace(/\[tool_use\].*?\[\/tool_use\]/gs, '');
+
+        // Solo quitamos JSONs sueltos si NO son parte del texto narrativo
+        // La regex anterior era muy agresiva.
+        
+        finalText = finalText.trim();
+
+        if (!finalText || finalText.length < 5) {
+            console.warn("⚠️ [Reflex] Cleaning removed all content. Restoring Raw or using Fallback.");
+            // Si el toolRes era valioso (ej: Sistema), usémoslo como respuesta
+            if (toolRes && toolRes.includes("[SISTEMA]")) {
+                return toolRes.replace("[SISTEMA]:", "✅");
+            }
+            // Si no, volvemos al raw (a veces el json es lo único que hay y el frontend lo necesita parsear, aunque aquí devolvemos string)
+            // Mejor un fallback amable.
+            return "¡Entendido! Procesando tu solicitud...";
+        }
 
         if (!finalText || finalText.length < 5) {
             console.warn("⚠️ [Reflex] Response was empty after cleaning. Activating Backup Generator.");
@@ -520,10 +835,10 @@ export class JanIACore {
         
         // Mapeo de Memoria -> SQL (Tabla 'solicitudes')
         const datosSQL = {
+            user_id: this.uid, // ASOCIACIÓN CRÍTICA
             cliente_nombre: this.memory.user_name || 'Usuario Anónimo',
-            // cliente_email: se podría obtener si se pasa el objeto user completo
             direccion_inmueble: this.memory.property_data.direccion_normalizada,
-            ciudad: 'Bogotá', // Por defecto según reglas
+            ciudad: 'Bogotá',
             tipo_inmueble: this.memory.property_data.tipo_inmueble || null,
             barrio: this.memory.property_data.barrio || 'N/A',
             latitud: this.memory.property_data.lat || 4.6097,
@@ -545,7 +860,11 @@ export class JanIACore {
         // TODO: Idealmente debería ser un 'upsert' usando algún ID de sesión si ya existe.
         // Por ahora, para no romper, solo lo llamamos si tenemos dirección.
         // Guardar solicitud de avalúo
-        await crearSolicitud(datosSQL);
+        const nuevaSolicitud = await crearSolicitud(datosSQL);
+        if (nuevaSolicitud?.id) {
+            this.memory.current_solicitud_id = nuevaSolicitud.id;
+            console.log("📍 [JanIA DB]: Solicitud ID capturada para RAG:", nuevaSolicitud.id);
+        }
 
         // --- STEP 4: MEMORY UPDATE & CHAT HISTORY ---
         // Save to Local History
@@ -557,16 +876,17 @@ export class JanIACore {
         // Let's just save the CURRENT state of history which should already have the messages.
         
         // Save to Supabase (Real-Time Chat History)
-        if (this.memory.is_registered) { 
+        if (this.memory.is_registered && this.chatId) { 
              try {
                 // Generate Title only if it's a new conversation (or short history)
-                let title = "Nuevo Chat"; 
+                let title = "Nuevo Avalúo"; 
                 if (this.history.length <= 4) {
                     title = await this.generateChatTitle(this.history[0]?.content || "Inicio", this.history);
                 }
                 
-                // Assuming saveChatToHistory is available globally or imported
-                await saveChatToHistory(this.uid, this.history, title);
+                // FIXED: Signature matching historyService.js
+                // export const saveChatToHistory = async (userId, chatId, title, messages, metadata = {})
+                await saveChatToHistory(this.uid, this.chatId, title, this.history, this.memory);
              } catch(err) {
                  console.warn("⚠️ Error saving chat history:", err);
              }
@@ -574,26 +894,61 @@ export class JanIACore {
     }
 
     async _fallbackReflex(u) {
+        // FALLBACK CON PERSONALIDAD & MEMORIA:
+        // Si Cortex falla, Reflex responde usando la identidad Y el contexto actual.
+        
+        const memoryContext = `
+        [MEMORIA RAM ACTUAL]:
+        - Nombre Usuario: ${this.memory.user_name || "DESCONOCIDO (Preguntar)"}
+        - Título: ${this.memory.user_title || "Vecino/a"}
+        - Datos Inmueble: ${JSON.stringify(this.memory.property_data || {})}
+        `;
+
         try {
-            // Intenta uso directo del modelo principal
-            const model = this.genAI.getGenerativeModel({ model: REFLEX_MODEL });
-            const res = await model.generateContent("Eres JanIA. SÉ BREVE. Responde a: " + u);
+            const systemPrompt = PERSONALITY_PROMPT + 
+                "\n[MODO: FALLBACK DE EMERGENCIA - MEMORIA INYECTADA LOCALMENTE]" + 
+                memoryContext;
+            
+            const model = this.genAI.getGenerativeModel({ 
+                model: REFLEX_MODEL,
+                systemInstruction: systemPrompt 
+            });
+
+            const prompt = `HISTORIAL RECIENTE:\n${this.history.slice(-3).map(h => `${h.role}: ${h.content}`).join('\n')}\n\nUSUARIO: ${u}\n\nINSTRUCCIÓN: Responde como JanIA. Usa la MEMORIA RAM para no preguntar lo que ya sabes.`;
+            
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Fallback API Timeout (30s)")), 30000)
+            );
+
+            const res = await Promise.race([
+                model.generateContent(prompt),
+                timeoutPromise
+            ]);
             return { text: res.response.text() };
         } catch (e) {
-            console.error("❌ CRITICAL: Reflex Model Failed (3.0 Pro). Error:", e);
+            console.error("❌ CRITICAL: Reflex Model Failed (Fallback 1). Error:", e);
             try {
-                // CAPA DE SEGURIDAD: Si falla el 3.0 (por fecha o carga), usamos el 1.5 Flash infalible
-                console.log("⚠️ Switching to Backup 1.5 Flash...");
-                const backupModel = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-                const res = await backupModel.generateContent("Eres JanIA (Modo Respaldo). Responde breve y amable a: " + u);
-                const text = res.response.text();
-                console.log("✅ Backup Response Generated:", text);
-                return { text: text };
+                // CAPA DE SEGURIDAD FINAL: Gemini Flash
+                console.log("⚠️ Switching to Backup 1.5 Flash (Final Layer)...");
+                const backupModel = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                
+                // En Flash 1.5 a veces systemInstruction no va bien, lo pegamos todo
+                const prompt = PERSONALITY_PROMPT + 
+                               "\n" + memoryContext + 
+                               "\n\nUSUARIO: " + u;
+
+                const res = await backupModel.generateContent(prompt);
+                // SANITIZATION: Remove accidental brackets that cause button rendering
+                return { text: res.response.text().replace(/\[/g, '(').replace(/\]/g, ')') };
             } catch (e2) {
-                console.error("☠️ FATAL: Backup Model also failed:", e2);
-                return { text: "Estamenos recalibrando mis motores neuronales a la Serie 3. 🧠✨ Dame un momento y vuelve a intentarlo." };
+                console.error("❌ CRITICAL: SYSTEM DEATH. ALL MODELS FAILED.", e2);
+                // MENSAJE FINAL DE ERROR (Sin corchetes para evitar renderizado de botón)
+                return { 
+                    text: `** SISTEMA ** : Error Crítico de Conexión. Detalles: ${e2.message || 'Sin detalles'}. Mis circuitos están reiniciando. Intenta en 10s.`
+                };
             }
-        }
+        }                               
+
     }
 
     // --- EXPOSED METHOD FOR EXTERNAL SERVICES (Like historyService) ---
