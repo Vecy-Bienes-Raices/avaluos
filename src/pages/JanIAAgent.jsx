@@ -103,28 +103,23 @@ const JanIAAgent = () => {
         const ref_payco = query.get('ref_payco');
         const paymentFlagStr = localStorage.getItem('janIA_payment_success_flag');
 
-        const processPaymentSuccess = (transactionRef, amount, planName, statusText = 'Aceptada') => {
+        const processPaymentSuccess = async (transactionRef, amount, planName, statusText = 'Aceptada') => {
             console.log("💰 [PAYMENT SUCCESS]: Processing completion for:", transactionRef);
             
             // Mark as processed
             localStorage.setItem(`processed_${transactionRef}`, 'true');
 
             // Trigger Success Flow (JanIA Response)
+            setMessages(prev => [...prev, {
+                type: 'system',
+                text: `✅ [SISTEMA]: PAGO APROBADO (${transactionRef}). Monto: $${amount}`,
+                isHidden: false
+            }]);
+
             localStorage.setItem('janIA_pending_action', "[SISTEMA]: PAGO APROBADO EXITOSAMENTE. El dinero entró a la cuenta. Continúa el mensaje agradeciendo la compra por el plan y dándole el botón de descarga del pdf usando estrictamente la herramienta 'generate_report_download'.");
 
-            // FIRE FULL BACKEND WORKFLOW (PDF + Email)
-            const appraisalData = janIACore.memory || {};
-            const cleanPlan = planName || 'esmeralda';
-
-            console.log("🚀 [Payment Success] Triggering Report Generation via Service para plan:", cleanPlan);
-
-            generateAndSendReport(cleanPlan, appraisalData, user).then(res => {
-                if (res.success) {
-                    console.log("✅ [JanIA] Reporte generado y enviado exitosamente.");
-                } else {
-                    console.error("❌ [JanIA] Falló la generación del reporte:", res.error);
-                }
-            });
+            // No llamamos generateAndSendReport aquí porque el usuario se recargó y no tenemos el appraisalData completo en memoria local de component,
+            // dejaremos que JanIA decida llamar la tool `generate_report_download` a través del `janIA_pending_action`
         };
 
         if (paymentFlagStr) {
