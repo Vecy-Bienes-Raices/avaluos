@@ -44,7 +44,7 @@ export const initiateCheckout = async (planData) => {
                 // UX FIX: Al dejar response vacío, o simplemente manejar onResponse
                 // ePayco disparará el callback de javascript sin sacar al usuario de local
                 // response: `${window.location.origin}/payment-response`,  // <-- ELIMINADO PARA USAR CALLBACK!
-                response: '', 
+                response: `${window.location.origin}/payment-response`, 
 
                 //Atributos cliente
                 name_billing: planData.name_billing || '',
