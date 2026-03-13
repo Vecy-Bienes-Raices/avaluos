@@ -42,11 +42,11 @@ export const initChat = async () => {
     }
 
     try {
-        // Use gemini-1.5-flash for speed and reliability
+        // Use v1 as primary version
         const model = genAI.getGenerativeModel({ 
             model: "gemini-1.5-flash",
             systemInstruction: SYSTEM_PROMPT 
-        });
+        }, { apiVersion: "v1" });
 
         chatSession = model.startChat({
             history: [
@@ -110,8 +110,8 @@ export const analyzeAndExtractData = async (lastUserMessage) => {
     if (!genAI) return {};
 
     try {
-        // A specialized model instance just for extraction
-        const extractionModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // A specialized model instance just for extraction (v1)
+        const extractionModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
         
         const extractionPrompt = `
         Analiza el siguiente mensaje de un usuario interesado en un avalúo inmobiliario:

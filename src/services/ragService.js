@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// Model for Embeddings (Forcing v1 to avoid 404 on v1beta)
+// Model for Embeddings (Standardizing on v1)
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" }, { apiVersion: "v1" });
 
 /**

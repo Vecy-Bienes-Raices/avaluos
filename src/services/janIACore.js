@@ -103,6 +103,23 @@ export class JanIACore {
         this.uid = null;
     }
 
+    /**
+     * Recovery logic for Google's inconsistent API versions.
+     * Tries v1 first, fallbacks to v1beta on 404.
+     */
+    async _getSafeModel(modelName, systemInstruction = null) {
+        const config = { model: modelName };
+        if (systemInstruction) config.systemInstruction = systemInstruction;
+
+        try {
+            // Priority 1: v1 (Stable 2026)
+            return this.genAI.getGenerativeModel(config, { apiVersion: 'v1' });
+        } catch (e) {
+            console.warn(`[JanIA Repair] Model ${modelName} logic failed on v1 initialization. Trying v1beta...`);
+            return this.genAI.getGenerativeModel(config, { apiVersion: 'v1beta' });
+        }
+    }
+
     updateUserIdentity(user, policiesAccepted = false, externalChatId = null) {
         // Guardar estado de políticas
         this.memory.policy_accepted = !!policiesAccepted;
@@ -742,7 +759,7 @@ export class JanIACore {
     }
 
     async _generateReflexResponse(userText, plan, toolRes, fileDatas) {
-        const model = this.genAI.getGenerativeModel({ model: REFLEX_MODEL, systemInstruction: PERSONALITY_PROMPT });
+        const model = await this._getSafeModel(REFLEX_MODEL, PERSONALITY_PROMPT);
         // CORRECCIÓN CRÍTICA DE HISTORIAL (Google API Requisito: Primero User)
         // CONTEXT OPTIMIZATION: Slice History to last 8 turns (4 interactions)
         const MAX_HISTORY = 8;
@@ -817,7 +834,7 @@ export class JanIACore {
         if (!finalText || finalText.length < 5) {
             console.warn("⚠️ [Reflex] Response was empty after cleaning. Activating Backup Generator.");
             // Si el modelo 3.0 devolvió vacío (o solo JSON), usamos el respaldo para hablar.
-            const backupModel = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+            const backupModel = await this._getSafeModel("gemini-1.5-flash-latest");
             const backupRes = await backupModel.generateContent(`Eres JanIA. El usuario dijo: "${userText}". Tu pensamiento previo fue: "${plan.thought_process}". Genera una respuesta CORTA y amable invitándolo a continuar.`);
             finalText = backupRes.response.text();
         }
@@ -831,7 +848,7 @@ export class JanIACore {
             const historyText = fullHistory.slice(0, 3).map(m => m.content).join(" | ");
             const context = `Mensaje: "${firstMessage}". Contexto: ${historyText}`;
             
-            const model = this.genAI.getGenerativeModel({ model: TITLING_MODEL });
+            const model = await this._getSafeModel(TITLING_MODEL);
             const prompt = `Genera un TÍTULO DE 3 A 5 PALABRAS para este chat inmobiliario.
             - NO uses comillas.
             - DEBE ser descriptivo (ej: "Avalúo Casa Chapinero", "Consulta Normativa Usaquén").
@@ -927,10 +944,7 @@ export class JanIACore {
                 "\n[MODO: FALLBACK DE EMERGENCIA - MEMORIA INYECTADA LOCALMENTE]" + 
                 memoryContext;
             
-            const model = this.genAI.getGenerativeModel({ 
-                model: REFLEX_MODEL,
-                systemInstruction: systemPrompt 
-            });
+            const model = await this._getSafeModel(REFLEX_MODEL, systemPrompt);
 
             const prompt = `HISTORIAL RECIENTE:\n${this.history.slice(-3).map(h => `${h.role}: ${h.content}`).join('\n')}\n\nUSUARIO: ${u}\n\nINSTRUCCIÓN: Responde como JanIA. Usa la MEMORIA RAM para no preguntar lo que ya sabes.`;
             
@@ -946,9 +960,9 @@ export class JanIACore {
         } catch (e) {
             console.error("❌ CRITICAL: Reflex Model Failed (Fallback 1). Error:", e);
             try {
-                // CAPA DE SEGURIDAD FINAL: Gemini Flash
+                // CAPA DE SEGURIDAD FINAL:
                 console.log("⚠️ Switching to Backup 1.5 Flash (Final Layer)...");
-                const backupModel = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const backupModel = await this._getSafeModel("gemini-1.5-flash");
                 
                 // En Flash 1.5 a veces systemInstruction no va bien, lo pegamos todo
                 const prompt = PERSONALITY_PROMPT + 
@@ -972,7 +986,7 @@ export class JanIACore {
     // --- EXPOSED METHOD FOR EXTERNAL SERVICES (Like historyService) ---
     async generateTitle(promptText) {
         try {
-            const model = this.genAI.getGenerativeModel({ model: TITLING_MODEL });
+            const model = await this._getSafeModel(TITLING_MODEL);
             const res = await model.generateContent(promptText);
             return res.response.text().trim();
         } catch (e) {
