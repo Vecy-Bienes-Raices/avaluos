@@ -941,17 +941,16 @@ const JanIAAgent = () => {
                     setReportData(reportObject);
                     setPaidPlan(incomingPlan); // UNLOCK REPORT ACCESS
                     
-                    // 💾 CRITICAL SYNC: Persist with the 'memory' structure ReportPage expects
-                    if (reportObject.value > 0) {
-                        localStorage.setItem('janIA_temp_memory', JSON.stringify({
-                            memory: {
-                                ...janIACore.memory,
-                                property_data: janIACore.memory.property_data,
-                                plan_filter: [incomingPlan]
-                            }
-                        }));
-                        console.log("💾 [Persistencia]: Datos de reporte guardados en LocalStorage.");
-                    }
+                    // 💾 CRITICAL SYNC: Always persist report data (no value gate)
+                    localStorage.setItem('janIA_temp_memory', JSON.stringify({
+                        memory: {
+                            ...janIACore.memory,
+                            property_data: janIACore.memory.property_data,
+                            planType: incomingPlan,
+                            plan_filter: [incomingPlan]
+                        }
+                    }));
+                    console.log("💾 [Persistencia]: Datos de reporte guardados en LocalStorage.");
 
                     botMsg.component = 'report_download'; // FORCE BUTTON COMPONENT
 
@@ -1603,15 +1602,17 @@ const JanIAAgent = () => {
                                                                             // Determinar Colores y Estilos Premium (Avisantes)
                                                                             let btnClass = "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all transform active:scale-95 my-1.5 mx-1 shadow-lg ";
 
-                                                                            // PLAN COLORS MAP
+                                                                            // PLAN COLORS MAP - keys without accents to match normalized planType
                                                                             const planColors = {
-                                                                                'CAFÉ': 'bg-gradient-to-r from-[#8D6E63] to-[#5D4037] text-white hover:brightness-110 shadow-stone-800/30 ring-1 ring-[#8D6E63]/50',
+                                                                                'CAFE': 'bg-gradient-to-r from-[#795548] to-[#4E342E] text-white hover:brightness-110 shadow-stone-900/40 ring-1 ring-[#8D6E63]/50',
                                                                                 'ESMERALDA': 'bg-gradient-to-r from-emerald-500 to-emerald-700 text-white hover:brightness-110 shadow-emerald-900/30 ring-1 ring-emerald-500/50',
                                                                                 'ORO': 'bg-gradient-to-r from-yellow-500 via-brand-gold to-yellow-600 text-black hover:brightness-110 shadow-yellow-500/30 ring-1 ring-yellow-400/50'
                                                                             };
 
                                                                             if (isPay) {
-                                                                                const planType = fullCmd.replace('PAY_PLAN_', '').toUpperCase().trim();
+                                                                                // Normalize planType (remove accents) to match map keys
+                                                                                const planType = fullCmd.replace('PAY_PLAN_', '').toUpperCase().trim()
+                                                                                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
                                                                                 const specificColor = Object.keys(planColors).find(key => planType.includes(key));
                                                                                 btnClass += specificColor ? planColors[specificColor] : planColors['ORO'];
                                                                             } else if (isMsg) {
