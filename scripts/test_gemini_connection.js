@@ -42,15 +42,15 @@ async function testModel(modelName) {
 }
 
 async function run() {
-    console.log("🔍 Diagnosing Gemini Model Availability (3.1 vs Legacy)...");
+    console.log("🔍 Diagnosing Gemini Model Availability (3.1 Normal vs Preview)...");
     
-    // Test the state-of-the-art 3.1 series
+    // Test the state-of-the-art 3.1 Normal (User request)
+    const v31ProNormal = await testModel("gemini-3.1-pro");
+    const v31FlashNormal = await testModel("gemini-3.1-flash");
+
+    // Test the state-of-the-art 3.1 Preview
     const v31Pro = await testModel("gemini-3.1-pro-preview");
     const v31Flash = await testModel("gemini-3.1-flash-preview");
-    
-    // Test the 3.0 series
-    const v3Pro = await testModel("gemini-3-pro-preview");
-    const v3Flash = await testModel("gemini-3-flash-preview");
     
     console.log("\n--- DIAGNOSIS COMPLETE ---");
 }

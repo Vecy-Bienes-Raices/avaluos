@@ -44,7 +44,7 @@ export const initChat = async () => {
     try {
         // Use v1 as primary version
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-3.1-flash-preview",
+            model: "gemini-3.1-flash",
             systemInstruction: SYSTEM_PROMPT 
         }, { apiVersion: "v1" });
 
@@ -111,7 +111,7 @@ export const analyzeAndExtractData = async (lastUserMessage) => {
 
     try {
         // A specialized model instance just for extraction (v1)
-        const extractionModel = genAI.getGenerativeModel({ model: "gemini-3.1-flash-preview" }, { apiVersion: "v1" });
+        const extractionModel = genAI.getGenerativeModel({ model: "gemini-3.1-flash" }, { apiVersion: "v1" });
         
         const extractionPrompt = `
         Analiza el siguiente mensaje de un usuario interesado en un avalúo inmobiliario:

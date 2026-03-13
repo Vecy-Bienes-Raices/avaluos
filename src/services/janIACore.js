@@ -19,12 +19,12 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
-// MODEL CONFIGURATION (VECY 2026 STANDARDS - Real Gemini 3.1 Series)
-export const CORTEX_MODEL = "gemini-3.1-pro-preview"; // Cerebro Central: Mayor razonamiento
-export const REFLEX_MODEL = "gemini-3.1-flash-preview"; // Velocidad: Respuesta rápida
-export const VISION_MODEL = "gemini-3.1-pro-preview"; // Visión: Mejor análisis de imágenes
-export const TITLING_MODEL = "gemini-3.1-flash-preview";  // Titulación: Rápida y eficiente
-export const RESEARCH_MODEL = "gemini-3.1-pro-preview"; // Deep research proxy
+// MODEL CONFIGURATION (VECY 2026 STANDARDS - Real Gemini 3.1 Normal)
+export const CORTEX_MODEL = "gemini-3.1-pro"; // Cerebro Central: Mayor razonamiento
+export const REFLEX_MODEL = "gemini-3.1-flash"; // Velocidad: Respuesta rápida
+export const VISION_MODEL = "gemini-3.1-pro"; // Visión: Mejor análisis de imágenes
+export const TITLING_MODEL = "gemini-3.1-flash";  // Titulación: Rápida y eficiente
+export const RESEARCH_MODEL = "gemini-3.1-pro"; // Deep research proxy
 
 // UX: Dynamic Thinking States
 // UX: Dynamic Thinking States (SuperAppraiser Persona)
@@ -111,9 +111,8 @@ export class JanIACore {
         const config = { model: modelName };
         if (systemInstruction) config.systemInstruction = systemInstruction;
 
-        // Note: getGenerativeModel is sync and doesn't verify existence.
-        // We set v1beta as primary for preview models to avoid the common 404 on v1.
-        return this.genAI.getGenerativeModel(config, { apiVersion: 'v1beta' });
+        // Regresado a 'v1' como primario según recomendación del usuario ("normal")
+        return this.genAI.getGenerativeModel(config, { apiVersion: 'v1' });
     }
 
     /**
@@ -981,9 +980,9 @@ export class JanIACore {
         } catch (e) {
             console.error("❌ CRITICAL: Reflex Model Failed (Fallback 1). Error:", e);
             try {
-                // CAPA DE SEGURIDAD FINAL: Gemini 3.1 Flash
+                // CAPA DE SEGURIDAD FINAL: Gemini 3.1 Flash Normal
                 console.log("⚠️ Switching to Backup 3.1 Flash (Final Layer)...");
-                const backupModel = await this._getSafeModel("gemini-3.1-flash-preview");
+                const backupModel = await this._getSafeModel("gemini-3.1-flash");
                 
                 // En Serie 3.1, inyectamos contexto completo
                 const prompt = PERSONALITY_PROMPT + 
