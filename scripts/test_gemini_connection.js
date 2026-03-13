@@ -42,14 +42,15 @@ async function testModel(modelName) {
 }
 
 async function run() {
-    console.log("🔍 Diagnosing Gemini Model Availability (2.5 vs 3.0)...");
+    console.log("🔍 Diagnosing Gemini Model Availability (3.1 vs Legacy)...");
     
-    // Test the Plan Maestro mandated model
+    // Test the state-of-the-art 3.1 series
+    const v31Pro = await testModel("gemini-3.1-pro-preview");
+    const v31Flash = await testModel("gemini-3.1-flash-preview");
+    
+    // Test the 3.0 series
     const v3Pro = await testModel("gemini-3-pro-preview");
     const v3Flash = await testModel("gemini-3-flash-preview");
-    
-    // Test the Email recommended model
-    const v25Flash = await testModel("gemini-2.5-flash");
     
     console.log("\n--- DIAGNOSIS COMPLETE ---");
 }

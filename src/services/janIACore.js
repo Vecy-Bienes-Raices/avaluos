@@ -105,18 +105,39 @@ export class JanIACore {
 
     /**
      * Recovery logic for Google's inconsistent API versions.
-     * Tries v1 first, fallbacks to v1beta on 404.
+     * Prefers v1beta for Preview models (standard in 2026).
      */
     async _getSafeModel(modelName, systemInstruction = null) {
         const config = { model: modelName };
         if (systemInstruction) config.systemInstruction = systemInstruction;
 
+        // Note: getGenerativeModel is sync and doesn't verify existence.
+        // We set v1beta as primary for preview models to avoid the common 404 on v1.
+        return this.genAI.getGenerativeModel(config, { apiVersion: 'v1beta' });
+    }
+
+    /**
+     * Executes a model call with automatic version fallback if 404 occurs.
+     */
+    async _safeCall(model, method, ...args) {
         try {
-            // Priority 1: v1 (Stable 2026)
-            return this.genAI.getGenerativeModel(config, { apiVersion: 'v1' });
+            const res = await model[method](...args);
+            return res;
         } catch (e) {
-            console.warn(`[JanIA Repair] Model ${modelName} logic failed on v1 initialization. Trying v1beta...`);
-            return this.genAI.getGenerativeModel(config, { apiVersion: 'v1beta' });
+            if (e.message.includes("404") || e.message.includes("not found")) {
+                console.warn(`[JanIA Repair] 404 detected on ${model.model}. Switching version...`);
+                // If it failed on v1beta, try v1. If v1, try v1beta.
+                const currentVersion = model.apiVersion || 'v1beta';
+                const nextVersion = currentVersion === 'v1beta' ? 'v1' : 'v1beta';
+                
+                const fallbackModel = this.genAI.getGenerativeModel({ 
+                    model: model.model, 
+                    systemInstruction: model.systemInstruction 
+                }, { apiVersion: nextVersion });
+                
+                return await fallbackModel[method](...args);
+            }
+            throw e;
         }
     }
 
@@ -804,7 +825,7 @@ export class JanIACore {
         }
 
         // No timeout - JanIA has full autonomy
-        const res = await chat.sendMessage(msgParts);
+        const res = await this._safeCall(chat, 'sendMessage', msgParts);
         // Limpieza extra por si el modelo ignora la instrucción
         const rawText = res.response.text();
         
@@ -833,8 +854,8 @@ export class JanIACore {
 
         if (!finalText || finalText.length < 5) {
             console.warn("⚠️ [Reflex] Response was empty after cleaning. Activating Backup Generator.");
-            // Si el modelo 3.0 devolvió vacío (o solo JSON), usamos el respaldo para hablar.
-            const backupModel = await this._getSafeModel("gemini-1.5-flash-latest");
+            // Restaurado a Serie 3.1 (Ene 2026)
+            const backupModel = await this._getSafeModel("gemini-3.1-flash-preview");
             const backupRes = await backupModel.generateContent(`Eres JanIA. El usuario dijo: "${userText}". Tu pensamiento previo fue: "${plan.thought_process}". Genera una respuesta CORTA y amable invitándolo a continuar.`);
             finalText = backupRes.response.text();
         }
@@ -854,7 +875,7 @@ export class JanIACore {
             - DEBE ser descriptivo (ej: "Avalúo Casa Chapinero", "Consulta Normativa Usaquén").
             - Contexto: ${context}`;
 
-            const res = await model.generateContent(prompt);
+            const res = await this._safeCall(model, 'generateContent', prompt);
             const title = res.response.text().trim();
             console.log("🏷️ [Titling] Generated Title:", title);
             return title;
@@ -953,18 +974,18 @@ export class JanIACore {
             );
 
             const res = await Promise.race([
-                model.generateContent(prompt),
+                this._safeCall(model, 'generateContent', prompt),
                 timeoutPromise
             ]);
             return { text: res.response.text() };
         } catch (e) {
             console.error("❌ CRITICAL: Reflex Model Failed (Fallback 1). Error:", e);
             try {
-                // CAPA DE SEGURIDAD FINAL:
-                console.log("⚠️ Switching to Backup 1.5 Flash (Final Layer)...");
-                const backupModel = await this._getSafeModel("gemini-1.5-flash");
+                // CAPA DE SEGURIDAD FINAL: Gemini 3.1 Flash
+                console.log("⚠️ Switching to Backup 3.1 Flash (Final Layer)...");
+                const backupModel = await this._getSafeModel("gemini-3.1-flash-preview");
                 
-                // En Flash 1.5 a veces systemInstruction no va bien, lo pegamos todo
+                // En Serie 3.1, inyectamos contexto completo
                 const prompt = PERSONALITY_PROMPT + 
                                "\n" + memoryContext + 
                                "\n\nUSUARIO: " + u;
@@ -983,11 +1004,10 @@ export class JanIACore {
 
     }
 
-    // --- EXPOSED METHOD FOR EXTERNAL SERVICES (Like historyService) ---
     async generateTitle(promptText) {
         try {
             const model = await this._getSafeModel(TITLING_MODEL);
-            const res = await model.generateContent(promptText);
+            const res = await this._safeCall(model, 'generateContent', promptText);
             return res.response.text().trim();
         } catch (e) {
             console.warn("External Titling failed:", e);
