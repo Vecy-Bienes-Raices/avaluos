@@ -19,12 +19,12 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
-// MODEL CONFIGURATION (VECY 2026 STANDARDS - Real Gemini 3.1 Normal)
-export const CORTEX_MODEL = "gemini-3.1-pro"; // Cerebro Central: Mayor razonamiento
-export const REFLEX_MODEL = "gemini-3.1-flash"; // Velocidad: Respuesta rápida
-export const VISION_MODEL = "gemini-3.1-pro"; // Visión: Mejor análisis de imágenes
-export const TITLING_MODEL = "gemini-3.1-flash";  // Titulación: Rápida y eficiente
-export const RESEARCH_MODEL = "gemini-3.1-pro"; // Deep research proxy
+// MODEL CONFIGURATION (VECY 2026 STANDARDS - Peak Functional Performance)
+export const CORTEX_MODEL = "gemini-3.1-pro-preview"; // El más potente (confirmado por benchmark)
+export const REFLEX_MODEL = "gemini-3-flash-preview";  // El más rápido de la Serie 3
+export const VISION_MODEL = "gemini-3.1-pro-preview"; // Máxima visión
+export const TITLING_MODEL = "gemini-3-flash-preview"; // Velocidad para títulos
+export const RESEARCH_MODEL = "gemini-3.1-pro-preview"; // Búsqueda profunda
 
 // UX: Dynamic Thinking States
 // UX: Dynamic Thinking States (SuperAppraiser Persona)
@@ -111,8 +111,8 @@ export class JanIACore {
         const config = { model: modelName };
         if (systemInstruction) config.systemInstruction = systemInstruction;
 
-        // Regresado a 'v1' como primario según recomendación del usuario ("normal")
-        return this.genAI.getGenerativeModel(config, { apiVersion: 'v1' });
+        // v1beta es el estándar para modelos Preview y Series 3/3.1 en 2026
+        return this.genAI.getGenerativeModel(config, { apiVersion: 'v1beta' });
     }
 
     /**

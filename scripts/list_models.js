@@ -14,10 +14,19 @@ async function listModels(version) {
     console.log(`\n--- Listing Models for API ${version} ---`);
     try {
         const url = `https://generativelanguage.googleapis.com/${version}/models?key=${apiKey}`;
-        const res = await fetch(url);
+        const res = await fetch(url, {
+            headers: {
+                'Referer': 'http://localhost:5701',
+                'Origin': 'http://localhost:5701'
+            }
+        });
         const data = await res.json();
         if (data.models) {
-            data.models.forEach(m => console.log(`- ${m.name} (Methods: ${m.supportedGenerationMethods.join(', ')})`));
+            data.models.forEach(m => {
+                if (m.name.includes('gemini')) {
+                    console.log(`- ${m.name} (Methods: ${m.supportedGenerationMethods.join(', ')})`);
+                }
+            });
         } else {
             console.log(`No models found or error: ${JSON.stringify(data)}`);
         }
