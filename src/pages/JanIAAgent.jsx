@@ -745,7 +745,7 @@ const JanIAAgent = () => {
         // 3. Fallback for raw JSON tool parameters that sometimes leak as text
         // Catch { "action": "", "parameters": { "plan_name": "Plan Café Express", "amount": 49997, "stratum": "4" } }
         const jsonPattern = /\{\s*"action"\s*:\s*".*?"\s*,\s*"parameters"\s*:\s*(\{(?:[^{}]|(?:\{[^{}]*\}))*?\})\s*\}/g;
-        let finalHtml = formatted.replace(jsonPattern, (match, paramStr) => {
+        let processedText = text.replace(jsonPattern, (match, paramStr) => {
             try {
                 const params = JSON.parse(paramStr);
                 
@@ -1543,6 +1543,23 @@ const JanIAAgent = () => {
                                                         .replace(/\[([^\]]+)\](?!\()/g, (match, p1) => {
                                                             const cmdData = encodeURIComponent(`SEND_MESSAGE_${p1.trim()}`);
                                                             return `[${p1}](/cmd/${cmdData})`;
+                                                        })
+                                                        // 4. Captura del bloque crudo JSON de herramienta que JanIA a veces filtra
+                                                        .replace(/\{\s*"action"\s*:\s*".*?"\s*,\s*"parameters"\s*:\s*(\{(?:[^{}]|(?:\{[^{}]*\}))*?\})\s*\}/g, (match, paramStr) => {
+                                                            try {
+                                                                const params = JSON.parse(paramStr);
+                                                                if (params.plan_name) {
+                                                                    // Si es un enlace de plan
+                                                                    return `{{Pagar Plan ${params.plan_name}}}`;
+                                                                } else if (params.plan) {
+                                                                    // Si es una descarga de PDF
+                                                                    const cmdData = encodeURIComponent(`VIEW_REPORT_${params.plan}`);
+                                                                    return `\n\n[VER AVALÚO PROFESIONAL 📄](/cmd/${cmdData})\n\n`;
+                                                                }
+                                                            } catch (e) {
+                                                                console.warn("Failed to parse inner JS of tool call:", e);
+                                                            }
+                                                            return "";
                                                         });
 
                                                     return (
@@ -1576,23 +1593,27 @@ const JanIAAgent = () => {
                                                                             if (isPay) {
                                                                                 const planType = fullCmd.replace('PAY_PLAN_', '').toUpperCase().trim();
                                                                                 const specificColor = Object.keys(planColors).find(key => planType.includes(key));
-
-                                                                                // Apply specific color or fallback to Gold
                                                                                 btnClass += specificColor ? planColors[specificColor] : planColors['ORO'];
-
                                                                             } else if (isMsg) {
-                                                                                const lowerLabel = String(cleanLabel).toLowerCase();
-                                                                                // CLASIFICACIÓN ROBUSTA: Negativo tiene prioridad absoluta
-                                                                                const isNegative = ["no ", "no,", "rechazar", "cancelar", "retirarme"].some(w => lowerLabel.includes(w));
-                                                                                const isPositive = !isNegative && ["sí", "si", "acepto", "aceptar", "quiero", "registrarme"].some(w => lowerLabel.includes(w));
-
-                                                                                if (isPositive) {
-                                                                                    btnClass += "bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-500 text-white hover:brightness-110 shadow-emerald-500/40 border border-emerald-400/30";
-                                                                                } else if (isNegative) {
-                                                                                    btnClass += "bg-gradient-to-br from-rose-500 via-rose-600 to-rose-500 text-white hover:brightness-110 shadow-rose-500/40 border border-rose-400/30";
+                                                                                const isReportBtn = fullCmd.startsWith('VIEW_REPORT_');
+                                                                                
+                                                                                if (isReportBtn) {
+                                                                                    // ESTILO IMPONENTE PARA EL BOTÓN DE REPORTE FINAL!
+                                                                                    btnClass = "w-full text-center py-4 rounded-xl text-[14px] font-black uppercase tracking-widest transition-all transform active:scale-95 my-2 shadow-2xl bg-gradient-to-r from-brand-gold-dark via-brand-gold to-brand-gold-light text-black border border-white hover:brightness-110 flex items-center justify-center relative overflow-hidden";
                                                                                 } else {
-                                                                                    // Volcanic Gold Styling for Neutral Buttons
-                                                                                    btnClass += "bg-black/80 backdrop-blur-md border border-brand-gold/40 text-brand-gold shadow-[0_4px_10px_rgba(0,0,0,0.5)] hover:shadow-[0_0_15px_rgba(204,172,78,0.3)] hover:border-brand-gold hover:bg-black hover:scale-[1.02]";
+                                                                                    const lowerLabel = String(cleanLabel).toLowerCase();
+                                                                                    // CLASIFICACIÓN ROBUSTA: Negativo tiene prioridad absoluta
+                                                                                    const isNegative = ["no ", "no,", "rechazar", "cancelar", "retirarme"].some(w => lowerLabel.includes(w));
+                                                                                    const isPositive = !isNegative && ["sí", "si", "acepto", "aceptar", "quiero", "registrarme"].some(w => lowerLabel.includes(w));
+    
+                                                                                    if (isPositive) {
+                                                                                        btnClass += "bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-500 text-white hover:brightness-110 shadow-emerald-500/40 border border-emerald-400/30";
+                                                                                    } else if (isNegative) {
+                                                                                        btnClass += "bg-gradient-to-br from-rose-500 via-rose-600 to-rose-500 text-white hover:brightness-110 shadow-rose-500/40 border border-rose-400/30";
+                                                                                    } else {
+                                                                                        // Volcanic Gold Styling for Neutral Buttons
+                                                                                        btnClass += "bg-black/80 backdrop-blur-md border border-brand-gold/40 text-brand-gold shadow-[0_4px_10px_rgba(0,0,0,0.5)] hover:shadow-[0_0_15px_rgba(204,172,78,0.3)] hover:border-brand-gold hover:bg-black hover:scale-[1.02]";
+                                                                                    }
                                                                                 }
                                                                             }
 
@@ -1602,6 +1623,12 @@ const JanIAAgent = () => {
                                                                                         e.preventDefault();
                                                                                         e.stopPropagation(); // FORCE STOP BUBBLING
                                                                                         console.log("👆 CLICK DETECTADO:", { cleanLabel, fullCmd, isPay, isMsg });
+
+                                                                                        if (fullCmd.startsWith('VIEW_REPORT_')) {
+                                                                                            // NUEVO EVENTO MAGICO DE REPORTE WEB!!
+                                                                                            navigate(`/reporte/${chatId}`);
+                                                                                            return;
+                                                                                        }
 
                                                                                         if (isPay) {
                                                                                             const planNameRaw = fullCmd.replace('PAY_PLAN_', '').trim();
