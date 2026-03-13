@@ -13,7 +13,7 @@ import { liquidarServiciosVecy } from '../services/pricingService';
 import { GlassToast, GlassConfirm } from '../components/VecyAlerts';
 import { GlassAvatar } from '../components/GlassAvatar';
 import { sendAdminNotification } from '../services/notificationService';
-import { generateAndSendReport } from '../services/reportService.jsx';
+// reportService loaded dynamically on payment success to avoid react-pdf circular dep crash
 
 
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
@@ -653,11 +653,13 @@ const JanIAAgent = () => {
                     // Mark transaction as processed
                     localStorage.setItem(`processed_${pData.x_ref_payco}`, 'true');
 
-                    // 1. Generate Report in Background
+                    // 1. Generate Report in Background (dynamic import to avoid react-pdf TDZ crash)
                     console.log("🚀 [Payment Success] Triggering Report Generation via Service para plan:", planType);
-                    generateAndSendReport(planType, janIACore.memory || {}, user).then(res => {
-                        if (res.success) console.log("✅ [JanIA] Reporte PDF generado.");
-                        else console.error("❌ [JanIA] Falló la generación:", res.error);
+                    import('../services/reportService.jsx').then(({ generateAndSendReport }) => {
+                        generateAndSendReport(planType, janIACore.memory || {}, user).then(res => {
+                            if (res.success) console.log("✅ [JanIA] Reporte PDF generado.");
+                            else console.error("❌ [JanIA] Falló la generación:", res.error);
+                        });
                     });
 
                     // 2. Trigger System Prompt for JanIA
