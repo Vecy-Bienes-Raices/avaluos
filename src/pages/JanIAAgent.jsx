@@ -912,14 +912,11 @@ const JanIAAgent = () => {
                         };
                     }
                 } else if (toolName === 'generate_payment_link') {
-                    // 🎟️ PAYMENT TRIGGER
-                    botMsg.component = 'payment_link';
-                    botMsg.paymentData = {
-                        plan: step.args.plan,
-                        estrato: step.args.estrato || janIACore.memory.property_data?.estrato || 3
-                    };
+                    // 🎟️ PAYMENT TRIGGER: No renderizamos bloque separado para evitar duplicados.
+                    // Confiamos en el enlace {{Pagar Plan...}} que inyectará el botón Premium.
+                    console.log("🎟️ [PAYMENT TRIGGER]: Handled via Markdown Link.");
                 } else if (toolName === 'generate_report_download') {
-                    // 📄 WEB REPORT TRIGGER form JanIA
+                    // 📄 WEB REPORT TRIGGER from JanIA
                     console.log("📄 [WEB REPORT TRIGGER]: Saving final data for Web Report...", step?.args);
                     const incomingPlan = step?.args?.plan || janIACore.memory.plan_filter?.[0] || 'esmeralda';
                     
@@ -932,8 +929,7 @@ const JanIAAgent = () => {
                     });
                     setPaidPlan(incomingPlan); // UNLOCK REPORT ACCESS
                     
-                    // El botón será inyectado por el parseador Markdown. 
-                    // Se remueve la invocación directa a react-pdf.
+                    botMsg.component = 'report_download'; // FORCE BUTTON COMPONENT
 
                 } else if (toolName === 'trigger_reward_card') {
                     // 🎁 VIRAL HOOK TRIGGER
@@ -1847,28 +1843,14 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
-                                    {/* 🎟️ COMPONENT: PAYMENT LINK BUTTON (Direct Checkout) */}
-                                    {msg?.component === 'payment_link' && msg?.paymentData && (
+                                    {/* 🎟️ COMPONENT: REPORT DOWNLOAD BUTTON (After Payment) */}
+                                    {msg?.component === 'report_download' && (
                                         <div className="w-full mt-4 animate-fade-in-up flex justify-center">
                                             <button
-                                                onClick={() => {
-                                                    // Calculation Logic (Unified Central Pricing)
-                                                    const { plan, estrato } = msg.paymentData;
-                                                    const calculatedPricing = liquidarServiciosVecy({ 
-                                                        plan: plan.replace('plan_', ''), 
-                                                        estrato: parseInt(estrato || 3), 
-                                                        areaM2: janIACore.memory.property_data?.area || 0 
-                                                    });
-                                                    const amount = calculatedPricing.total_a_pagar;
-
-                                                    handlePlanClick({ id: plan.replace('plan_', ''), amount });
-                                                }}
-                                                className={`group relative bg-gradient-to-r ${msg.paymentData.plan.toLowerCase().includes('cafe') ? 'from-[#8D6E63] to-[#5D4037]' : 'from-brand-gold to-brand-gold-light'} text-white font-bold uppercase tracking-widest py-2.5 px-6 rounded-full shadow-lg transition-all transform hover:scale-105 active:scale-95 border border-white/20`}
+                                                onClick={() => navigate(`/reporte/${chatId}`)}
+                                                className="bg-gradient-to-r from-brand-gold to-yellow-600 text-black font-bold py-2.5 px-6 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all border border-white/20 uppercase text-[12px] tracking-widest"
                                             >
-                                                <span className="flex items-center gap-2 relative z-10">
-                                                    <span>💳 PAGAR PLAN {msg.paymentData.plan.toUpperCase().replace('PLAN_', '')}</span>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                                                </span>
+                                                ✨ VER MI AVALÚO PROFESIONAL
                                             </button>
                                         </div>
                                     )}
