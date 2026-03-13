@@ -601,9 +601,9 @@ const JanIAAgent = () => {
 
         // 5. Rest of Plan logic
         // First check if user actually provided info
-        if (!janIACore.memory.property_data || !janIACore.memory.property_data.direccion_normalizada) {
+        if (!janIACore.memory.property_data || (!janIACore.memory.property_data.direccion_normalizada && !janIACore.memory.property_data.estrato)) {
             setToast({
-                message: "Aún no tengo la dirección exacta de tu inmueble. ¡Escríbesela a JanIA en el chat!",
+                message: "Por favor cuéntale a JanIA un poco más sobre el inmueble en el chat (como su estrato o ubicación) antes de proceder.",
                 type: 'error'
             });
             return;

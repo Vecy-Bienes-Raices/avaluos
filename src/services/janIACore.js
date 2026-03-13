@@ -219,6 +219,8 @@ export class JanIACore {
             this.history.push({ role: 'user', content: userText });
             this.history.push({ role: 'assistant', content: finalRes });
             
+            let uiComponent = null; // SAFE FIX: Declaración de UiComponent
+            
             if (plan.next_step?.type === 'tool') {
                 const toolName = plan.next_step.name;
                 if (toolName === 'offer_plans' || toolName === 'pricing_calculator') uiComponent = 'plan_card';
@@ -226,6 +228,7 @@ export class JanIACore {
                 else if (toolName === 'trigger_reward_card') uiComponent = 'reward_network_card';
                 else if (toolName === 'trigger_auth_options') uiComponent = 'auth_options';
                 else if (toolName === 'trigger_file_upload') uiComponent = 'file_upload';
+                else if (toolName === 'generate_location_pin') uiComponent = 'street_view';
             }
 
             return { text: finalRes, memory: this.memory, plan, component: uiComponent };
