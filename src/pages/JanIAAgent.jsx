@@ -331,7 +331,8 @@ const JanIAAgent = () => {
     const persistMemory = () => {
         const currentMem = janIACore.getMemory();
         if (currentMem && Object.keys(currentMem).length > 0) {
-            localStorage.setItem('janIA_temp_memory', JSON.stringify(currentMem));
+            // Wrap with 'memory' key so ReportPage.jsx can read it correctly
+            localStorage.setItem('janIA_temp_memory', JSON.stringify({ memory: currentMem }));
             console.log("🧠 JanIA Memory Bridge: Saved to LocalStorage", currentMem);
         }
     };
@@ -574,14 +575,11 @@ const JanIAAgent = () => {
     // 🔄 EFFECT: Execute Pending Action on User Login (LocalStorage based)
     useEffect(() => {
         if (user) {
-            // Model for Embeddings - Standard compatible version
-const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
             const pendingMsg = localStorage.getItem('janIA_pending_action');
             if (pendingMsg) {
                 console.log("🔓 User Authenticated. Executing pending action:", pendingMsg);
                 handleSendMessage(pendingMsg);
                 localStorage.removeItem('janIA_pending_action');
-                // Optional: Toast for user feedback
                 setToast({ message: "¡Registro exitoso! Continuando conversación...", type: "success" });
             }
         }
@@ -1558,10 +1556,14 @@ const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
                                                         .replace(/{{Mi Perfil}}/gi, '[Mi Perfil](/perfil)')
                                                         .replace(/{{Vecy Network}}/gi, '[Vecy Network](/perfil)')
                                                         // 3. Mapeo de Comandos Dinámicos (Encoding Robusto para evitar rotura de markdown)
-                                                        .replace(/{{Pagar Plan (.*?)}}/gi, (match, p1) => {
-                                                            const cmdData = encodeURIComponent(`PAY_PLAN_${p1.trim()}`);
-                                                            // RENDER WITHOUT CURLY BRACES
-                                                            return `[Pagar Plan ${p1.trim()}](/cmd/${cmdData})`;
+                                                        .replace(/{{Pagar Plan\s+(.*?)}}/gi, (match, p1) => {
+                                                            // Normalize plan name: café -> CAFE, esmeralda -> ESMERALDA
+                                                            const rawPlan = p1.trim();
+                                                            const normalizedPlan = rawPlan
+                                                                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+                                                                .toUpperCase();
+                                                            const cmdData = encodeURIComponent(`PAY_PLAN_${normalizedPlan}`);
+                                                            return `[Pagar Plan ${rawPlan}](/cmd/${cmdData})`;
                                                         })
                                                         .replace(/\[([^\]]+)\](?!\()/g, (match, p1) => {
                                                             const cmdData = encodeURIComponent(`SEND_MESSAGE_${p1.trim()}`);
@@ -1658,8 +1660,8 @@ const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
 
                                                                                             // 1. Identify Plan ID (clean)
                                                                                             // Matches 'cafe', 'esmeralda', 'oro'
-                                                                                            const planKey = ['CAFÉ', 'ESMERALDA', 'ORO'].find(k => planNameRaw.toUpperCase().includes(k)) || 'ORO';
-                                                                                            const cleanId = planKey === 'CAFÉ' ? 'cafe' : planKey.toLowerCase();
+                                                                                            const planKey = ['CAFE', 'CAFA', 'CAFÉ', 'ESMERALDA', 'ORO'].find(k => planNameRaw.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) || 'ORO';
+                                                                                            const cleanId = (planKey === 'CAFÉ' || planKey === 'CAFE') ? 'cafe' : planKey.toLowerCase();
 
                                                                                             // 2. Get User Stratum from Memory
                                                                                             const userStratum = janIACore.memory.property_data?.estrato || 3;
@@ -2048,7 +2050,7 @@ const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
                                 }}
                                 placeholder="Escribe un mensaje..."
                                 rows={1}
-                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm resize-none py-2 max-h-[120px] overflow-y-auto font-sans leading-relaxed whitespace-pre-wrap"
+                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm resize-none py-2 max-h-[120px] overflow-y-hidden font-sans leading-relaxed"
                                 onFocus={() => { setProfileOpen(false); setSettingsOpen(false); }}
                             />
 
