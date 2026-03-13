@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import Footer from '../components/VecyPhoenix/Footer';
@@ -86,27 +86,54 @@ const ReportPage = () => {
                 <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-brand-coffee via-brand-gold to-brand-accent print:bg-brand-coffee"></div>
                 
                 {/* Header Profile */}
-                <div className="flex justify-between items-start mb-12 mt-6 border-b-2 border-stone-100 pb-8">
-                    <div>
-                        <h1 className="text-4xl font-extrabold text-stone-900 tracking-tight mb-2">Informe de Valoración</h1>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 mt-6 border-b-2 border-stone-100 pb-8">
+                    <div className="mb-6 md:mb-0">
+                        <img src="/logo-vecy.png" alt="Vecy Avalúos Logo" className="w-40 object-contain mb-4 filter drop-shadow-sm" />
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-stone-900 tracking-tight mb-2 font-outfit">Informe de Valoración</h1>
                         <p className="text-lg text-brand-gold font-bold tracking-widest uppercase">Plan {planName}</p>
-                        <p className="text-sm text-stone-500 mt-2">Generado por Inteligencia Artificial JanIA</p>
-                        <p className="text-sm text-stone-500">Fecha: {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     </div>
-                    <img src="/LogoVecyGold.gif" alt="Vecy Avalúos Logo" className="w-32 object-contain" />
+                    <div className="text-left md:text-right">
+                        <p className="text-sm text-stone-500 font-medium">Asistente Evaluador: JanIA M.L.</p>
+                        <p className="text-sm text-stone-500 font-medium">Fecha: {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p className="text-xs text-stone-400 mt-1">ID: {chatId.substring(0,8).toUpperCase()}-VECY</p>
+                    </div>
                 </div>
 
-                {/* Main Hero Highlight (Price) */}
-                <div className="bg-stone-50 border border-stone-200 rounded-2xl p-8 mb-10 text-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold/5 rounded-bl-full pointer-events-none"></div>
-                    <h3 className="text-sm font-bold text-stone-500 uppercase tracking-widest mb-2">Valor Estimado de Mercado</h3>
-                    <div className="text-5xl font-extrabold text-[#423229]">
-                        ${(pd.precio_estimado || pd.precio || 0).toLocaleString('es-CO')} <span className="text-2xl text-stone-400 font-medium">COP</span>
+                {/* Street View / Photo Area */}
+                {pd.lat && pd.lng && (
+                    <div className="w-full h-64 md:h-80 rounded-2xl overflow-hidden mb-10 border-2 border-stone-100 shadow-inner relative group print:h-64">
+                        <img 
+                            src={`https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${pd.lat},${pd.lng}&fov=120&pitch=10&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`} 
+                            alt="Vista de Fachada del Inmueble" 
+                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-[1.03]"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                        <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <p className="text-xs text-white font-bold tracking-widest uppercase text-shadow-sm">Verificación Satelital JanIA</p>
+                        </div>
                     </div>
+                )}
+
+                {/* Main Hero Highlight (Price) */}
+                <div className="bg-gradient-to-br from-stone-50 to-white border border-stone-200 rounded-2xl p-8 mb-10 text-center relative overflow-hidden shadow-sm">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold/10 rounded-bl-full pointer-events-none"></div>
+                    <h3 className="text-sm font-bold text-stone-500 uppercase tracking-widest mb-3">Valor Estimado de Mercado</h3>
+                    
+                    {(pd.precio_estimado || pd.precio) ? (
+                        <div className="text-5xl md:text-6xl font-extrabold text-[#423229] tracking-tight">
+                            ${(pd.precio_estimado || pd.precio).toLocaleString('es-CO')} <span className="text-2xl text-stone-400 font-medium">COP</span>
+                        </div>
+                    ) : (
+                        <div className="text-2xl font-bold text-brand-coffee">
+                            ANÁLISIS EN CURSO O PENDIENTE DE REVISIÓN
+                        </div>
+                    )}
+
                     {isEsmeralda && (
-                        <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium border border-emerald-100">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Análisis Integral Normativo
+                        <div className="mt-5 inline-flex items-center gap-2 px-5 py-2 bg-emerald-50 text-emerald-800 rounded-full text-sm font-bold border border-emerald-200 shadow-sm">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                            Análisis Integral de Normativa (Esmeralda)
                         </div>
                     )}
                 </div>
@@ -132,15 +159,21 @@ const ReportPage = () => {
                     </div>
                     <div className="border-b border-stone-100 pb-3">
                         <p className="text-xs text-stone-400 font-bold uppercase tracking-wider mb-1">Tipo de Inmueble</p>
-                        <p className="font-semibold text-stone-800 capitalize">{pd.tipo || 'Apartamento'}</p>
+                        <p className="font-semibold text-stone-800 tracking-wide capitalize">{pd.tipo || 'Apartamento'}</p>
                     </div>
-                    <div className="border-b border-stone-100 pb-3">
-                        <p className="text-xs text-stone-400 font-bold uppercase tracking-wider mb-1">Valor por Metro Cuadrado</p>
-                        <p className="font-semibold text-stone-800">${pd.area && pd.precio_estimado ? Math.round(pd.precio_estimado / pd.area).toLocaleString('es-CO') : '-'} COP</p>
+                    <div className="border-b border-stone-200 pb-3">
+                        <p className="text-xs text-stone-400 font-bold uppercase tracking-wider mb-1">Valor x M² (Aprox)</p>
+                        <p className="font-semibold text-stone-800 tracking-wide">
+                            {pd.area && (pd.precio_estimado || pd.precio) 
+                                ? `$${Math.round((pd.precio_estimado || pd.precio) / pd.area).toLocaleString('es-CO')} COP` 
+                                : 'Análisis Pendiente'}
+                        </p>
                     </div>
-                    <div className="border-b border-stone-100 pb-3">
-                        <p className="text-xs text-stone-400 font-bold uppercase tracking-wider mb-1">Municipio / Ciudad</p>
-                        <p className="font-semibold text-stone-800">Bogotá D.C.</p>
+                    <div className="border-b border-stone-200 pb-3">
+                        <p className="text-xs text-stone-400 font-bold uppercase tracking-wider mb-1">Ubicación Geográfica</p>
+                        <p className="font-semibold text-stone-800 tracking-wide">
+                            {pd.lat ? `${pd.lat.toFixed(4)}, ${pd.lng.toFixed(4)}` : 'Bogotá D.C., Colombia'}
+                        </p>
                     </div>
                 </div>
 

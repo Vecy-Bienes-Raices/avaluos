@@ -89,14 +89,19 @@ const PaymentResponse = () => {
                             // I will keep the RPC logic as it was, just adding the storage above.
 
                             import('../lib/supabaseClient').then(async ({ supabase }) => {
-                                const { data: { user } } = await supabase.auth.getUser();
-                                if (user) {
-                                    const { data: rpcData, error: rpcError } = await supabase.rpc('process_referral_commission', {
-                                        p_payer_id: user.id,
-                                        p_plan_type: planType,
-                                        p_amount_paid: amountPaid
-                                    });
-                                    if (rpcError) console.error("Referral Commission Error:", rpcError);
+                                try {
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (user) {
+                                        // 🔒 Robust RPC call: fail silently to not block the main payment success UI
+                                        const { error: rpcError } = await supabase.rpc('process_referral_commission', {
+                                            p_payer_id: user.id,
+                                            p_plan_type: planType,
+                                            p_amount_paid: amountPaid
+                                        });
+                                        if (rpcError) console.warn("Referral System (RPC) Status:", rpcError.message);
+                                    }
+                                } catch (e) {
+                                    console.warn("Referral system temporarily unavailable");
                                 }
                             });
 

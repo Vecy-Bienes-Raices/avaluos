@@ -588,6 +588,11 @@ export class JanIACore {
                 } catch (e) { return "Fallo en memorización."; }
 
             case 'generate_payment_link':
+                // --- CRITICAL MEMORY SYNC FOR UI PAYMENTS ---
+                if (!this.memory.property_data) this.memory.property_data = {};
+                if (args.estrato) this.memory.property_data.estrato = parseInt(args.estrato);
+                if (args.area) this.memory.property_data.area = parseFloat(args.area);
+                
                 // Returns a system token that the UI converts into a clickable Payment Button
                 // args: { plan: 'cafe'|'esmeralda'|'oro', estrato: 3 }
                 return `[SISTEMA]: Botón de pago generado para Plan ${args.plan.toUpperCase()}. Dile: "Aquí tienes el botón de pago seguro para iniciar de inmediato. 👇"`;

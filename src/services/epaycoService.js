@@ -85,7 +85,8 @@ export const verifyPayment = async (ref_payco) => {
                 status: data.data.x_cod_response, // 1: Aceptada, 2: Rechazada, 3: Pendiente, 4: Fallida
                 statusText: data.data.x_response,
                 amount: data.data.x_amount,
-                invoice: data.data.x_id_invoice
+                invoice: data.data.x_id_invoice,
+                description: data.data.x_description || ''
             };
         } else {
             throw new Error('Epayco validation failed');

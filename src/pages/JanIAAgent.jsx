@@ -151,7 +151,8 @@ const JanIAAgent = () => {
                         text: `✅ [SISTEMA]: PAGO APROBADO (${transaction.invoice}). Monto: $${transaction.amount}`,
                         isHidden: true
                     }]);
-                    const planName = (transaction.description || 'esmeralda').split(' ')[0].toLowerCase();
+                    const rawDesc = transaction.description || 'esmeralda';
+                    const planName = String(rawDesc).trim().split(' ')[0].toLowerCase();
                     processPaymentSuccess(ref_payco, transaction.amount, planName);
 
                 } else if (transaction && (transaction.status === 2 || transaction.status === 4)) {
@@ -600,8 +601,11 @@ const JanIAAgent = () => {
         }
 
         // 5. Rest of Plan logic
-        // First check if user actually provided info
-        if (!janIACore.memory.property_data || (!janIACore.memory.property_data.direccion_normalizada && !janIACore.memory.property_data.estrato)) {
+        // UI Fix: Use live core memory instead of potentially unsynced state
+        const liveMemory = janIACore.getMemory();
+        const propertyData = liveMemory.property_data || {};
+        
+        if (!propertyData.direccion_normalizada && !propertyData.estrato && !propertyData.area) {
             setToast({
                 message: "Por favor cuéntale a JanIA un poco más sobre el inmueble en el chat (como su estrato o ubicación) antes de proceder.",
                 type: 'error'
@@ -826,6 +830,7 @@ const JanIAAgent = () => {
                 .replace(/\{[\s\S]*"thought_signature"[\s\S]*\}/g, '')
                 .replace(/\{[\s\S]*"next_step"[\s\S]*\}/g, '')
                 .replace(/\{[\s\S]*"thought_process"[\s\S]*\}/g, '')
+                .replace(/\(PLAN_NAME=[\s\S]*?\)/gi, '') // Remove (PLAN_NAME=...)
                 .replace(/\[SYSTEM:[\s\S]*?\]/g, '') // Remove specific system tags
                 .replace(/`\[SYSTEM:[\s\S]*?\]`/g, '') // Remove backticked system tags
                 .replace(/\[BLOCK:.*?\]/g, '')
@@ -847,8 +852,21 @@ const JanIAAgent = () => {
                 forceAuth = true;
             }
 
-            if (response.plan || forceAuth) {
-                const step = response.plan?.next_step;
+            if (response.plan || forceAuth || (response.text || '').includes('PLAN_NAME=')) {
+                let step = response.plan?.next_step;
+                
+                // --- MANUAL INJECTION: If model halluninated the (PLAN_NAME) syntax ---
+                if (!step && (response.text || '').includes('PLAN_NAME=')) {
+                    const match = (response.text || '').match(/PLAN_NAME=["']?(.*?)["']?,.*?PRICE=["']?(.*?)["']?,.*?ESTRATO=["']?(.*?)["']?/i);
+                    if (match) {
+                        step = {
+                            type: 'tool',
+                            name: 'generate_payment_link',
+                            args: { plan: match[1].toLowerCase(), price: match[2], estrato: match[3] }
+                        };
+                    }
+                }
+
                 const toolName = step?.type === 'tool' ? step.name : null;
 
                 if (toolName === 'trigger_policy_card' || forceAuth) {
@@ -863,8 +881,8 @@ const JanIAAgent = () => {
                     botMsg.component = 'plan_card';
                     botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])];
                 } else if (toolName === 'pricing_calculator') {
-                    // 📄 CAPTURE DATA FOR PDF
-                    console.log("📄 [PDF TRIGGER]: Capturing valuation data...", step.args);
+                    // 📄 CAPTURE DATA FOR REPORT
+                    console.log("📄 [REPORT DATA TRIGGER]: Capturing valuation data...", step.args);
                     const cleanVal = (v) => {
                         if (!v) return 0;
                         if (typeof v === 'number') return v;
@@ -878,7 +896,7 @@ const JanIAAgent = () => {
                         date: new Date().toLocaleDateString()
                     });
 
-                    botMsg.component = 'pdf_download'; // Trigger UI component
+                    // NO RENDERIZAMOS PDF AQUÍ (Se enviará al Dashboard)
 
                 } else if (toolName === 'start_bogota_flow') {
                     botMsg.component = 'options';
@@ -901,8 +919,8 @@ const JanIAAgent = () => {
                         estrato: step.args.estrato || janIACore.memory.property_data?.estrato || 3
                     };
                 } else if (toolName === 'generate_report_download') {
-                    // 📄 PDF DOWNLOAD TRIGGER form JanIA
-                    console.log("📄 [PDF TRIGGER]: Generating Download Link...", step?.args);
+                    // 📄 WEB REPORT TRIGGER form JanIA
+                    console.log("📄 [WEB REPORT TRIGGER]: Saving final data for Web Report...", step?.args);
                     const incomingPlan = step?.args?.plan || janIACore.memory.plan_filter?.[0] || 'esmeralda';
                     
                     setReportData({
@@ -912,8 +930,10 @@ const JanIAAgent = () => {
                         date: new Date().toLocaleDateString(),
                         planType: incomingPlan
                     });
-                    setPaidPlan(incomingPlan); // UNLOCK UI COMPONENT
-                    botMsg.component = 'pdf_download';
+                    setPaidPlan(incomingPlan); // UNLOCK REPORT ACCESS
+                    
+                    // El botón será inyectado por el parseador Markdown. 
+                    // Se remueve la invocación directa a react-pdf.
 
                 } else if (toolName === 'trigger_reward_card') {
                     // 🎁 VIRAL HOOK TRIGGER
@@ -1792,39 +1812,6 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
-                                    {/* 💎 COMPONENT: PDF DOWNLOAD (Dynamic - PAID PLANS ONLY) */}
-                                    {msg?.component === 'pdf_download' && reportData && paidPlan && (
-                                        <div className="w-full mt-4 animate-fade-in-up flex justify-center">
-                                            <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
-                                                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-brand-gold/20 text-brand-gold">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                                                </div>
-                                                <h3 className="text-lg font-bold text-white mb-1">
-                                                    {paidPlan === 'oro' ? 'Avalúo Certificado RAA' : 'Informe Profesional'}
-                                                </h3>
-                                                <p className="text-xs text-stone-300 mb-4">
-                                                    Documento oficial generado con éxito.
-                                                </p>
-
-                                                <PDFDownloadLink
-                                                    document={
-                                                        <ProfessionalReport
-                                                            planType={paidPlan}
-                                                            propertyData={reportData}
-                                                            userName={user?.user_metadata?.full_name || reportData.solicitante}
-                                                            userPhotos={attachments.filter(a => a.type.startsWith('image/')).map(a => a.preview)}
-                                                        />
-                                                    }
-                                                    fileName={`Vecy_Avaluo_${paidPlan}_${new Date().getTime()}.pdf`}
-                                                    className="inline-flex items-center gap-2 font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg hover:scale-105 bg-brand-gold hover:bg-white text-black hover:shadow-brand-gold/50"
-
-                                                >
-                                                    {({ loading }) => (loading ? 'Generando PDF...' : '📥 Descargar PDF')}
-                                                </PDFDownloadLink>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     {/* 🎥 COMPONENT: VECY CLIP PREVIEW (NEW) */}
                                     {msg?.component === 'vecy_clip' && (
                                         <div className="w-full mt-4 animate-fade-in-up flex justify-center">
@@ -1876,7 +1863,7 @@ const JanIAAgent = () => {
 
                                                     handlePlanClick({ id: plan.replace('plan_', ''), amount });
                                                 }}
-                                                className="group relative bg-gradient-to-r from-brand-gold to-[#f0e68c] hover:to-white text-black font-black uppercase tracking-widest py-4 px-10 rounded-full shadow-[0_0_40px_rgba(204,172,78,0.5)] transition-all transform hover:scale-105 hover:-translate-y-1 active:scale-95 border-2 border-white/50"
+                                                className={`group relative bg-gradient-to-r ${msg.paymentData.plan.toLowerCase().includes('cafe') ? 'from-[#8D6E63] to-[#5D4037]' : 'from-brand-gold to-brand-gold-light'} text-white font-bold uppercase tracking-widest py-2.5 px-6 rounded-full shadow-lg transition-all transform hover:scale-105 active:scale-95 border border-white/20`}
                                             >
                                                 <span className="flex items-center gap-2 relative z-10">
                                                     <span>💳 PAGAR PLAN {msg.paymentData.plan.toUpperCase().replace('PLAN_', '')}</span>
