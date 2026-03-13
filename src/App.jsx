@@ -12,6 +12,7 @@ const TermsAndConditions = lazy(() => import('./pages/Terms'));
 const AllyDashboard = lazy(() => import('./components/VecyPhoenix/AllyDashboard'));
 const SoyPerito = lazy(() => import('./pages/SoyPerito')); // 🚖 New Appraiser Landing
 const Network = lazy(() => import('./pages/Network')); // 💰 Network Marketing Page
+const ReportPage = lazy(() => import('./pages/ReportPage')); // 📄 Web Report Page
 
 import { ModalProvider } from './context/ModalContext';
 import GlobalModal from './components/GlobalModal';
@@ -38,6 +39,9 @@ function App() {
 
                             {/* Report Page (Dynamic: :id can be 'portales' or a DB ID) */}
                             <Route path="/avaluo/:id" element={<AvaluoPortales />} />
+                            
+                            {/* NEW: Clean AI Generated Web Report */}
+                            <Route path="/reporte/:id" element={<ReportPage />} />
 
                             {/* Navigation Pages */}
                             <Route path="/planes" element={<Planes />} />
