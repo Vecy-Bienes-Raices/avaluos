@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCopy, faShieldCheck, faBiohazard, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faCopy, faShield, faBiohazard, faBolt } from '@fortawesome/free-solid-svg-icons';
 
 const SWOT = ({ data = {} }) => {
 
