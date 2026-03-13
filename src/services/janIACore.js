@@ -19,23 +19,25 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
-// MODEL CONFIGURATION (VECY 2026 STANDARDS)
-export const CORTEX_MODEL = "gemini-3-pro-preview"; // Cerebro Central: Mayor razonamiento
-export const REFLEX_MODEL = "gemini-3-flash-preview"; // Velocidad: Respuesta rápida (Nueva generación)
-export const VISION_MODEL = "gemini-3-pro-preview"; // Visión: Mejor análisis de imágenes
-export const TITLING_MODEL = "gemini-3-flash-preview";  // Titulación: Rápida y eficiente
-export const RESEARCH_MODEL = "deep-research-pro-preview-12-2025";
+// MODEL CONFIGURATION (VECY 2026 STANDARDS - Real Gemini 1.5 Series)
+export const CORTEX_MODEL = "gemini-1.5-pro"; // Cerebro Central: Mayor razonamiento
+export const REFLEX_MODEL = "gemini-1.5-flash"; // Velocidad: Respuesta rápida
+export const VISION_MODEL = "gemini-1.5-pro"; // Visión: Mejor análisis de imágenes
+export const TITLING_MODEL = "gemini-1.5-flash";  // Titulación: Rápida y eficiente
+export const RESEARCH_MODEL = "gemini-1.5-pro"; // Deep research proxy
 
 // UX: Dynamic Thinking States
-// UX: Dynamic Thinking States
+// UX: Dynamic Thinking States (SuperAppraiser Persona)
 export const THINKING_MESSAGES = {
-    INITIAL: "JanIA está pensando",
-    FILES: "JanIA está escaneando tus archivos",
-    WEB: "JanIA está navegando en la web",
-    COMPARING: "JanIA está buscando en el barrio",
-    PRICING: "JanIA está cotizando tu plan",
-    WRITING: "JanIA está escribiendo",
-    REPORT: "JanIA está redactando tu informe"
+    INITIAL: "JanIA está analizando tu caso",
+    FILES: "JanIA está escaneando la documentación técnica",
+    WEB: "JanIA está consultando bases de datos inmobiliarias",
+    COMPARING: "JanIA está investigando precios en el sector",
+    PRICING: "JanIA está calculando tu presupuesto Oro",
+    WRITING: "JanIA está redactando su criterio técnico",
+    REPORT: "JanIA está certificando tu informe final",
+    MAPS: "JanIA está activando la visión satelital",
+    AUTH: "JanIA está blindando tu identidad"
 };
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -199,7 +201,9 @@ export class JanIACore {
                     if (tool === 'read_web_page') onThinkingUpdate(THINKING_MESSAGES.WEB);
                     else if (tool === 'deep_research_property') onThinkingUpdate(THINKING_MESSAGES.COMPARING);
                     else if (tool === 'pricing_calculator') onThinkingUpdate(THINKING_MESSAGES.PRICING);
-                    else onThinkingUpdate("JanIA está ejecutando " + tool + "...");
+                    else if (tool === 'get_location_details') onThinkingUpdate(THINKING_MESSAGES.MAPS);
+                    else if (tool === 'trigger_auth_options' || tool === 'trigger_policy_card') onThinkingUpdate(THINKING_MESSAGES.AUTH);
+                    else onThinkingUpdate("JanIA está sincronizando sus sistemas...");
                 }
                 toolRes = await this._executeTool(plan.next_step.name, plan.next_step.args);
             }
@@ -779,9 +783,7 @@ export class JanIACore {
              this.vision_buffer.forEach(img => {
                  msgParts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
              });
-             // Clear buffer after using? Maybe keep for context? 
-             // Better keep it for the session context, but Gemini Chat History handles text. 
-             // Inline data in sendMessage is ephemeral for that turn unless part of history.
+             this.vision_buffer = []; // Clear after sending to avoid reduncancy
         }
 
         // No timeout - JanIA has full autonomy
