@@ -19,12 +19,12 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
-// MODEL CONFIGURATION (VECY 2026 STANDARDS - Real Gemini 3 Series)
-export const CORTEX_MODEL = "gemini-3-pro-preview"; // Cerebro Central: Mayor razonamiento
-export const REFLEX_MODEL = "gemini-3-flash-preview"; // Velocidad: Respuesta rápida
-export const VISION_MODEL = "gemini-3-pro-preview"; // Visión: Mejor análisis de imágenes
-export const TITLING_MODEL = "gemini-3-flash-preview";  // Titulación: Rápida y eficiente
-export const RESEARCH_MODEL = "gemini-3-pro-preview"; // Deep research proxy
+// MODEL CONFIGURATION (VECY 2026 STANDARDS - Real Gemini 3.1 Series)
+export const CORTEX_MODEL = "gemini-3.1-pro-preview"; // Cerebro Central: Mayor razonamiento
+export const REFLEX_MODEL = "gemini-3.1-flash-preview"; // Velocidad: Respuesta rápida
+export const VISION_MODEL = "gemini-3.1-pro-preview"; // Visión: Mejor análisis de imágenes
+export const TITLING_MODEL = "gemini-3.1-flash-preview";  // Titulación: Rápida y eficiente
+export const RESEARCH_MODEL = "gemini-3.1-pro-preview"; // Deep research proxy
 
 // UX: Dynamic Thinking States
 // UX: Dynamic Thinking States (SuperAppraiser Persona)
