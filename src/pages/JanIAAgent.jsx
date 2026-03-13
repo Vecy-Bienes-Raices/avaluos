@@ -110,13 +110,15 @@ const JanIAAgent = () => {
             localStorage.setItem(`processed_${transactionRef}`, 'true');
 
             // Trigger Success Flow (JanIA Response)
-            setMessages(prev => [...prev, {
-                type: 'system',
-                text: `✅ [SISTEMA]: PAGO APROBADO (${transactionRef}). Monto: $${amount}`,
-                isHidden: false
-            }]);
-
-            localStorage.setItem('janIA_pending_action', "[SISTEMA]: PAGO APROBADO EXITOSAMENTE. El dinero entró a la cuenta. Continúa el mensaje agradeciendo la compra por el plan y dándole el botón de descarga del pdf usando estrictamente la herramienta 'generate_report_download'.");
+                  const systemMsg = {
+                type: 'user',
+                text: `PAGO_APROBADO_EVENT: ${transactionRef} | Amount: ${amount}`,
+                isHidden: true, // 🤫 Ocultar de la UI
+                timestamp: new Date().toISOString()
+            };
+            setMessages(prev => [...prev, systemMsg]);
+            
+            localStorage.setItem('janIA_pending_action', "SISTEMA_CONFIRMACION_PAGO_EXITOSA");
 
             // No llamamos generateAndSendReport aquí porque el usuario se recargó y no tenemos el appraisalData completo en memoria local de component,
             // dejaremos que JanIA decida llamar la tool `generate_report_download` a través del `janIA_pending_action`
@@ -146,24 +148,22 @@ const JanIAAgent = () => {
 
             verifyPayment(ref_payco).then(transaction => {
                 if (transaction && transaction.status === 1) { // 1 = Aceptada
-                    setMessages(prev => [...prev, {
-                        type: 'system',
-                        text: `✅ [SISTEMA]: PAGO APROBADO (${transaction.invoice}). Monto: $${transaction.amount}`,
-                        isHidden: true
-                    }]);
+                    const systemMsg = {
+                        type: 'user',
+                        text: `PAGO_APROBADO_EVENT: ${transaction.invoice} | Amount: ${transaction.amount}`,
+                        isHidden: true,
+                        timestamp: new Date().toISOString()
+                    };
+                    setMessages(prev => [...prev, systemMsg]);
                     const rawDesc = transaction.description || 'esmeralda';
                     const planName = String(rawDesc).trim().split(' ')[0].toLowerCase();
                     processPaymentSuccess(ref_payco, transaction.amount, planName);
-
                 } else if (transaction && (transaction.status === 2 || transaction.status === 4)) {
                     setMessages(prev => [...prev, {
                         type: 'system',
                         text: `❌ [SISTEMA]: PAGO RECHAZADO (${transaction.statusText}).`,
                         isHidden: false
                     }]);
-                    localStorage.setItem('janIA_pending_action', "[SISTEMA]: El pago fue RECHAZADO por el banco. Dile amablemente que intente de nuevo o use otro medio de pago.");
-                } else {
-                    setMessages(prev => [...prev, { type: 'system', text: `⚠️ [SISTEMA]: Estado de pago: ${transaction?.statusText || 'Desconocido'}.`, isHidden: false }]);
                 }
             });
         }
@@ -172,7 +172,7 @@ const JanIAAgent = () => {
         else if (refCode) {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
-    }, []);
+    }, [chatId, user]); // Include dependencies for safety
 
     // --- 🗑️ DELETION HANDLERS (UPDATED FOR GLASS UI) ---
 
@@ -574,6 +574,8 @@ const JanIAAgent = () => {
     // 🔄 EFFECT: Execute Pending Action on User Login (LocalStorage based)
     useEffect(() => {
         if (user) {
+            // Model for Embeddings - Standard compatible version
+const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
             const pendingMsg = localStorage.getItem('janIA_pending_action');
             if (pendingMsg) {
                 console.log("🔓 User Authenticated. Executing pending action:", pendingMsg);
@@ -605,7 +607,10 @@ const JanIAAgent = () => {
         const liveMemory = janIACore.getMemory();
         const propertyData = liveMemory.property_data || {};
         
-        if (!propertyData.direccion_normalizada && !propertyData.estrato && !propertyData.area) {
+        // SMART VALIDATION: Only block if we have absolutely ZERO info to start with
+        const hasBasicInfo = propertyData.direccion_normalizada || propertyData.estrato || propertyData.area || propertyData.valor_estimado;
+        
+        if (!hasBasicInfo) {
             setToast({
                 message: "Por favor cuéntale a JanIA un poco más sobre el inmueble en el chat (como su estrato o ubicación) antes de proceder.",
                 type: 'error'
@@ -666,13 +671,13 @@ const JanIAAgent = () => {
                     });
 
                     // 2. Trigger System Prompt for JanIA
-                    const sysMsg = {
-                        id: Date.now(),
-                        type: 'system',
-                        text: `✅ [SISTEMA]: PAGO APROBADO EXITOSAMENTE (Ref: ${pData.x_ref_payco}). El usuario pagó el plan. Agradécele muy brevemente e INMEDIATAMENTE invoca la herramienta 'generate_report_download' de manera obligatoria para entregar el Avalúo en PDF ahora mismo.`,
-                        isHidden: true
-                    };
-                    setMessages(prev => [...prev, sysMsg]);
+                    const systemMsg = {
+                    type: 'user',
+                    text: `EVENTO_PAGO_EXITOSO: Ref ${pData.x_ref_payco}. Activa generate_report_download para el usuario ahora.`,
+                    isHidden: true,
+                    timestamp: new Date().toISOString()
+                };
+                    setMessages(prev => [...prev, systemMsg]);
 
                     setIsLoading(true);
                     setThinkingText("Generando tu PDF...");
@@ -680,7 +685,7 @@ const JanIAAgent = () => {
                     // 3. Make JanIA answer the event and call the tool 
                     try {
                         const responseIter = await janIACore.processMessage(
-                            sysMsg.text, 
+                            systemMsg.text, 
                             session?.access_token, 
                             chatId, 
                             {}, 
@@ -830,12 +835,22 @@ const JanIAAgent = () => {
                 .replace(/\{[\s\S]*"thought_signature"[\s\S]*\}/g, '')
                 .replace(/\{[\s\S]*"next_step"[\s\S]*\}/g, '')
                 .replace(/\{[\s\S]*"thought_process"[\s\S]*\}/g, '')
-                .replace(/\(PLAN_NAME=[\s\S]*?\)/gi, '') // Remove (PLAN_NAME=...)
-                .replace(/\[SYSTEM:[\s\S]*?\]/g, '') // Remove specific system tags
-                .replace(/`\[SYSTEM:[\s\S]*?\]`/g, '') // Remove backticked system tags
+                .replace(/\{[\s\S]*"action"[\s\S]*\}/g, '') 
+                .replace(/\{[\s\S]*"property_details"[\s\S]*\}/g, '') // 🛠️ FIX: Kill full report JSON objects
+                .replace(/\(PLAN_NAME=[\s\S]*?\)/gi, '') 
+                .replace(/\[SISTEMA:?[\s\S]*?\]/gi, '') 
+                .replace(/`\[SISTEMA:?[\s\S]*?\]`/gi, '') 
                 .replace(/\[BLOCK:.*?\]/g, '')
                 .replace(/tool_code:.*?(\n|$)/g, '')
                 .replace(/```json[\s\S]*?```/g, '')
+                .replace(/\{[\s\S]*?\}/g, (match) => {
+                    // Robust safety net: if it's a valid JSON block of any kind, kill it from the end user text
+                    try { 
+                        const p = JSON.parse(match); 
+                        if (p.action !== undefined || p.plan !== undefined || p.thought_signature !== undefined || p.property_details !== undefined) return ''; 
+                        return ''; // If it parses, it's likely our technical junk
+                    } catch(e) { return match; }
+                })
                 .trim();
 
             // Add Bot Message
@@ -920,15 +935,31 @@ const JanIAAgent = () => {
                     console.log("📄 [WEB REPORT TRIGGER]: Saving final data for Web Report...", step?.args);
                     const incomingPlan = step?.args?.plan || janIACore.memory.plan_filter?.[0] || 'esmeralda';
                     
-                    setReportData({
+                    const reportObject = {
                         address: janIACore.memory.property_data?.direccion_normalizada || 'Bogotá D.C.',
                         area: janIACore.memory.property_data?.area || 50,
                         value: janIACore.memory.property_data?.precio_estimado || 0,
                         date: new Date().toLocaleDateString(),
-                        planType: incomingPlan
-                    });
+                        planType: incomingPlan,
+                        property_data: janIACore.memory.property_data, // COMPLETO PARA EL FALLBACK
+                        plan_filter: [incomingPlan]
+                    };
+
+                    setReportData(reportObject);
                     setPaidPlan(incomingPlan); // UNLOCK REPORT ACCESS
                     
+                    // 💾 CRITICAL SYNC: Persist with the 'memory' structure ReportPage expects
+                    if (reportObject.value > 0) {
+                        localStorage.setItem('janIA_temp_memory', JSON.stringify({
+                            memory: {
+                                ...janIACore.memory,
+                                property_data: janIACore.memory.property_data,
+                                plan_filter: [incomingPlan]
+                            }
+                        }));
+                        console.log("💾 [Persistencia]: Datos de reporte guardados en LocalStorage.");
+                    }
+
                     botMsg.component = 'report_download'; // FORCE BUTTON COMPONENT
 
                 } else if (toolName === 'trigger_reward_card') {
@@ -1380,7 +1411,7 @@ const JanIAAgent = () => {
                             {/* Header Spacer - Ensures JanIA is never beheaded */}
                             <div className="h-14 md:h-16 w-full flex-shrink-0" aria-hidden="true" />
 
-                            {messages.filter(m => !(messages.length > 1 && m.component === 'greeting')).map((msg, index) => (
+                            {messages.filter(m => !(messages.length > 1 && m.component === 'greeting') && !m.isHidden).map((msg, index) => (
                                 <div key={index} className={`flex flex-col ${msg?.type === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
 
                                     {/* Bot Avatar if Bot Message (NOT for greeting) */}
@@ -1977,7 +2008,7 @@ const JanIAAgent = () => {
                             </div>
                         )}
 
-                        <div className="bg-white/10 border border-white/20 rounded-3xl px-4 py-3 flex items-end gap-3 transition-all shadow-lg backdrop-blur-xl hover:bg-white/15">
+                        <div className="bg-white/10 border border-white/20 rounded-3xl px-4 py-2 flex items-end gap-3 transition-all shadow-lg backdrop-blur-xl hover:bg-white/15">
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -2017,7 +2048,7 @@ const JanIAAgent = () => {
                                 }}
                                 placeholder="Escribe un mensaje..."
                                 rows={1}
-                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm resize-none py-3 max-h-[120px] overflow-y-auto font-sans leading-relaxed whitespace-pre-wrap"
+                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm resize-none py-2 max-h-[120px] overflow-y-auto font-sans leading-relaxed whitespace-pre-wrap"
                                 onFocus={() => { setProfileOpen(false); setSettingsOpen(false); }}
                             />
 
