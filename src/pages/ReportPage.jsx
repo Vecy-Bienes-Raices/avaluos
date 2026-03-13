@@ -1,3 +1,8 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
+import { useTheme } from '../context/ThemeContext';
+import Footer from '../components/VecyPhoenix/Footer';
 import Hero from '../components/VecyPhoenix/Hero';
 import PropertyDetails from '../components/VecyPhoenix/PropertyDetails';
 import MarketAnalysis from '../components/VecyPhoenix/MarketAnalysis';

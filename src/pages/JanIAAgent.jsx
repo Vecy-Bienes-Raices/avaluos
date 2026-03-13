@@ -1,27 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { janIACore, handleInitialGreeting, getNeighborGreeting } from '../services/janIACore'; // New Autonomous Core
-import { supabase } from '../lib/supabaseClient'; // Import Supabase Client
-// crearSolicitud removed (Logic moved to JanIACore)
+import { janIACore, handleInitialGreeting, getNeighborGreeting } from '../services/janIACore';
+import { supabase } from '../lib/supabaseClient';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AuthOptions from '../components/VecyPhoenix/AuthOptions';
 import PricingCards from '../components/PricingCards';
 import { initiateCheckout, verifyPayment } from '../services/epaycoService';
 import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile, deleteChat, clearUserHistory, generateSmartTitle } from '../services/historyService';
-import { liquidarServiciosVecy } from '../services/pricingService'; // Import liquidarServiciosVecy
+import { liquidarServiciosVecy } from '../services/pricingService';
 import { GlassToast, GlassConfirm } from '../components/VecyAlerts';
-import { GlassAvatar } from '../components/GlassAvatar'; // 💎 NEW IMPORT
-import { PDFDownloadLink } from '@react-pdf/renderer'; // 📄 PDF Generation
-import ProfessionalReport from '../components/reports/ProfessionalReport'; // 📄 Professional Report Template (Cafe/Esmeralda/Oro)
-import { sendAdminNotification } from '../services/notificationService'; // Fallback
-import { generateAndSendReport } from '../services/reportService.jsx'; // 📄 Full PDF Workflow
-import RewardModelCard from '../components/RewardModelCard';
-
-
-// ... [Keep existing code] ...
-
+import { GlassAvatar } from '../components/GlassAvatar';
+import { sendAdminNotification } from '../services/notificationService';
+import { generateAndSendReport } from '../services/reportService.jsx';
 
 
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
