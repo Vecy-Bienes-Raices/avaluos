@@ -594,9 +594,18 @@ const JanIAAgent = () => {
             return;
         }
 
-        // 💎 ORO KING LOGIC: Redirect to Chat for Quote (Uber Style)
         if (plan.id === 'oro') {
             await handleSendMessage("Quiero cotizar el Plan Oro King para mi empresa/lote. 🏆");
+            return;
+        }
+
+        // 5. Rest of Plan logic
+        // First check if user actually provided info
+        if (!janIACore.memory.property_data || !janIACore.memory.property_data.direccion_normalizada) {
+            setToast({
+                message: "Aún no tengo la dirección exacta de tu inmueble. ¡Escríbesela a JanIA en el chat!",
+                type: 'error'
+            });
             return;
         }
 
@@ -733,6 +742,30 @@ const JanIAAgent = () => {
         setIsAnalyzing(true);
         setThinkingText("JanIA está pensando..."); // Reset status
 
+        // 3. Fallback for raw JSON tool parameters that sometimes leak as text
+        // Catch { "action": "", "parameters": { "plan_name": "Plan Café Express", "amount": 49997, "stratum": "4" } }
+        const jsonPattern = /\{\s*"action"\s*:\s*".*?"\s*,\s*"parameters"\s*:\s*(\{(?:[^{}]|(?:\{[^{}]*\}))*?\})\s*\}/g;
+        let finalHtml = formatted.replace(jsonPattern, (match, paramStr) => {
+            try {
+                const params = JSON.parse(paramStr);
+                
+                if (params.plan_name && params.amount) {
+                     const isEsmeralda = params.plan_name.toLowerCase().includes('esmeralda');
+                     const btnClass = isEsmeralda ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-brand-coffee hover:bg-brand-coffee-light text-white';
+                     const planId = isEsmeralda ? 'esmeralda' : 'cafe';
+                     return `</p><div class="mt-4"><button onclick="document.dispatchEvent(new CustomEvent('jania-action', {detail: {type: 'payment', plan: '${planId}'}}))" class="px-6 py-3 rounded-full font-bold shadow-lg transition-all ${btnClass}">PAGAR ${params.plan_name.toUpperCase()}</button></div><p>`;
+                }
+                
+                if (params.report_name && params.file_type === 'PDF') {
+                     return `</p><div class="mt-4"><button onclick="document.dispatchEvent(new CustomEvent('jania-action', {detail: {type: 'view_report'}}))" class="px-6 py-3 rounded-full font-bold shadow-lg transition-all bg-brand-gold text-black hover:bg-yellow-400">VER AVALÚO (PDF) 📄</button></div><p>`;
+                }
+                
+            } catch(e) { console.error("Error parsing leaked JSON tool:", e); }
+            return ''; // Hide it if we can't parse it well into a button
+        });
+
+        // 4. Transform Markdown ** bolding to HTML
+        finalHtml = finalHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         // 🛡️ RE-MEMORIZATION SAFETY CHECK
         // If user is logged in, FORCE memory registration state
         if (user && !janIACore.memory.is_registered) {
