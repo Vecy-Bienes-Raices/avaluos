@@ -5,7 +5,7 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Model for Embeddings
-const embeddingModel = genAI.getGenerativeModel({ model: "embedding-001" });
+const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
 /**
  * Generates a vector embedding for a given text.
