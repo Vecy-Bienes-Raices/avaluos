@@ -1403,7 +1403,24 @@ const JanIAAgent = () => {
                             {/* Header Spacer - Ensures JanIA is never beheaded */}
                             <div className="h-14 md:h-16 w-full flex-shrink-0" aria-hidden="true" />
 
-                            {messages.filter(m => !(messages.length > 1 && m.component === 'greeting') && !m.isHidden).map((msg, index) => (
+                            {messages.filter(m => {
+                                if (messages.length > 1 && m.component === 'greeting') return false;
+                                if (m.isHidden) return false;
+                                
+                                const text = String(m.text || '');
+                                // REGLA DE ORO DE PRIVACIDAD: Si parece técnico, OCÚLTALO.
+                                const isTechnical = 
+                                    text.includes('[SISTEMA]') || 
+                                    text.includes('EVENTO_PAGO_') || 
+                                    text.includes('trigger_') ||
+                                    text.includes('{') && text.includes('}') || // Possible JSON
+                                    text.includes('generate_') ||
+                                    text.includes('janIA_') ||
+                                    text.startsWith('SISTEMA_');
+
+                                if (isTechnical) return false;
+                                return true;
+                            }).map((msg, index) => (
                                 <div key={index} className={`flex flex-col ${msg?.type === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
 
                                     {/* Bot Avatar if Bot Message (NOT for greeting) */}

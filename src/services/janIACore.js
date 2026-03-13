@@ -407,6 +407,9 @@ export class JanIACore {
                                 reader.readAsDataURL(imgBlob);
                             });
 
+                            // Store Facade URL in property_data for the report
+                            this.memory.property_data.facade_url = streetUrl;
+                            
                             // Add to Vision Buffer
                             this.vision_buffer.push({ mimeType: "image/jpeg", data: base64data });
                             console.log("👁️ [JanIA Vision] Fachada capturada de Street View y enviada al nervio óptico.");
@@ -471,6 +474,11 @@ export class JanIACore {
                      // Ensure the UI sees the same data used for calculation
                      if (params.areaM2 > 0) this.memory.property_data.area = params.areaM2;
                      if (params.estrato > 0) this.memory.property_data.estrato = params.estrato;
+                     if (params.valorEstimadoJanIA > 0) {
+                         this.memory.property_data.precio_estimado = params.valorEstimadoJanIA;
+                         this.memory.property_data.valor_final_avaluador = params.valorEstimadoJanIA; // Sync for components
+                     }
+                     this.memory.property_data.tipo_inmueble = params.tipoInmueble;
                      
                      // PLAN VISIBILITY FILTER (Smart UI)
                      if (params.plan === 'oro') {
