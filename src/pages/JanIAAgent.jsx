@@ -55,7 +55,9 @@ const JanIAAgent = () => {
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState(() => !!localStorage.getItem('janIA_guest_terms_accepted'));
     // State for History Management
     const [avatarError, setAvatarError] = useState(false);
-    const [reportData, setReportData] = useState(null); // 📄 State for PDF Report Data
+    const [reportData, setReportData] = useState(null);
+    // 📍 chatId declared HERE (top) to avoid TDZ crash in production builds
+    const [chatId, setChatId] = useState(() => localStorage.getItem('janIA_current_chat_id') || crypto.randomUUID());
 
     // Sync Sidebar & Popups (Gemini Style)
     useEffect(() => {
@@ -308,9 +310,8 @@ const JanIAAgent = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false); // New State: Background Analysis
     const [thinkingText, setThinkingText] = useState("JanIA está pensando..."); // DYNAMIC THINKING STATE
     const [attachments, setAttachments] = useState([]); // NEW: Store selected files
-    const [paidPlan, setPaidPlan] = useState(null); // [RESTORED] State for Paid Plan (Esmeralda/Oro)
+    const [paidPlan, setPaidPlan] = useState(null);
     const [history, setHistory] = useState([]); // Real chat history
-    const [chatId, setChatId] = useState(() => localStorage.getItem('janIA_current_chat_id') || crypto.randomUUID());
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null); // NEW: Ref for hidden input
 

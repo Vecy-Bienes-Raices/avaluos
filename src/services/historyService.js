@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { janIACore } from './janIACore';
 
 /**
  * Persistencia Real de Vecy Avalúos (JanIA 3.0)
@@ -148,9 +149,8 @@ export const clearUserHistory = async (userId) => {
     }
 };
 
-import { janIACore } from './janIACore';
 
-// ... existing code ...
+// generateSmartTitle below uses janIACore.generateTitle
 
 /**
  * Generates a smart 3-5 word title using Flash model
