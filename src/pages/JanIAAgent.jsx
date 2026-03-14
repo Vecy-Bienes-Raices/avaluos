@@ -2142,13 +2142,7 @@ const JanIAAgent = () => {
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                                     </button>
 
-                                    {/* Micrófono (Próximamente Funcional) */}
-                                    <button
-                                        className="p-2 rounded-lg hover:bg-white/10 text-stone-400 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all"
-                                        title="Dictado por Voz"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" /></svg>
-                                    </button>
+
 
                                     <div className="hidden md:flex ml-2 items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 cursor-default hover:bg-white/10 transition-colors">
                                         <div className="w-2 h-2 rounded-full bg-[#00ff22] animate-pulse shadow-[0_0_8px_rgba(0,255,34,0.8)]"></div>
@@ -2158,6 +2152,13 @@ const JanIAAgent = () => {
 
                                 {/* Center/Right Tools */}
                                 <div className="flex items-center gap-2">
+                                    {/* Micrófono (Próximamente Funcional) */}
+                                    <button
+                                        className="p-2 rounded-lg hover:bg-white/10 text-stone-400 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all"
+                                        title="Dictado por Voz"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" /></svg>
+                                    </button>
                                     {/* Send/Stop Button Logic */}
                                     {isTyping || isAnalyzing ? (
                                         <button
