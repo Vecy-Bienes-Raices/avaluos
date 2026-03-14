@@ -28,23 +28,24 @@ export const liquidarServiciosVecy = ({
     plan,
     tipoInmueble,
     estrato,
-    areaM2
+    areaM2,
+    valorEstimadoJanIA = 0
 }) => {
     // 0. Validaciones y Defaults
     const safeEstrato = parseInt(estrato) || 3; // Default estrato 3
     const safeArea = parseFloat(areaM2) || 0;
-    const smmlv = CONSTANTS.SMMLV_2026;
+    const safeValor = parseFloat(valorEstimadoJanIA) || 0;
     
     let precioBase = 0;
     let mensajeLegal = "";
 
     // Componente Variable: $500 por m2
     const costoArea = safeArea * 500;
+    const planNormalized = plan?.toLowerCase().trim();
 
     // --- LÓGICA PLAN CAFÉ EXPRESS ---
-    if (plan === 'cafe' || plan === 'cafe express') {
+    if (planNormalized === 'cafe' || planNormalized === 'cafe express' || planNormalized === 'café') {
         mensajeLegal = "Reporte de Opinión de Valor (Sondeo de Mercado). No válido para bancos.";
-        // Estratificación
         if (safeEstrato <= 3) {
              precioBase = 29997; // Estratos 1, 2, 3
         } else {
@@ -53,9 +54,8 @@ export const liquidarServiciosVecy = ({
     }
 
     // --- LÓGICA PLAN ESMERALDA PLUS ---
-    else if (plan === 'esmeralda' || plan === 'esmeralda plus') {
+    else if (planNormalized === 'esmeralda' || planNormalized === 'esmeralda plus') {
         mensajeLegal = "Servicio de Analítica de Datos e Inteligencia Artificial.";
-        // Estratificación
         if (safeEstrato <= 3) {
              precioBase = 99997; // Estratos 1, 2, 3
         } else {
@@ -63,16 +63,50 @@ export const liquidarServiciosVecy = ({
         }
     } 
     
-    // --- LÓGICA PLAN ORO KING (COTIZACIÓN) ---
-    else if (plan === 'oro' || plan === 'oro king') {
-        mensajeLegal = "Avalúo Corporativo Certificado RAA. Requiere Cotización Personalizada.";
-        precioBase = 0; // Se debe manejar como "Sujeto a Cotización" en el frontend
+    // --- LÓGICA PLAN ORO KING (COTIZACIÓN REAL) ---
+    else if (planNormalized === 'oro' || planNormalized === 'oro king') {
+        mensajeLegal = "Avalúo Corporativo Certificado RAA por Perito Avaluador.";
+        
+        // Gran Activo Límite (Más de 5 Mil Millones)
+        if (safeValor > CONSTANTS.LIMIT_GRAN_ACTIVO) {
+            return {
+                precio_base: 0,
+                iva: 0,
+                total_a_pagar: 0,
+                mensaje_legal: "Gran Activo Comercial",
+                moneda: "COP",
+                special_messsage: "Debido a que el valor estimado del inmueble supera los topes automáticos, este avalúo requiere una junta de peritos. Te enviaré un enlace para agendar una reunión ejecutiva."
+            }
+        }
+
+        // Lógica Estructurada según el tarifario VECY para propiedades estándar
+        const baseOro = safeEstrato <= 3 ? 1.5 * CONSTANTS.SMMLV_2026 : 2.0 * CONSTANTS.SMMLV_2026;
+        const calculoTarifaAvaluador = safeValor * 0.001; // 1 por mil
+        
+        // El precio base del ORO rondará un mínimo base más el 1x1000, muy aproximado para simular tarifa de peritos
+        precioBase = calculoTarifaAvaluador > baseOro ? calculoTarifaAvaluador : 450000; // Mínimo absoluto $450k para ORO
+        
+        // Simplificación para la demo (Usaremos tarifas fijas escalonadas para ORO dependiendo del Estrato)
+        if (safeEstrato <= 3) {
+            precioBase = 350000 + costoArea; 
+        } else if (safeEstrato === 4) {
+            precioBase = 550000 + costoArea;
+        } else {
+            precioBase = 850000 + costoArea;
+        }
+    } else {
+        // Fallback genérico por si la IA alucina un plan
+        precioBase = 49997;
+        mensajeLegal = "Servicio de Consultoría Estándar.";
     }
+
+    const iva = precioBase * CONSTANTS.IVA_RATE;
+    const total = precioBase + iva;
 
     return {
         precio_base: Math.round(precioBase),
-        iva: 0, // No IVA as per config
-        total_a_pagar: Math.round(precioBase), // Simple total
+        iva: Math.round(iva), 
+        total_a_pagar: Math.round(total), 
         mensaje_legal: mensajeLegal,
         moneda: "COP"
     };

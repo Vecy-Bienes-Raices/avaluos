@@ -172,7 +172,7 @@ export class JanIACore {
         }
     }
 
-    async processUserMessage(userText, onThinkingUpdate, fileDatas = [], uploadedAttachments = []) {
+    async processUserMessage(userText, onThinkingUpdate, fileDatas = [], uploadedAttachments = [], abortSignal = null, onStreamUpdate = null) {
         // 0. INITIAL STATE UX
         if (onThinkingUpdate) onThinkingUpdate(THINKING_MESSAGES.INITIAL);
 
@@ -244,6 +244,11 @@ export class JanIACore {
                 }
                 toolRes = await this._executeTool(plan.next_step.name, plan.next_step.args);
             }
+
+            if (abortSignal?.aborted) {
+                console.log("🛑 [Cortex] Proceso abortado tras ejecución de herramientas.");
+                return { text: "[ABORTADO]", memory: this.memory, plan: null, component: null };
+            }
             
             if (onThinkingUpdate) {
                 if (plan.next_step?.type === 'tool' && ['pricing_calculator', 'deep_research_property', 'read_web_page'].includes(plan.next_step.name)) {
@@ -253,8 +258,12 @@ export class JanIACore {
                 }
             }
 
-            const finalRes = await this._generateReflexResponse(userText, plan, toolRes, fileDatas);
+            const finalRes = await this._generateReflexResponse(userText, plan, toolRes, fileDatas, abortSignal, onStreamUpdate);
             
+            if (finalRes === "[ABORTADO]" || abortSignal?.aborted) {
+                return { text: "[ABORTADO]", memory: this.memory, plan: null, component: null };
+            }
+
             await this._autoSaveToDatabase();
 
             this.history.push({ role: 'user', content: userText });
@@ -276,6 +285,9 @@ export class JanIACore {
             return { text: finalRes, memory: this.memory, plan, component: uiComponent };
         } catch (e) {
             console.error("❌ [JanIA Core] Critical Failure:", e);
+            if (abortSignal?.aborted) {
+                return { text: "[ABORTADO]", memory: this.memory, plan: null, component: null };
+            }
             const fallback = await this._fallbackReflex(userText);
             this.history.push({ role: 'user', content: userText });
             this.history.push({ role: 'assistant', content: fallback.text });
@@ -490,6 +502,7 @@ export class JanIACore {
 
                         return `[ÉXITO]: Ubicación satelital confirmada: ${result.formatted_address}.
                         - Barrio: ${barrio}
+                        - Localidad: ${localidad}
                         - Coordenadas: ${loc.lat}, ${loc.lng}
                         
                         [MEMORIA VISUAL]: He capturado la FOTO DE LA FACHADA de Google Street View en mi retina digital.
@@ -497,7 +510,8 @@ export class JanIACore {
                         INSTRUCCIÓN:
                         1. Muestra el componente de mapa.
                         2. DESCRIBE la fachada que estás viendo en mi memoria visual (colores, materiales, altura). 
-                        3. Pregunta: "¿Es esta la fachada correcta?"`;
+                        3. CRÍTICO: Mencionale al usuario el BARRIO y la LOCALIDAD exactos que hemos detectado.
+                        4. Pregunta: "¿Es esta la fachada correcta y confirgas el barrio ${barrio}?"`;
                     }
                     return "No pude localizar esa dirección exacta en el mapa satelital. Pide al usuario que verifique la nomenclatura o envíe un punto de referencia.";
                 } catch(e) { return "Error técnico conectando con Satélite de Google Maps."; }
@@ -806,7 +820,7 @@ export class JanIACore {
         }
     }
 
-    async _generateReflexResponse(userText, plan, toolRes, fileDatas) {
+    async _generateReflexResponse(userText, plan, toolRes, fileDatas, abortSignal = null, onStreamUpdate = null) {
         const model = await this._getSafeModel(REFLEX_MODEL, PERSONALITY_PROMPT);
         // CORRECCIÓN CRÍTICA DE HISTORIAL (Google API Requisito: Primero User)
         // CONTEXT OPTIMIZATION: Slice History to last 8 turns (4 interactions)
@@ -852,16 +866,31 @@ export class JanIACore {
         }
 
         // No timeout - JanIA has full autonomy
-        const res = await this._safeCall(chat, 'sendMessage', msgParts);
-        // Limpieza extra por si el modelo ignora la instrucción
-        const rawText = res.response.text();
+        // Se inyecta soporte AbortSignal real bloqueando a nivel Red
+        const res = await this._safeCall(chat, 'sendMessageStream', msgParts, { signal: abortSignal });
         
-        // Limpieza robusta de JSONs técnicos que el modelo pueda haber filtrado
-        // PERO con salvaguarda: si borramos todo, restauramos el texto original.
-        let finalText = rawText
-            .replace(/```json[\s\S]*?```/gi, '') 
-            .replace(/\[trigger_auth\]/gi, '') 
-            .replace(/\[tool_use\].*?\[\/tool_use\]/gs, '');
+        let rawText = '';
+        let cleanedText = '';
+        const cleanChunk = (text) => text.replace(/```json[\s\S]*?```/gi, '').replace(/\[trigger_auth\]/gi, '').replace(/\[tool_use\].*?\[\/tool_use\]/gs, '');
+
+        try {
+            for await (const chunk of res.stream) {
+                if (abortSignal?.aborted) throw new Error("AbortError");
+                rawText += chunk.text();
+                cleanedText = cleanChunk(rawText).trim();
+                if (onStreamUpdate && cleanedText.length > 0) {
+                    onStreamUpdate(cleanedText);
+                }
+            }
+        } catch (err) {
+            if (err.name === 'AbortError' || err.message === 'AbortError') {
+                console.log("🛑 [JanIA Network] Respuesta detenida por el usuario (AbortSignal).");
+                return "[ABORTADO]";
+            }
+            throw err;
+        }
+        
+        let finalText = cleanedText;
 
         // Solo quitamos JSONs sueltos si NO son parte del texto narrativo
         // La regex anterior era muy agresiva.
@@ -870,13 +899,13 @@ export class JanIACore {
 
         if (!finalText || finalText.length < 5) {
             console.warn("⚠️ [Reflex] Cleaning removed all content. Restoring Raw or using Fallback.");
-            // Si el toolRes era valioso (ej: Sistema), usémoslo como respuesta
-            if (toolRes && toolRes.includes("[SISTEMA]")) {
-                return toolRes.replace("[SISTEMA]:", "✅");
+            // Si el toolRes era valioso (ej: Sistema), usémoslo como respuesta pacíficamente
+            if (toolRes && toolRes.includes && toolRes.includes("[SISTEMA]")) {
+                finalText = toolRes.replace("[SISTEMA]:", "✅");
+            } else {
+                // Return a safe fallback instead of emptying the string
+                finalText = rawText.replace(/```json/g, '').replace(/```/g, '').trim() || "¡Entendido! Procesando tu solicitud...";
             }
-            // Si no, volvemos al raw (a veces el json es lo único que hay y el frontend lo necesita parsear, aunque aquí devolvemos string)
-            // Mejor un fallback amable.
-            return "¡Entendido! Procesando tu solicitud...";
         }
 
         if (!finalText || finalText.length < 5) {

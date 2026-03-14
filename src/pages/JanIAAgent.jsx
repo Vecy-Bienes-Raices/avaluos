@@ -326,6 +326,8 @@ const JanIAAgent = () => {
     const [history, setHistory] = useState([]); // Real chat history
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null); // NEW: Ref for hidden input
+    const abortControllerRef = useRef(null); // Cancelación de flujo API (Stop)
+
 
     // Reset avatar error when user changes
     useEffect(() => {
@@ -813,6 +815,24 @@ const JanIAAgent = () => {
         setIsTyping(true);
         setIsAnalyzing(true);
 
+        // 🛑 ABORT CONTROLLER & STREAM SETUP
+        abortControllerRef.current = new AbortController();
+        const streamMsgId = Date.now() + 1; // Unique ID for bot stream message
+        
+        // Inyectamos el mensaje "fantasma" que se irá llenando (Efecto Streaming)
+        setMessages(prev => [...prev, { id: streamMsgId, text: '', type: 'bot' }]);
+
+        const onStreamUpdate = (chunkText) => {
+            setMessages(prev => {
+                const newArr = [...prev];
+                const idx = newArr.findIndex(m => m.id === streamMsgId);
+                if (idx !== -1) {
+                    newArr[idx] = { ...newArr[idx], text: chunkText };
+                }
+                return newArr;
+            });
+        };
+
         // --- COGNITIVE LOOP EXECUTION ---
         try {
             // FORCE SYSTEM SYNC: Update Identity before every interaction
@@ -841,13 +861,27 @@ const JanIAAgent = () => {
                     };
                 }));
 
-                response = await janIACore.processUserMessage(text, onThinkingStep, fileDatas, uploadedAttachments);
+                response = await janIACore.processUserMessage(
+                    text, 
+                    onThinkingStep, 
+                    fileDatas, 
+                    uploadedAttachments, 
+                    abortControllerRef.current.signal, 
+                    onStreamUpdate
+                );
             } catch (coreError) {
                 console.error("JanIA Core Critical Failure:", coreError);
                 response = {
                     text: "⚠️ Desconexión neuronal. Intentando reconectar... (Por favor envía tu mensaje de nuevo).",
                     plan: null
                 };
+            }
+
+            // --- PROTECCIÓN STOP DE EMERGENCIA Y CANCELACIÓN ---
+            if (!isSendingRef.current || response?.text === "[ABORTADO]") {
+                console.log("🛑 Operación cancelada por el usuario (Botón STOP). Descartando respuesta de:", text);
+                setMessages(prev => prev.filter(m => m.id !== streamMsgId)); // Limpia chunk roto
+                return; // Corta la ejecución de la UI, silenciando a JanIA para este turno.
             }
 
             // --- CLEANUP: Remove any accidental JSON/System artifacts ---
@@ -873,8 +907,9 @@ const JanIAAgent = () => {
                 })
                 .trim();
 
-            // Add Bot Message
+            // Enlazamos al mismísimo mensaje de Stream que hemos venido llenando
             let botMsg = {
+                id: streamMsgId,
                 type: 'bot',
                 text: cleanText || "...", // Fallback text
                 memory_debug: response.plan // Optional: Store for debug view
@@ -908,13 +943,19 @@ const JanIAAgent = () => {
                     if (!user) {
                         botMsg.component = 'policy_gate';
                         console.log("📝 [POLICY TRIGGER]: Showing integrated registration card.");
-                        // setAuthModalOpen(false); // Do not open modal automatically
                     } else {
                         console.log("🔒 [AUTH BYPASS]: User already logged in.");
                     }
-                } else if (toolName === 'offer_upgrade' || toolName === 'offer_plans') {
+                } else if (toolName === 'offer_upgrade' || toolName === 'offer_plans' || toolName === 'generate_payment_link') {
                     botMsg.component = 'plan_card';
-                    botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])];
+                    // Extract plan if sent via args
+                    if (step?.args?.plan) {
+                        const cleanP = step.args.plan.toLowerCase().replace('é', 'e');
+                        botMsg.planFilter = [cleanP];
+                        janIACore.memory.plan_filter = [cleanP];
+                    } else {
+                        botMsg.planFilter = [...(janIACore.memory.plan_filter || ['all'])];
+                    }
                 } else if (toolName === 'pricing_calculator') {
                     // 📄 CAPTURE DATA FOR REPORT
                     console.log("📄 [REPORT DATA TRIGGER]: Capturing valuation data...", step.args);
@@ -946,10 +987,6 @@ const JanIAAgent = () => {
                             lng: janIACore.memory.property_data.lng
                         };
                     }
-                } else if (toolName === 'generate_payment_link') {
-                    // 🎟️ PAYMENT TRIGGER: No renderizamos bloque separado para evitar duplicados.
-                    // Confiamos en el enlace {{Pagar Plan...}} que inyectará el botón Premium.
-                    console.log("🎟️ [PAYMENT TRIGGER]: Handled via Markdown Link.");
                 } else if (toolName === 'generate_report_download') {
                     // 📄 WEB REPORT TRIGGER from JanIA
                     console.log("📄 [WEB REPORT TRIGGER]: Saving final data for Web Report...", step?.args);
@@ -1001,7 +1038,22 @@ const JanIAAgent = () => {
                 botMsg.component = botMsg.component || response.component;
             }
 
-            setMessages(prev => [...prev, botMsg]);
+            // Chequeo final de protección contra el STOP Zombie
+            if (isSendingRef.current && response?.text !== "[ABORTADO]") {
+                setMessages(prev => {
+                    const newArr = [...prev];
+                    const idx = newArr.findIndex(m => m.id === streamMsgId);
+                    if (idx !== -1) {
+                        newArr[idx] = { ...newArr[idx], ...botMsg };
+                    } else {
+                        newArr.push(botMsg);
+                    }
+                    return newArr;
+                });
+            } else {
+                console.warn("🛑 Mensaje descartado en el último momento por STOP.");
+                setMessages(prev => prev.filter(m => m.id !== streamMsgId));
+            }
 
         } catch (error) {
             console.error("JanIA Core Critical Error:", error);
@@ -1063,7 +1115,7 @@ const JanIAAgent = () => {
 
     return (
         <div
-            className={`h-[100dvh] w-full flex text-stone-200 font-sans overflow-hidden transition-colors duration-500 ease-in-out ${bgClass}`}
+            className={`fixed inset-0 h-[100dvh] w-full flex text-stone-200 font-sans overflow-hidden transition-colors duration-500 ease-in-out ${bgClass}`}
             style={bgStyle}
         >
             {/* BACKGROUND DECOR */}
@@ -1444,6 +1496,10 @@ const JanIAAgent = () => {
                                     text.includes('{"action"'); // Only hide if it looks like raw JSON action blocks, not normal text with {}
 
                                 if (isTechnical) return false;
+                                
+                                // NEW FIX: No mostrar mensajes del bot si no tienen ni texto ni componente (ej. inicio de streaming)
+                                if (m.type === 'bot' && !text.trim() && !m.component) return false;
+
                                 return true;
                             }).map((msg, index) => (
                                 <div key={index} className={`flex flex-col ${msg?.type === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
@@ -1451,7 +1507,7 @@ const JanIAAgent = () => {
                                     {/* Bot Avatar if Bot Message (NOT for greeting) */}
                                     {msg?.type === 'bot' && msg?.component !== 'greeting' && (
                                         <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-10 h-10 rounded-full bg-neutral-800/60 backdrop-blur-md border border-white/10 overflow-hidden flex-shrink-0">
+                                            <div className="w-10 h-10 rounded-full bg-neutral-900/60 md:bg-neutral-800/60 md:backdrop-blur-md border border-white/10 overflow-hidden flex-shrink-0 shadow-md">
                                                 <img src="/perfil.png" alt="JanIA" className="w-full h-full object-cover" />
                                             </div>
                                             <span className="text-xs font-bold text-brand-accent">JanIA</span>
@@ -1570,15 +1626,15 @@ const JanIAAgent = () => {
                                             )}
 
                                             {/* STANDARD BUBBLE WITH MARKDOWN */}
-                                            <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-lg backdrop-blur-sm break-words overflow-hidden ${msg?.type === 'user'
-                                                ? 'bg-brand-accent text-black font-medium rounded-tr-sm border-t border-white/40 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.3)]'
-                                                : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
-                                                }`}>
-
-                                                {/* MARKDOWN RENDERING SAFEGUARD - Simplified to avoid plugin crashes */}
-                                                {/* MARKDOWN RENDERING SAFEGUARD */}
-                                                {(() => {
-                                                    if (!msg?.text) return <p className="text-stone-400 italic">Mensaje sin contenido</p>;
+                                            {msg?.text && msg.text.trim() !== '' && (
+                                                <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-[0_8px_30px_rgb(0,0,0,0.5)] md:shadow-lg md:backdrop-blur-sm break-words overflow-hidden ${msg?.type === 'user'
+                                                    ? 'bg-brand-accent text-black font-medium rounded-tr-sm border-t border-brand-accent/50 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.3)]'
+                                                    : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
+                                                    }`}>
+    
+                                                    {/* MARKDOWN RENDERING SAFEGUARD - Simplified to avoid plugin crashes */}
+                                                    {/* MARKDOWN RENDERING SAFEGUARD */}
+                                                    {(() => {
 
                                                     const text = String(msg.text);
                                                     // Specialized Pre-processing
@@ -1782,7 +1838,8 @@ const JanIAAgent = () => {
                                                         </div>
                                                     );
                                                 })()}
-                                            </div>
+                                                </div>
+                                            )}
                                         </>
                                     )}
 
@@ -1962,7 +2019,7 @@ const JanIAAgent = () => {
 
                                     {/* --- INTEGRATED POLICY GATE (Refined Flow) --- */}
                                     {msg.component === 'policy_gate' && (
-                                        <div className="mt-4 p-6 rounded-[28px] bg-white/[0.03] border border-white/10 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-fade-in-up max-w-[92%] relative overflow-hidden group">
+                                        <div className="mt-4 p-6 rounded-[28px] bg-white/5 md:bg-white/[0.03] border border-white/10 md:backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-fade-in-up max-w-[92%] relative overflow-hidden group">
                                             {/* Subtle background glow */}
                                             <div className="absolute top-0 right-0 w-32 h-32 bg-[#00c58d]/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-[#00c58d]/10 transition-all duration-700"></div>
 
@@ -2046,7 +2103,7 @@ const JanIAAgent = () => {
                     <div className="w-full max-w-3xl space-y-3">
                         
                         {/* 🌟 NUEVO INPUT ESTILO CURSOR */}
-                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl flex flex-col shadow-lg transition-all">
+                        <div className="bg-white/10 md:backdrop-blur-xl border border-white/15 md:border-white/10 rounded-3xl flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.8)] md:shadow-lg">
                             
                             {/* Attachments Preview Area (Top inside box) */}
                             {attachments.length > 0 && (
@@ -2074,6 +2131,7 @@ const JanIAAgent = () => {
 
                             {/* Text Area */}
                             <textarea
+                                id="jania-textarea"
                                 value={input}
                                 onChange={(e) => {
                                     setInput(e.target.value);
@@ -2092,7 +2150,10 @@ const JanIAAgent = () => {
                                         if (input.trim() || attachments.length > 0) {
                                             handleSendMessage(input, attachments.map(a => a.file));
                                             setInput(''); // Clear input
-                                            e.target.style.height = 'auto'; // Reset height
+                                            setTimeout(() => {
+                                                const el = document.getElementById('jania-textarea');
+                                                if (el) el.style.height = 'auto';
+                                            }, 10);
                                         }
                                     }
                                 }}
@@ -2136,7 +2197,7 @@ const JanIAAgent = () => {
                                     {/* Botón Clip Manteniendo Funcionalidad */}
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="p-2 rounded-lg hover:bg-white/10 text-stone-400 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all"
+                                        className="p-1.5 md:p-2 rounded-lg text-stone-400 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all"
                                         title="Adjuntar Archivo"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
@@ -2154,7 +2215,7 @@ const JanIAAgent = () => {
                                 <div className="flex items-center gap-2">
                                     {/* Micrófono (Próximamente Funcional) */}
                                     <button
-                                        className="p-2 rounded-lg hover:bg-white/10 text-stone-400 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all"
+                                        className="p-1.5 md:p-2 rounded-lg text-stone-400 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all"
                                         title="Dictado por Voz"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" /></svg>
@@ -2168,16 +2229,30 @@ const JanIAAgent = () => {
                                                 setIsTyping(false);
                                                 isSendingRef.current = false;
                                                 
+                                                if (abortControllerRef.current) {
+                                                    abortControllerRef.current.abort();
+                                                }
+                                                
                                                 // Intentar recuperar el último texto enviado
                                                 setMessages(prev => {
                                                     const newMsgs = [...prev];
-                                                    const lastMsg = newMsgs[newMsgs.length - 1];
-                                                    if (lastMsg && lastMsg.type === 'user') {
-                                                        const userText = lastMsg.text;
-                                                        newMsgs.pop();
-                                                        setTimeout(() => setInput(userText), 50); // Restore text
+                                                    let lastUserMsgIdx = -1;
+                                                    for (let i = newMsgs.length - 1; i >= 0; i--) {
+                                                        if (newMsgs[i].type === 'user') { lastUserMsgIdx = i; break; }
                                                     }
-                                                    return newMsgs; // Return UI state without the user msg
+                                                    
+                                                    if (lastUserMsgIdx !== -1) {
+                                                        const userText = newMsgs[lastUserMsgIdx].text;
+                                                        newMsgs.splice(lastUserMsgIdx);
+                                                        setTimeout(() => {
+                                                            setInput(userText);
+                                                            const el = document.getElementById('jania-textarea');
+                                                            if (el) {
+                                                                el.style.height = 'auto'; // Will expand via onChange but just in case
+                                                            }
+                                                        }, 50); // Restore text
+                                                    }
+                                                    return newMsgs; // Return UI state clensed
                                                 });
                                             }}
                                             className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-colors flex items-center gap-2 font-bold text-xs border border-red-500/20"
@@ -2214,7 +2289,7 @@ const JanIAAgent = () => {
             {/* AUTH MODAL OVERLAY */}
             {
                 authModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 md:bg-black/60 md:backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="relative w-full max-w-sm">
                             <button
                                 onClick={() => setAuthModalOpen(false)}
@@ -2225,7 +2300,7 @@ const JanIAAgent = () => {
                                 </svg>
                             </button>
 
-                            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-lg overflow-hidden p-6 relative">
+                            <div className="bg-white/10 md:backdrop-blur-md border border-white/20 rounded-3xl shadow-[0_0_40px_rgba(0,0,0,0.8)] md:shadow-lg overflow-hidden p-6 relative">
                                 {/* Background Decor */}
                                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.05),_transparent_60%)] pointer-events-none" />
 
@@ -2260,8 +2335,8 @@ const JanIAAgent = () => {
             {/* TERMS GATE MODAL (PHASE 5.1) - REDESIGNED */}
             {
                 termsModalOpen && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white/20 backdrop-blur-3xl border border-white/20 rounded-[32px] p-10 max-w-lg w-full relative shadow-[0_0_50px_rgba(204,172,78,0.25)] overflow-hidden">
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 md:bg-black/60 md:backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white/10 md:bg-white/20 md:backdrop-blur-3xl border border-white/20 rounded-[32px] p-10 max-w-lg w-full relative shadow-[0_0_50px_rgba(204,172,78,0.25)] overflow-hidden">
 
                             {/* Background Shine */}
                             <div className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 animate-shine pointer-events-none"></div>

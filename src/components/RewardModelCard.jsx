@@ -14,7 +14,7 @@ const RewardModelCard = ({ onSelect, user }) => {
 
     return (
         <div className="w-full max-w-2xl mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
-            <div className="bg-black/80 backdrop-blur-2xl border border-brand-gold/30 rounded-[2rem] p-6 shadow-2xl relative">
+            <div className="bg-[#141210] md:bg-black/80 md:backdrop-blur-2xl border border-brand-gold/20 md:border-brand-gold/30 rounded-[2rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] md:shadow-2xl relative">
                 <div className="absolute top-0 right-0 p-6 opacity-20">
                     <span className="text-4xl text-brand-gold">💰</span>
                 </div>

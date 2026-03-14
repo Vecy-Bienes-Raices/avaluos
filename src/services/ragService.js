@@ -14,11 +14,15 @@ const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" })
  */
 export async function generateEmbedding(text) {
     try {
+        // Safe check for empty text
+        if (!text || text.trim() === '') return null;
+        
         const result = await embeddingModel.embedContent(text);
         const embedding = result.embedding;
         return embedding.values;
     } catch (error) {
-        console.error("Error generating embedding:", error);
+        console.warn("⚠️ [RAG System] Embedding model not available or error:", error.message);
+        // Returning null allows the flow to continue without RAG instead of fatal crashing
         return null;
     }
 }

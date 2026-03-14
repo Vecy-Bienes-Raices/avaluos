@@ -11,8 +11,9 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
         }
 
         // 2. Si ya hay estrato en la data (JanIA lo sabe), cobramos directo
-        if (propertyData.stratum) {
-            const stratum = parseInt(propertyData.stratum);
+        const foundStratum = propertyData.estrato || propertyData.stratum;
+        if (foundStratum) {
+            const stratum = parseInt(foundStratum);
             let finalAmount = plan.amount; // Base (High) ?? No, logic required.
 
             // Logic Remapped:
@@ -153,7 +154,7 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
 
                         {/* STRATUM SELECTOR OVERLAY */}
                         {selectionStep === plan.id ? (
-                            <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+                            <div className="absolute inset-0 z-50 bg-[#0a0a0a]/95 md:bg-black/90 md:backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
                                 <h4 className="text-white font-bold text-lg mb-4 text-center">¿Qué Estrato es?</h4>
                                 <p className="text-xs text-stone-400 mb-6 text-center">Selecciona para calcular el precio exacto.</p>
 
