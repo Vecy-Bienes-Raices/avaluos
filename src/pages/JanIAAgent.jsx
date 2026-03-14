@@ -1570,7 +1570,7 @@ const JanIAAgent = () => {
                                             )}
 
                                             {/* STANDARD BUBBLE WITH MARKDOWN */}
-                                            <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-lg backdrop-blur-sm ${msg?.type === 'user'
+                                            <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-lg backdrop-blur-sm break-words overflow-hidden ${msg?.type === 'user'
                                                 ? 'bg-brand-accent text-black font-medium rounded-tr-sm border-t border-white/40 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.3)]'
                                                 : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
                                                 }`}>
