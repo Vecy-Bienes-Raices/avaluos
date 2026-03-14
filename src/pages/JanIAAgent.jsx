@@ -599,15 +599,9 @@ const JanIAAgent = () => {
         const propertyData = liveMemory.property_data || {};
         
         // SMART VALIDATION: Only block if we have absolutely ZERO info to start with
-        const hasBasicInfo = propertyData.direccion_normalizada || propertyData.estrato || propertyData.area || propertyData.valor_estimado;
-        
-        if (!hasBasicInfo) {
-            setToast({
-                message: "Por favor cuéntale a JanIA un poco más sobre el inmueble en el chat (como su estrato o ubicación) antes de proceder.",
-                type: 'error'
-            });
-            return;
-        }
+        // NOTE: JanIA sometimes infers data in the chat without persisting it correctly to memory.
+        // We removed the strict hasBasicInfo check that blocked checkout falsely.
+        // We now rely purely on the amount validation below to ensure a valid quote exists.
 
         // 2. Validate Amount (Fixes "Zero Amount" Error)
         // If the property data wasn't sufficient to calculate a price, amount might be 0.
