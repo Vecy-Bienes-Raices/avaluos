@@ -1818,10 +1818,8 @@ const JanIAAgent = () => {
                                         <div className="mt-4 mb-2 animate-bounce-in">
                                             <button 
                                                 onClick={() => {
-                                                    // Trigger navigation or generation of the PDF report
-                                                    // Buscamos si hay un plan en memoria, si no por defecto es ORO
-                                                    const currentPlan = janIACore.memory.plan_filter ? janIACore.memory.plan_filter[0] : 'ORO';
-                                                    handleSendMessage(`Quiero descargar y VER AVALÚO ${currentPlan.toUpperCase()}`);
+                                                    console.log("🚀 Redirigiendo a Generación de Reporte:", chatId);
+                                                    navigate('/reporte/' + chatId);
                                                 }}
                                                 className="w-full text-center py-4 rounded-xl text-[14px] font-black uppercase tracking-widest transition-all transform active:scale-95 shadow-2xl bg-gradient-to-r from-brand-gold-dark via-brand-gold to-brand-gold-light text-black border border-white/50 hover:brightness-110 flex items-center justify-center relative overflow-hidden"
                                             >
