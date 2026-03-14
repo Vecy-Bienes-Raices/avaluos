@@ -1410,13 +1410,11 @@ const JanIAAgent = () => {
                                 const text = String(m.text || '');
                                 // REGLA DE ORO DE PRIVACIDAD: Si parece técnico, OCÚLTALO.
                                 const isTechnical = 
-                                    text.includes('[SISTEMA]') || 
                                     text.includes('EVENTO_PAGO_') || 
-                                    text.includes('trigger_') ||
-                                    text.includes('{') && text.includes('}') || // Possible JSON
-                                    text.includes('generate_') ||
-                                    text.includes('janIA_') ||
-                                    text.startsWith('SISTEMA_');
+                                    text.includes('trigger_auth') ||
+                                    text.includes('generate_report_download') ||
+                                    text.startsWith('SISTEMA_') ||
+                                    text.includes('{"action"'); // Only hide if it looks like raw JSON action blocks, not normal text with {}
 
                                 if (isTechnical) return false;
                                 return true;
