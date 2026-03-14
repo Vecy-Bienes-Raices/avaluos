@@ -2046,7 +2046,7 @@ const JanIAAgent = () => {
                     <div className="w-full max-w-3xl space-y-3">
                         
                         {/* 🌟 NUEVO INPUT ESTILO CURSOR */}
-                        <div className="bg-[#1e1e1e]/60 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col shadow-2xl transition-all focus-within:border-brand-accent/50 focus-within:bg-[#1e1e1e]/80">
+                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl flex flex-col shadow-lg transition-all focus-within:border-brand-accent/50 focus-within:bg-white/15">
                             
                             {/* Attachments Preview Area (Top inside box) */}
                             {attachments.length > 0 && (
