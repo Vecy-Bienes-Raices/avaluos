@@ -2042,49 +2042,37 @@ const JanIAAgent = () => {
                 </div >
 
                 {/* Input Area */}
-                < div className="w-full p-4 flex justify-center bg-transparent flex-none z-10" >
+                <div className="w-full p-4 flex justify-center bg-transparent flex-none z-10">
                     <div className="w-full max-w-3xl space-y-3">
-                        {/* Attachments Preview Area */}
-                        {attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-2 px-4 pb-2">
-                                {attachments.map((att, i) => (
-                                    <div key={i} className="relative group bg-white/5 border border-white/10 rounded-xl p-2 pr-8 flex items-center gap-2 animate-fade-in">
-                                        {att.preview ? (
-                                            <img src={att.preview} alt="prev" className="w-8 h-8 rounded object-cover" />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded bg-brand-accent/10 flex items-center justify-center text-brand-accent">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                                            </div>
-                                        )}
-                                        <span className="text-[10px] text-stone-300 truncate max-w-[100px]">{att.name}</span>
-                                        <button
-                                            onClick={() => removeAttachment(i)}
-                                            className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        
+                        {/* 🌟 NUEVO INPUT ESTILO CURSOR */}
+                        <div className="bg-[#1e1e1e]/60 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col shadow-2xl transition-all focus-within:border-brand-accent/50 focus-within:bg-[#1e1e1e]/80">
+                            
+                            {/* Attachments Preview Area (Top inside box) */}
+                            {attachments.length > 0 && (
+                                <div className="flex flex-wrap gap-2 px-4 pt-4 pb-2">
+                                    {attachments.map((att, i) => (
+                                        <div key={i} className="relative group bg-white/5 border border-white/10 rounded-xl p-2 pr-8 flex items-center gap-2 animate-fade-in">
+                                            {att.preview ? (
+                                                <img src={att.preview} alt="prev" className="w-8 h-8 rounded object-cover" />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                                </div>
+                                            )}
+                                            <span className="text-[10px] text-stone-300 truncate max-w-[100px]">{att.name}</span>
+                                            <button
+                                                onClick={() => removeAttachment(i)}
+                                                className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
-                        <div className="bg-white/10 border border-white/20 rounded-3xl px-4 py-2 flex items-end gap-3 transition-all shadow-lg backdrop-blur-xl hover:bg-white/15">
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileSelect}
-                                multiple
-                                className="hidden"
-                                accept="image/*,.pdf"
-                            />
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="p-2 mb-1 rounded-full hover:bg-white/10 text-stone-400 hover:text-white transition-colors flex-shrink-0"
-                                title="Adjuntar (PDF/Imágenes)"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
-                            </button>
-
+                            {/* Text Area */}
                             <textarea
                                 value={input}
                                 onChange={(e) => {
@@ -2101,34 +2089,124 @@ const JanIAAgent = () => {
                                         if (isMobile) return; // Allow default (newline)
 
                                         e.preventDefault();
-                                        handleSendMessage(input, attachments.map(a => a.file));
-                                        setInput(''); // Clear input
-                                        e.target.style.height = 'auto'; // Reset height
+                                        if (input.trim() || attachments.length > 0) {
+                                            handleSendMessage(input, attachments.map(a => a.file));
+                                            setInput(''); // Clear input
+                                            e.target.style.height = 'auto'; // Reset height
+                                        }
                                     }
                                 }}
-                                placeholder="Escribe un mensaje..."
+                                onPaste={(e) => {
+                                    // Lógica de pegado de imágenes (Ctrl+V)
+                                    const items = e.clipboardData?.items;
+                                    if (items) {
+                                        let hasImage = false;
+                                        for (let i = 0; i < items.length; i++) {
+                                            if (items[i].type.indexOf('image') !== -1) {
+                                                const file = items[i].getAsFile();
+                                                if (file) {
+                                                    e.preventDefault();
+                                                    hasImage = true;
+                                                    // Usar la función de adjuntar archivos ya existente
+                                                    const fakeEvent = { target: { files: [file] } };
+                                                    handleFileSelect(fakeEvent);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }}
+                                placeholder="Escribe un mensaje, o pega [Ctrl+V] una imagen..."
+                                className="w-full bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-[15px] resize-none px-4 py-4 max-h-[150px] overflow-y-auto font-sans leading-relaxed"
                                 rows={1}
-                                className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-sm resize-none py-2 max-h-[120px] overflow-y-hidden font-sans leading-relaxed"
                                 onFocus={() => { setProfileOpen(false); setSettingsOpen(false); }}
                             />
 
-                            <button
-                                onClick={() => {
-                                    handleSendMessage(input, attachments.map(a => a.file));
-                                    setInput(''); // Reset
-                                }}
-                                disabled={!input.trim() && attachments.length === 0}
-                                className={`p-2 mb-1 rounded-full transition-all flex-shrink-0 ${input.trim() || attachments.length > 0 ? 'bg-brand-accent text-black scale-110 shadow-lg' : 'text-stone-500'}`}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
-                            </button>
+                            {/* Bottom row: Tools and Send logic */}
+                            <div className="flex items-center justify-between px-3 py-2 border-t border-white/5">
+                                {/* Left Tools */}
+                                <div className="flex items-center gap-1">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileSelect}
+                                        multiple
+                                        className="hidden"
+                                        accept="image/*,.pdf"
+                                    />
+                                    {/* Botón Clip Manteniendo Funcionalidad */}
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="p-2 rounded-lg hover:bg-white/10 text-stone-400 hover:text-white transition-colors"
+                                        title="Adjuntar Archivo"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
+                                    </button>
+
+                                    {/* Micrófono (Próximamente Funcional) */}
+                                    <button
+                                        className="p-2 rounded-lg hover:bg-white/10 text-stone-400 hover:text-brand-accent transition-colors"
+                                        title="Dictado por Voz"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" /></svg>
+                                    </button>
+
+                                    <div className="hidden md:flex ml-2 items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 cursor-default hover:bg-white/10 transition-colors">
+                                        <div className="w-2 h-2 rounded-full bg-[#00c58d] animate-pulse shadow-[0_0_8px_rgba(0,197,141,0.8)]"></div>
+                                        <span className="text-[10px] font-semibold text-stone-300 tracking-wider font-outfit uppercase">JanIA 2.5 Beta</span>
+                                    </div>
+                                </div>
+
+                                {/* Center/Right Tools */}
+                                <div className="flex items-center gap-2">
+                                    {/* Send/Stop Button Logic */}
+                                    {isTyping || isAnalyzing ? (
+                                        <button
+                                            onClick={() => {
+                                                // Lógica Stop Interrupción
+                                                setIsAnalyzing(false);
+                                                setIsTyping(false);
+                                                isSendingRef.current = false;
+                                                
+                                                // Intentar recuperar el último texto enviado
+                                                setMessages(prev => {
+                                                    const newMsgs = [...prev];
+                                                    const lastMsg = newMsgs[newMsgs.length - 1];
+                                                    if (lastMsg && lastMsg.type === 'user') {
+                                                        const userText = lastMsg.text;
+                                                        newMsgs.pop();
+                                                        setTimeout(() => setInput(userText), 50); // Restore text
+                                                    }
+                                                    return newMsgs; // Return UI state without the user msg
+                                                });
+                                            }}
+                                            className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-colors flex items-center gap-2 font-bold text-xs border border-red-500/20"
+                                            title="Frenar respuesta y editar mensaje"
+                                        >
+                                            <div className="w-2.5 h-2.5 bg-red-500 rounded-sm"></div>
+                                            STOP
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                if (input.trim() || attachments.length > 0) {
+                                                    handleSendMessage(input, attachments.map(a => a.file));
+                                                    setInput(''); // Reset
+                                                }
+                                            }}
+                                            disabled={!input.trim() && attachments.length === 0}
+                                            className={`p-2 rounded-lg transition-all flex-shrink-0 ${input.trim() || attachments.length > 0 ? 'bg-brand-accent text-black hover:scale-105 shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'bg-white/5 text-stone-500 flex items-center justify-center'}`}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Disclaimer */}
                         {/* Disclaimer - STANDARD VECY COMPONENT */}
                         <DisclaimerText />
                     </div>
-                </div >
+                </div>
 
             </main >
 
