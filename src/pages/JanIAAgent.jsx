@@ -158,11 +158,18 @@ const JanIAAgent = () => {
                     const planName = String(rawDesc).trim().split(' ')[0].toLowerCase();
                     processPaymentSuccess(ref_payco, transaction.amount, planName);
                 } else if (transaction && (transaction.status === 2 || transaction.status === 4)) {
-                    setMessages(prev => [...prev, {
-                        type: 'system',
-                        text: `❌ [SISTEMA]: PAGO RECHAZADO (${transaction.statusText}).`,
-                        isHidden: false
-                    }]);
+                    // PAGO RECHAZADO: Notificamos a JanIA para que consolide la UX
+                    const systemMsg = {
+                        type: 'user',
+                        text: `PAGO_DENEGADO_EVENT: ${transaction.statusText}. Informa cortésmente que el pago no pasó y pregúntale si desea intentar con otro medio de pago.`,
+                        isHidden: true,
+                        timestamp: new Date().toISOString()
+                    };
+                    setMessages(prev => [...prev, systemMsg]);
+                    
+                    setTimeout(() => {
+                        window.dispatchEvent(new Event('trigger_jania_payment_failed'));
+                    }, 500);
                 }
             });
         }
@@ -719,15 +726,26 @@ const JanIAAgent = () => {
         }
     };
 
-    // 🚀 EFECTO ESCUCHADOR: Forzar respuesta de JanIA tras pago exitoso
+    // 🚀 EFECTO ESCUCHADOR: Forzar respuesta de JanIA tras pago exitoso o fallido
     useEffect(() => {
         const handlePaymentSuccessEvent = () => {
             console.log("🔥 Evento recibido: trigger_jania_payment_success. Ejecutando handleSendMessage...");
             handleSendMessage("SISTEMA_CONFIRMACION_PAGO_EXITOSA");
             localStorage.removeItem('janIA_pending_action');
         };
+        const handlePaymentFailedEvent = () => {
+            console.log("🔥 Evento recibido: trigger_jania_payment_failed. Ejecutando handleSendMessage...");
+            handleSendMessage("PAGO_DENEGADO_EVENT");
+            localStorage.removeItem('janIA_pending_action');
+        };
+        
         window.addEventListener('trigger_jania_payment_success', handlePaymentSuccessEvent);
-        return () => window.removeEventListener('trigger_jania_payment_success', handlePaymentSuccessEvent);
+        window.addEventListener('trigger_jania_payment_failed', handlePaymentFailedEvent);
+        
+        return () => {
+            window.removeEventListener('trigger_jania_payment_success', handlePaymentSuccessEvent);
+            window.removeEventListener('trigger_jania_payment_failed', handlePaymentFailedEvent);
+        };
     }, [chatId, user]); // Refrescar closure de handleSendMessage
 
     const handleSendMessage = async (text, files = []) => {
@@ -1792,6 +1810,28 @@ const JanIAAgent = () => {
                                                     {opt}
                                                 </button>
                                             ))}
+                                        </div>
+                                    )}
+
+                                    {/* COMPONENTE DE DESCARGA: REPORTE POST-PAGO EXITOSO */}
+                                    {msg?.component === 'report_download' && (
+                                        <div className="mt-4 mb-2 animate-bounce-in">
+                                            <button 
+                                                onClick={() => {
+                                                    // Trigger navigation or generation of the PDF report
+                                                    // Buscamos si hay un plan en memoria, si no por defecto es ORO
+                                                    const currentPlan = janIACore.memory.plan_filter ? janIACore.memory.plan_filter[0] : 'ORO';
+                                                    handleSendMessage(`Quiero descargar y VER AVALÚO ${currentPlan.toUpperCase()}`);
+                                                }}
+                                                className="w-full text-center py-4 rounded-xl text-[14px] font-black uppercase tracking-widest transition-all transform active:scale-95 shadow-2xl bg-gradient-to-r from-brand-gold-dark via-brand-gold to-brand-gold-light text-black border border-white/50 hover:brightness-110 flex items-center justify-center relative overflow-hidden"
+                                            >
+                                                {/* Efectos de brillo Premium */}
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg] animate-shine" />
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                VER AVALÚO PROFESIONAL 📄
+                                            </button>
                                         </div>
                                     )}
 
