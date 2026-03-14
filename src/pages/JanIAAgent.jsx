@@ -116,6 +116,11 @@ const JanIAAgent = () => {
 
             // No llamamos generateAndSendReport aquí porque el usuario se recargó y no tenemos el appraisalData completo en memoria local de component,
             // dejaremos que JanIA decida llamar la tool `generate_report_download` a través del `janIA_pending_action`
+            
+            // 🔥 FIX: Disparar evento para asegurar que JanIA responda inmediatamente al regresar de Epayco
+            setTimeout(() => {
+                window.dispatchEvent(new Event('trigger_jania_payment_success'));
+            }, 500);
         };
 
         if (paymentFlagStr) {
@@ -714,6 +719,16 @@ const JanIAAgent = () => {
         }
     };
 
+    // 🚀 EFECTO ESCUCHADOR: Forzar respuesta de JanIA tras pago exitoso
+    useEffect(() => {
+        const handlePaymentSuccessEvent = () => {
+            console.log("🔥 Evento recibido: trigger_jania_payment_success. Ejecutando handleSendMessage...");
+            handleSendMessage("SISTEMA_CONFIRMACION_PAGO_EXITOSA");
+            localStorage.removeItem('janIA_pending_action');
+        };
+        window.addEventListener('trigger_jania_payment_success', handlePaymentSuccessEvent);
+        return () => window.removeEventListener('trigger_jania_payment_success', handlePaymentSuccessEvent);
+    }, [chatId, user]); // Refrescar closure de handleSendMessage
 
     const handleSendMessage = async (text, files = []) => {
         if ((!text && files.length === 0) || isSendingRef.current) return;
