@@ -44,7 +44,7 @@ export const initChat = async () => {
     try {
         // Use v1beta for early access to Serie 3 models
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-3-flash-preview",
+            model: "gemini-2.5-flash",
             systemInstruction: SYSTEM_PROMPT 
         }, { apiVersion: "v1beta" });
 
@@ -111,7 +111,7 @@ export const analyzeAndExtractData = async (lastUserMessage) => {
 
     try {
         // Extraction model based on Serie 3
-        const extractionModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }, { apiVersion: "v1beta" });
+        const extractionModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, { apiVersion: "v1beta" });
         
         const extractionPrompt = `
         Analiza el siguiente mensaje de un usuario interesado en un avalúo inmobiliario:

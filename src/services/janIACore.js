@@ -20,11 +20,11 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 // --- DUAL BRAIN CONFIGURATION ---
 // --- DUAL BRAIN CONFIGURATION ---
 // MODEL CONFIGURATION (VECY 2026 STANDARDS - Peak Functional Performance)
-export const CORTEX_MODEL = "gemini-3.1-pro-preview"; // El más potente (confirmado por benchmark)
-export const REFLEX_MODEL = "gemini-3-flash-preview";  // El más rápido de la Serie 3
-export const VISION_MODEL = "gemini-3.1-pro-preview"; // Máxima visión
-export const TITLING_MODEL = "gemini-3-flash-preview"; // Velocidad para títulos
-export const RESEARCH_MODEL = "gemini-3.1-pro-preview"; // Búsqueda profunda
+export const CORTEX_MODEL = "gemini-2.5-pro"; // El más potente para el cerebro central
+export const REFLEX_MODEL = "gemini-2.5-flash";  // El más rápido para conversar y reaccionar
+export const VISION_MODEL = "gemini-2.5-pro"; // Máxima visión para análisis de fachadas/planos
+export const TITLING_MODEL = "gemini-2.5-flash"; // Velocidad pura para nombrar tareas
+export const RESEARCH_MODEL = "gemini-2.5-pro"; // Búsqueda profunda en portales
 
 // UX: Dynamic Thinking States
 // UX: Dynamic Thinking States (SuperAppraiser Persona)
@@ -854,7 +854,7 @@ export class JanIACore {
         if (!finalText || finalText.length < 5) {
             console.warn("⚠️ [Reflex] Response was empty after cleaning. Activating Backup Generator.");
             // Restaurado a Serie 3.1 (Ene 2026)
-            const backupModel = await this._getSafeModel("gemini-3.1-flash-preview");
+            const backupModel = await this._getSafeModel("gemini-2.5-flash");
             const backupRes = await backupModel.generateContent(`Eres JanIA. El usuario dijo: "${userText}". Tu pensamiento previo fue: "${plan.thought_process}". Genera una respuesta CORTA y amable invitándolo a continuar.`);
             finalText = backupRes.response.text();
         }
@@ -982,7 +982,7 @@ export class JanIACore {
             try {
                 // CAPA DE SEGURIDAD FINAL: Gemini 3.1 Flash Normal
                 console.log("⚠️ Switching to Backup 3.1 Flash (Final Layer)...");
-                const backupModel = await this._getSafeModel("gemini-3.1-flash");
+                const backupModel = await this._getSafeModel("gemini-2.5-flash");
                 
                 // En Serie 3.1, inyectamos contexto completo
                 const prompt = PERSONALITY_PROMPT + 
