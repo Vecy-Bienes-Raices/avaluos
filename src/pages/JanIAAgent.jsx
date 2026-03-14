@@ -2151,7 +2151,7 @@ const JanIAAgent = () => {
                                     </button>
 
                                     <div className="hidden md:flex ml-2 items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 cursor-default hover:bg-white/10 transition-colors">
-                                        <div className="w-2 h-2 rounded-full bg-[#00c58d] animate-pulse shadow-[0_0_8px_rgba(0,197,141,0.8)]"></div>
+                                        <div className="w-2 h-2 rounded-full bg-[#00ff22] animate-pulse shadow-[0_0_8px_rgba(0,255,34,0.8)]"></div>
                                         <span className="text-[10px] font-semibold text-stone-300 tracking-wider font-outfit uppercase">JanIA 2.5 Beta</span>
                                     </div>
                                 </div>
