@@ -270,6 +270,7 @@ export class JanIACore {
                 else if (toolName === 'trigger_auth_options') uiComponent = 'auth_options';
                 else if (toolName === 'trigger_file_upload') uiComponent = 'file_upload';
                 else if (toolName === 'generate_location_pin') uiComponent = 'street_view';
+                else if (toolName === 'generate_report_download') uiComponent = 'report_download';
             }
 
             return { text: finalRes, memory: this.memory, plan, component: uiComponent };
@@ -403,6 +404,33 @@ export class JanIACore {
                         return "Error técnico leyendo la URL. El sitio web tiene protecciones anti-bot fuertes. Pídele al usuario copiar y pegar el texto clave."; 
                     }
                 }
+
+            case 'update_property_metadata':
+                try {
+                    // Herramienta heurística: Asimila correcciones del usuario sin depender de APIs de terceros
+                    if (!this.memory.property_data) this.memory.property_data = {};
+                    
+                    let memoryUpdated = [];
+                    for (const [key, value] of Object.entries(args)) {
+                        if (value !== undefined && value !== null && value !== "") {
+                            this.memory.property_data[key] = value;
+                            memoryUpdated.push(`${key}: ${value}`);
+                        }
+                    }
+                    
+                    if (memoryUpdated.length === 0) return "No se recibió información válida para actualizar.";
+                    
+                    console.log("🧠 [JanIA Heuristics] Memoria actualizada por instrucción:", memoryUpdated);
+                    
+                    return `[SISTEMA - MEMORIA SOBRESCRITA]: 
+                    He forzado la actualización de mi base de datos interna con lo siguiente: ${memoryUpdated.join(', ')}
+                    
+                    INSTRUCCIÓN:
+                    Responde cortésmente al usuario dándole TODA la razón. Dile que ya has asimilado la ubicación/dato que te dio y que procederás con el análisis correcto basado en su experta indicación.`;
+                } catch(e) {
+                    return "Error al actualizar la memoria de propiedades internas.";
+                }
+
             case 'get_location_details':
                 try {
                     const geocodeUrl = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(args.address + ', Bogotá') + '&key=' + MAPS_API_KEY;
