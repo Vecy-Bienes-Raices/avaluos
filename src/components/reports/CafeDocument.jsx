@@ -15,29 +15,23 @@ const CafeDocument = ({ data }) => {
     return (
         <div className="font-jakarta rounded-3xl overflow-hidden shadow-2xl border border-white/10 print:shadow-none print:border-none print:rounded-none print:bg-white">
 
-            {/* ===== PORTADA CON FOTO ===== */}
-            {(data.facade_url || data.cover_image) && (
-                <div className="relative h-56 md:h-72 overflow-hidden print:h-48">
-                    <img
-                        src={data.facade_url || data.cover_image}
-                        alt="Inmueble sujeto"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                    {/* gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1a1210] via-[#1a1210]/40 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#CCAC4E]/80 mb-1">Vecy Avalúos · Plan Café</p>
-                        <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-none drop-shadow-xl print:text-stone-900">
-                            {data.tipo_inmueble || 'Inmueble Residencial'}
-                        </h1>
-                        <p className="text-stone-300 text-sm mt-1 flex items-center gap-2 drop-shadow print:text-stone-600">
-                            <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#CCAC4E]" />
-                            {data.barrio}, {data.localidad} — {data.ciudad}
-                        </p>
-                    </div>
+            {/* ===== PORTADA CON LOGO VECY ===== */}
+            <div className="relative h-48 md:h-64 overflow-hidden bg-gradient-to-br from-[#5D3A2A] via-[#423229] to-[#2a1f1a] flex flex-col items-center justify-center print:h-36 print:bg-white print:border-b-4 print:border-[#CCAC4E]">
+                {/* Subtle radial glow */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-64 h-64 bg-[#CCAC4E]/10 rounded-full blur-3xl print:hidden" />
                 </div>
-            )}
+                <img
+                    src="/logo-vecy.png"
+                    alt="Vecy Avalúos"
+                    className="h-20 md:h-28 w-auto object-contain relative z-10 drop-shadow-2xl print:h-16"
+                />
+                <div className="relative z-10 text-center mt-4">
+                    <span className="inline-block px-4 py-1 bg-[#CCAC4E]/15 text-[#CCAC4E] font-bold text-[10px] uppercase tracking-[0.3em] rounded-full border border-[#CCAC4E]/30">
+                        Plan Café · Reporte Analítico
+                    </span>
+                </div>
+            </div>
 
             {/* ===== GLASS HEADER (sin portada, o complementario) ===== */}
             <header className="bg-[#2c2420]/80 backdrop-blur-xl border-b border-white/10 px-8 py-6 flex flex-col sm:flex-row justify-between items-center gap-4 print:bg-white print:border-b-2 print:border-[#CCAC4E] print:backdrop-filter-none">

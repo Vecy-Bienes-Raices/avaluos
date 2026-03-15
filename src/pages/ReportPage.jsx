@@ -19,8 +19,11 @@ const ReportPage = () => {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     // --- DEMO DATA (para previsualización sin BD) ---
+    const isDemo = chatId?.startsWith('demo-');
+    const demoPlan = chatId?.replace('demo-', '') || 'cafe';
+
     const DEMO_DATA = {
-        planType: chatId?.replace('demo-', '') || 'cafe',
+        planType: demoPlan,
         user_name: 'Carlos Andrés Rodríguez',
         property_data: {
             tipo_inmueble: 'Casa Bifamiliar',
@@ -36,19 +39,50 @@ const ReportPage = () => {
             area_construida: 148,
             area_terreno: 210,
             antiguedad: '12 años',
+            zonas_comunes: 'Jardín privado, BBQ',
+            piscina: false,
+            gym: false,
             precio_estimado: 1_320_000_000,
             valor_final_avaluador: 1_320_000_000,
             precio_m2: 8_918_918,
             lat: 4.7110,
             lng: -74.0490,
-            // Foto de portada del inmueble demo
-            facade_url: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&q=80',
-            cover_image: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&q=80',
-            analisis_mercado_texto: 'El sector de Polo Club - Usaquén registra en el primer trimestre de 2026 una oferta activa de 18 a 28 inmuebles en radio de 1 km. El precio promedio por m² en casas bifamiliares de estratos 4-5 oscila entre $7.800.000 y $9.500.000 COP, con una absorción media de 3 a 5 meses. El mercado local evidencia una apreciación anual del 6.2%, impulsada por la proximidad a corredores viales de alta demanda y la escasez de oferta nueva en el estrato. JanIA ha procesado 47 transacciones comparables en los últimos 6 meses para determinar el valor de mercado más probable.',
+            // Fachada — foto de casa estilo Colombia estrato 5
+            facade_url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
+            cover_image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
+            // Galería de interiores (usada en Plan Esmeralda y Oro)
+            gallery: [
+                { url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80', label: 'Sala principal' },
+                { url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80', label: 'Cocina integral' },
+                { url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80', label: 'Habitación principal' },
+                { url: 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=600&q=80', label: 'Baño principal' },
+                { url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=600&q=80', label: 'Comedor' },
+                { url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80', label: 'Jardín / antejardín' },
+            ],
+            // Texto de mercado
+            analisis_mercado_texto: 'El sector de Polo Club - Usaquén registra en el primer trimestre de 2026 una oferta activa de 18 a 28 inmuebles en radio de 1 km. El precio promedio por m² en casas bifamiliares de estratos 4-5 oscila entre $7.800.000 y $9.500.000 COP, con absorción media de 3 a 5 meses. El mercado evidencia una apreciación anual del 6.2%, impulsada por la proximidad a corredores viales de alta demanda y escasez de oferta nueva. JanIA procesó 47 transacciones comparables en los últimos 6 meses para determinar este valor de mercado.',
+            ofertas_activas: '18–28',
+            absorcion: '3–5 m.',
+            apreciacion: '+6.2%',
+            // Normativa urbana
+            uso_suelo: 'Residencial / Mixto Bajo',
+            zona_catastral: 'Zona Norte — Código 82-04',
+            norma_vigente: 'POT Bogotá 2022 Dec. 555',
+            tratamiento: 'Consolidación Urbana',
+            indice_ocupacion: '60% — 70%',
+            pisos_permitidos: 'Hasta 4 pisos',
+            // Evaluación cualitativa
+            conservacion: 88,
+            acabados: 82,
+            ubicacion_score: 92,
+            valorizacion_score: 80,
+            // Comparables extendidos
             comparables: [
                 { address: 'Cra 52 # 127-15', area: 135, price: 1_180_000_000, price_m2: 8_741_000, days_on_market: 62 },
                 { address: 'Cll 126 # 51B-28', area: 162, price: 1_490_000_000, price_m2: 9_197_000, days_on_market: 47 },
                 { address: 'Cra 53A # 128-42', area: 144, price: 1_290_000_000, price_m2: 8_958_000, days_on_market: 91 },
+                { address: 'Cll 128 # 54-12', area: 155, price: 1_375_000_000, price_m2: 8_871_000, days_on_market: 38 },
+                { address: 'Cra 55 # 126A-08', area: 139, price: 1_220_000_000, price_m2: 8_777_000, days_on_market: 75 },
             ]
         }
     };
@@ -198,7 +232,7 @@ const ReportPage = () => {
                         className="h-12 px-6 md:px-8 bg-brand-gold text-stone-900 font-extrabold rounded-full shadow-xl shadow-black/20 hover:scale-[1.02] active:scale-95 flex items-center gap-3 transition-all text-xs uppercase tracking-widest"
                     >
                         <FontAwesomeIcon icon={faPrint} className="text-lg" />
-                        <span className="hidden sm:inline">Descargar Oficial</span>
+                        <span className="hidden sm:inline">DESCARGAR PDF</span>
                         <span className="inline sm:hidden">PDF</span>
                     </button>
                 </div>
