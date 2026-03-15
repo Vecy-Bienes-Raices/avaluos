@@ -50,7 +50,7 @@ const ReportPage = () => {
             // Fachada — foto de casa estilo Colombia estrato 5
             facade_url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
             cover_image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
-            // Galería de interiores (usada en Plan Esmeralda y Oro)
+            // Galería de interiores + extras (usada en Plan Esmeralda y Oro)
             gallery: [
                 { url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80', label: 'Sala principal' },
                 { url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80', label: 'Cocina integral' },
@@ -58,6 +58,10 @@ const ReportPage = () => {
                 { url: 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=600&q=80', label: 'Baño principal' },
                 { url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=600&q=80', label: 'Comedor' },
                 { url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80', label: 'Jardín / antejardín' },
+                // Plan Oro: 3 fotos adicionales
+                { url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80', label: 'Garaje cubierto (2 puestos)' },
+                { url: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=600&q=80', label: 'Terraza / zona exterior' },
+                { url: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&q=80', label: 'Entorno / Polo Club' },
             ],
             // Texto de mercado
             analisis_mercado_texto: 'El sector de Polo Club - Usaquén registra en el primer trimestre de 2026 una oferta activa de 18 a 28 inmuebles en radio de 1 km. El precio promedio por m² en casas bifamiliares de estratos 4-5 oscila entre $7.800.000 y $9.500.000 COP, con absorción media de 3 a 5 meses. El mercado evidencia una apreciación anual del 6.2%, impulsada por la proximidad a corredores viales de alta demanda y escasez de oferta nueva. JanIA procesó 47 transacciones comparables en los últimos 6 meses para determinar este valor de mercado.',

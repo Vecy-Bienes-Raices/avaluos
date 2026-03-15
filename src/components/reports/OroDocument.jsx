@@ -111,9 +111,11 @@ const OroDocument = ({ data, chatId }) => {
                         <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#CCAC4E]/70 print:text-[#B8860B]">Registro Fotográfico del Inmueble</p>
                         <div className="h-px flex-1 bg-gradient-to-l from-[#CCAC4E]/40 to-transparent" />
                     </div>
-                    <div className="grid grid-cols-3 gap-2 print:grid-cols-3">
+
+                    {/* Primera fila — 6 interiores */}
+                    <div className="grid grid-cols-3 gap-2 print:grid-cols-3 mb-2">
                         {gallery.slice(0, 6).map((foto, i) => (
-                            <div key={i} className={`relative rounded-xl overflow-hidden ${i === 0 ? 'col-span-1 row-span-1' : ''}`} style={{ aspectRatio: '4/3' }}>
+                            <div key={i} className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
                                 <img
                                     src={foto.url || foto}
                                     alt={foto.label || `Interior ${i + 1}`}
@@ -129,6 +131,37 @@ const OroDocument = ({ data, chatId }) => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Segunda fila — garaje, terraza, entorno (solo Plan Oro) */}
+                    {gallery.length > 6 && (
+                        <>
+                            <div className="flex items-center gap-3 mt-3 mb-2 px-2">
+                                <div className="h-px flex-1 bg-gradient-to-r from-[#CCAC4E]/20 to-transparent" />
+                                <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-[#CCAC4E]/50 print:text-[#B8860B]/60">Instalaciones, Áreas Adicionales y Entorno</p>
+                                <div className="h-px flex-1 bg-gradient-to-l from-[#CCAC4E]/20 to-transparent" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 print:grid-cols-3">
+                                {gallery.slice(6, 9).map((foto, i) => (
+                                    <div key={i} className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
+                                        <img
+                                            src={foto.url || foto}
+                                            alt={foto.label || `Extra ${i + 1}`}
+                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                                        {/* Gold border accent for extra photos */}
+                                        <div className="absolute inset-0 rounded-xl ring-1 ring-[#CCAC4E]/20 print:hidden" />
+                                        {foto.label && (
+                                            <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-gradient-to-t from-[#0c0a06]/80 to-transparent">
+                                                <p className="text-[8px] font-bold text-[#CCAC4E] uppercase tracking-wider">{foto.label}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
@@ -192,6 +225,56 @@ const OroDocument = ({ data, chatId }) => {
                             ))}
                         </div>
                     )}
+                </section>
+
+                {/* DESCRIPCIÓN DE MATERIALES */}
+                <section className="bg-white/[0.04] border border-[#CCAC4E]/15 rounded-2xl p-6 print:bg-stone-50 print:border-stone-200">
+                    <h2 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#CCAC4E] mb-5 print:text-[#B8860B]">
+                        <FontAwesomeIcon icon={faRulerCombined} />
+                        Descripción de Materiales de Construcción
+                    </h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-[#CCAC4E]/15">
+                                    <th className="text-left text-[9px] font-black uppercase tracking-wider text-[#CCAC4E]/70 pb-3 w-1/3 print:text-[#B8860B]">Elemento</th>
+                                    <th className="text-left text-[9px] font-black uppercase tracking-wider text-[#CCAC4E]/70 pb-3 print:text-[#B8860B]">Descripción</th>
+                                    <th className="text-center text-[9px] font-black uppercase tracking-wider text-[#CCAC4E]/70 pb-3 print:text-[#B8860B]">Calidad</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#CCAC4E]/5 print:divide-stone-200">
+                                {(data.materiales || [
+                                    { elemento: 'Estructura', descripcion: 'Concreto reforzado — vigas y columnas en acero estructural', calidad: 'Alta' },
+                                    { elemento: 'Muros / Mampostería', descripcion: 'Bloque de arcilla cocida No. 4 — revoque y estuco liso interior', calidad: 'Alta' },
+                                    { elemento: 'Cubierta', descripcion: 'Losa de concreto plana con impermeabilización — sin entretecho visible', calidad: 'Alta' },
+                                    { elemento: 'Pisos', descripcion: 'Porcelanato 60×60 cm rectificado en zonas sociales — madera laminada en habitaciones', calidad: 'Alta' },
+                                    { elemento: 'Fachada', descripcion: 'Ladrillo prensado a la vista — marco de ventanería en aluminio anodizado negro', calidad: 'Alta' },
+                                    { elemento: 'Carpintería Madera', descripcion: 'Puertas en madera sólida cedro — closets en MDF lacado blanco mate', calidad: 'Media-Alta' },
+                                    { elemento: 'Carpintería Metálica', descripcion: 'Ventanas en aluminio línea 3" con vidrio templado de 6mm', calidad: 'Alta' },
+                                    { elemento: 'Instalaciones Hidrosanitarias', descripcion: 'Red en CPVC — sanitarios Briggs / Edesa línea top mount', calidad: 'Media-Alta' },
+                                    { elemento: 'Instalaciones Eléctricas', descripcion: 'Red en conduit EMT — tablero 24 circuitos con breakers Siemens', calidad: 'Alta' },
+                                    { elemento: 'Cocina / Baños', descripcion: 'Mesones en mármol sintético blanco — enchapes tipo Porcelanosa 30×60 cm', calidad: 'Alta' },
+                                ]).map((mat, i) => {
+                                    const calColor = mat.calidad === 'Alta'
+                                        ? 'bg-[#CCAC4E]/15 text-[#CCAC4E] print:bg-yellow-50 print:text-[#B8860B]'
+                                        : mat.calidad === 'Media-Alta'
+                                        ? 'bg-teal-500/10 text-teal-300 print:bg-teal-50 print:text-teal-700'
+                                        : 'bg-stone-500/10 text-stone-400 print:bg-stone-100 print:text-stone-600';
+                                    return (
+                                        <tr key={i} className="hover:bg-[#CCAC4E]/3 transition-colors">
+                                            <td className="py-3 font-bold text-stone-200 text-xs print:text-stone-800">{mat.elemento}</td>
+                                            <td className="py-3 text-stone-400 text-xs leading-relaxed print:text-stone-600">{mat.descripcion}</td>
+                                            <td className="py-3 text-center">
+                                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${calColor}`}>
+                                                    {mat.calidad}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
 
                 {/* VALOR PERICIAL — LUXURY CARD */}
