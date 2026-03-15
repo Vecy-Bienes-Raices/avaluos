@@ -8,6 +8,9 @@ export default {
     extend: {
       fontFamily: {
         outfit: ['Outfit', 'sans-serif'],
+        jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
+        playfair: ['"Playfair Display"', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {
