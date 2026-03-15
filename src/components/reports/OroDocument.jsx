@@ -16,7 +16,7 @@ const OroDocument = ({ data, chatId }) => {
 
             {/* Subtle gold watermark */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.025] z-0 print:opacity-[0.03]">
-                <img src="https://i.ibb.co/G3ngFMmn/Vecy-agenda1.png" alt="" className="w-[480px]" />
+                <img src="/perfil.png" alt="" className="w-[480px] rounded-full opacity-50" />
             </div>
 
             <div className="relative z-10">
@@ -24,7 +24,7 @@ const OroDocument = ({ data, chatId }) => {
                 <header className="bg-[#1a1400]/80 backdrop-blur-xl border-b border-[#CCAC4E]/25 px-10 py-8 print:bg-white print:border-b-4 print:border-[#CCAC4E] print:backdrop-filter-none">
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
                         <div className="flex items-center gap-5">
-                            <img src="https://i.ibb.co/G3ngFMmn/Vecy-agenda1.png" alt="Vecy Avalúos" className="w-16 h-16 object-contain" />
+                            <img src="/perfil.png" alt="JanIA · Vecy Avalúos" className="w-16 h-16 object-cover rounded-full border-2 border-[#CCAC4E]/30" />
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#CCAC4E]/70 mb-0.5">Vecy Avalúos · Dictamen Oficial</p>
                                 <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-none print:text-stone-900">
@@ -155,9 +155,9 @@ const OroDocument = ({ data, chatId }) => {
             </div>
 
             {/* ===== PRINT-ONLY FOOTER ===== */}
-            <footer className="hidden print:flex items-center justify-between px-10 py-5 border-t-2 border-[#CCAC4E]/40 bg-stone-50 w-full">
+            <footer className="report-print-footer hidden print:flex items-center justify-between px-10 py-5 border-t-2 border-[#CCAC4E]/40 bg-stone-50 w-full">
                 <div className="flex items-center gap-3">
-                    <img src="https://i.ibb.co/G3ngFMmn/Vecy-agenda1.png" alt="Vecy Avalúos" className="h-8 opacity-70" />
+                    <img src="/perfil.png" alt="JanIA · Vecy Avalúos" className="h-8 opacity-80 rounded-full" />
                     <p className="text-stone-700 font-bold text-xs uppercase tracking-widest">Vecy Avalúos S.A.S</p>
                 </div>
                 <div className="flex items-center gap-2 text-stone-600 text-xs font-semibold">

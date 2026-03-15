@@ -80,7 +80,7 @@ const EsmeraldaDocument = ({ data }) => {
             {/* ===== GLASS HEADER ===== */}
             <header className="bg-[#0c2c27]/80 backdrop-blur-xl border-b border-teal-500/20 px-8 py-5 flex flex-col sm:flex-row justify-between items-center gap-4 print:bg-white print:border-b-2 print:border-teal-600 print:backdrop-filter-none">
                 <div className="flex items-center gap-4">
-                    <img src="https://i.ibb.co/G3ngFMmn/Vecy-agenda1.png" alt="Vecy Avalúos" className="w-10 h-10 object-contain print:hidden" />
+                    <img src="/perfil.png" alt="JanIA" className="w-10 h-10 object-cover rounded-full border-2 border-teal-400/30 print:hidden" />
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-400">Análisis Comparativo de Mercado Avanzado</p>
                         <p className="text-stone-400 text-xs">Reporte de Mercado con IA · Vecy Avalúos S.A.S.</p>
@@ -319,9 +319,9 @@ const EsmeraldaDocument = ({ data }) => {
             </div>
 
             {/* ===== PRINT-ONLY FOOTER ===== */}
-            <footer className="hidden print:flex items-center justify-between px-10 py-5 border-t-2 border-teal-500/30 bg-white w-full">
+            <footer className="report-print-footer hidden print:flex items-center justify-between px-10 py-5 border-t-2 border-teal-500/30 bg-white w-full">
                 <div className="flex items-center gap-3">
-                    <img src="https://i.ibb.co/G3ngFMmn/Vecy-agenda1.png" alt="Vecy Avalúos" className="h-8 opacity-70" />
+                    <img src="/perfil.png" alt="JanIA · Vecy Avalúos" className="h-8 opacity-80 rounded-full" />
                     <p className="text-stone-700 font-bold text-xs uppercase tracking-widest">Vecy Avalúos S.A.S</p>
                 </div>
                 <div className="flex items-center gap-2 text-stone-600 text-xs font-semibold">

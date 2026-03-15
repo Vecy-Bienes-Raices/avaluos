@@ -209,7 +209,7 @@ const ReportPage = () => {
             </div>
 
             {/* Premium Action Bar (Floating) */}
-            <nav className="relative z-[120] w-full max-w-5xl mx-auto px-4 md:px-6 pt-8 pb-10 flex items-center justify-between print:hidden">
+            <nav className="report-action-bar relative z-[120] w-full max-w-5xl mx-auto px-4 md:px-6 pt-8 pb-10 flex items-center justify-between print:hidden">
                 <button 
                     onClick={() => navigate('/jania')}
                     className="flex items-center gap-3 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-sm font-bold backdrop-blur-md group shadow-lg text-white"

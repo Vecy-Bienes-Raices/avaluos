@@ -189,52 +189,177 @@
     }
 }
 
-/* --- PRINT / PDF STYLES --- */
+/* --- PRINT / PDF STYLES - VECY AVALÚOS PROFESSIONAL --- */
 @media print {
-    /* Hide non-essential UI elements */
-    nav, footer, .floating-concierge, button, 
-    .no-print, [role="button"], #floating-cta {
+
+    /* ===== PAGE SETUP ===== */
+    @page {
+        size: A4 portrait;
+        margin: 12mm 14mm 16mm 14mm; /* top right bottom left */
+    }
+
+    @page :first {
+        margin-top: 0; /* First page: let the cover photo bleed to top */
+    }
+
+    /* ===== HIDE ALL NON-REPORT UI ===== */
+    nav,
+    header:not(.report-header),
+    footer:not(.report-print-footer),
+    button,
+    .no-print,
+    [role="dialog"],
+    [role="button"],
+    #floating-cta,
+    .floating-concierge,
+    .share-modal,
+    /* Hide the ReportPage top action bar */
+    .report-action-bar {
         display: none !important;
     }
 
-    body {
+    /* ===== BODY & ROOT RESET ===== */
+    *,
+    *::before,
+    *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    html, body {
         background: white !important;
         background-image: none !important;
-        color: black !important;
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-    }
-
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.9) !important;
-        border: 1px solid #ddd !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-    }
-
-    .text-brand-accent {
-        color: #B8860B !important; /* Professional Gold for print */
-    }
-
-    .text-brand-emerald {
-        color: #006400 !important;
-    }
-
-    .text-shadow-volcanic, .text-shadow-black {
-        text-shadow: none !important;
-    }
-
-    main {
-        padding: 0 !important;
+        background-attachment: unset !important;
+        color: #1c1917 !important;
+        font-size: 11pt !important;
+        width: 100% !important;
         margin: 0 !important;
-        max-width: 100% !important;
+        padding: 0 !important;
     }
 
-    section {
-        page-break-inside: avoid;
+    /* ===== REPORT WRAPPER ===== */
+    .min-h-screen {
+        min-height: unset !important;
     }
 
+    /* Remove glassmorphism backgrounds — replace with clean white */
+    [class*="backdrop-blur"],
+    [class*="backdrop-filter"] {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    /* Dark section backgrounds → white */
+    [class*="bg-[#"],
+    [class*="bg-stone-900"],
+    [class*="bg-black"] {
+        background-color: white !important;
+        background-image: none !important;
+    }
+
+    /* Dark text → readable dark on white */
+    [class*="text-white"] { color: #111827 !important; }
+    [class*="text-stone-300"],
+    [class*="text-stone-400"],
+    [class*="text-stone-500"] { color: #4b5563 !important; }
+    [class*="text-stone-200"] { color: #1c1917 !important; }
+
+    /* Brand accent colors — keep them for print identity */
+    [class*="text-[#CCAC4E]"],
+    [class*="text-brand-gold"],
+    [class*="text-brand-accent"] { color: #B8860B !important; }
+    [class*="text-teal-400"],
+    [class*="text-teal-300"] { color: #0f766e !important; }
+
+    /* Borders: keep light borders */
+    [class*="border-white/"] { border-color: #e5e7eb !important; }
+
+    /* ===== PAGE BREAK CONTROL — Keep sections together ===== */
+
+    /* Never break inside a report section/card */
+    section,
+    .report-section,
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"] {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Force page break BEFORE major sections if needed */
+    .page-break-before {
+        page-break-before: always !important;
+        break-before: page !important;
+    }
+
+    /* Cover + header: always on page 1, don't break after */
+    header {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+
+    /* Gallery section: try to keep on same page */
+    .report-gallery {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Tables: keep header with first row */
+    table { page-break-inside: avoid !important; break-inside: avoid !important; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+
+    /* Orphan/widow control */
+    p { orphans: 3; widows: 3; }
     h1, h2, h3 {
-        color: #1a1a1a !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        orphans: 4;
+        widows: 4;
     }
+
+    /* ===== IMAGES — Ensure they print ===== */
+    img {
+        max-width: 100% !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        /* Force print even if CSS background */
+        display: block !important;
+    }
+
+    /* Cover photo (full bleed first section) */
+    .report-cover-photo {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        height: 180px !important;
+        max-height: 180px !important;
+    }
+
+    /* ===== SHADOWS & DECORATIONS — Remove for PDF ===== */
+    [class*="shadow"] { box-shadow: none !important; }
+    [class*="blur"] { filter: none !important; }
+    [class*="drop-shadow"] { filter: none !important; }
+    [class*="animate-"] { animation: none !important; }
+
+    /* ===== PRINT FOOTER — Always show ===== */
+    .report-print-footer {
+        display: flex !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        border-top: 2px solid #d6b96e !important;
+        background: white !important;
+        padding: 6px 24px !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    /* ===== LAYOUT UTILITIES ===== */
+    .print\:hidden { display: none !important; }
+    .print\:block { display: block !important; }
+    .print\:flex { display: flex !important; }
+    .print\:grid { display: grid !important; }
+
 }
