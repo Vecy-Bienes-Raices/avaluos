@@ -528,11 +528,12 @@ export class JanIACore {
                         
                         [MEMORIA VISUAL]: He capturado la FOTO DE LA FACHADA de Google Street View en mi retina digital.
                         
-                        INSTRUCCIÓN:
+                        INSTRUCCIÓN PARA JANIA:
                         1. Muestra el componente de mapa.
-                        2. DESCRIBE la fachada que estás viendo en mi memoria visual (colores, materiales, altura). 
-                        3. CRÍTICO: Mencionale al usuario el BARRIO y la LOCALIDAD exactos que hemos detectado.
-                        4. Pregunta: "¿Es esta la fachada correcta y confirgas el barrio ${barrio}?"`;
+                        2. DESCRIBE brevemente la fachada (colores, estado, altura) como si la estuvieras viendo tú. 
+                        3. CONTINUIDAD: No te detengas. Confirma la ubicación y el barrio (${barrio}, localidad ${localidad}) e inmediatamente pide el **Certificado de Libertad** o el **Impuesto Predial** para precisión Oro.
+                        4. Pregunta también por datos internos (piso, si tiene ascensor o reformas) para NO romper el hilo.`;
+
                     }
                     return "No pude localizar esa dirección exacta en el mapa satelital. Pide al usuario que verifique la nomenclatura o envíe un punto de referencia.";
                 } catch(e) { return "Error técnico conectando con Satélite de Google Maps."; }
