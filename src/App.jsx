@@ -11,7 +11,7 @@ const PrivacyPolicy = lazy(() => import('./pages/Privacy'));
 const TermsAndConditions = lazy(() => import('./pages/Terms'));
 const AllyDashboard = lazy(() => import('./components/VecyPhoenix/AllyDashboard'));
 const SoyPerito = lazy(() => import('./pages/SoyPerito')); // 🚖 New Appraiser Landing
-const Network = lazy(() => import('./pages/Network')); // 💰 Network Marketing Page
+const Referidos = lazy(() => import('./pages/Referidos')); // 💰 Network Marketing Page
 const ReportPage = lazy(() => import('./pages/ReportPage')); // 📄 Web Report Page
 
 import { ModalProvider } from './context/ModalContext';
@@ -41,11 +41,14 @@ function App() {
                             <Route path="/avaluo/:id" element={<AvaluoPortales />} />
                             
                             {/* NEW: Clean AI Generated Web Report */}
+                            <Route path="/avaluo-cafe" element={<ReportPage planRoute="cafe" />} />
+                            <Route path="/avaluo-esmeralda" element={<ReportPage planRoute="esmeralda" />} />
+                            <Route path="/avaluo-oro" element={<ReportPage planRoute="oro" />} />
                             <Route path="/reporte/:id" element={<ReportPage />} />
 
                             {/* Navigation Pages */}
                             <Route path="/planes" element={<Planes />} />
-                            <Route path="/network" element={<Network />} />
+                            <Route path="/referidos" element={<Referidos />} />
                             <Route path="/perfil" element={<Perfil />} />
 
                             {/* Auth Callback */}

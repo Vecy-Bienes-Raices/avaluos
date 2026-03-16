@@ -116,7 +116,7 @@ const OroDocument = ({ data, chatId }) => {
                 <div className="absolute top-5 left-6 flex items-center gap-3">
                     <img src="/logo-vecy.png" alt="Vecy" className="h-9 w-auto drop-shadow-2xl print:hidden" />
                     <span className="px-3 py-1 bg-[#CCAC4E]/20 backdrop-blur-sm text-[#CCAC4E] font-bold text-[9px] uppercase tracking-[0.3em] rounded-full border border-[#CCAC4E]/40 print:hidden">
-                        Avalúo Comercial · Plan Oro
+                        Inteligencia Financiera · Plan Oro
                     </span>
                 </div>
                 <div className="absolute top-5 right-6 text-right print:hidden">
@@ -150,10 +150,10 @@ const OroDocument = ({ data, chatId }) => {
                         <img src="/perfil.png" alt="JanIA" className="w-14 h-14 object-cover rounded-full border-2 border-[#CCAC4E]/50 relative z-10 shadow-[0_0_20px_rgba(204,172,78,0.3)] print:hidden" />
                     </div>
                     <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#CCAC4E]/70">Vecy Avalúos S.A.S. · Dictamen Corporativo</p>
-                        <p className="text-white font-black text-lg print:text-stone-900">Avalúo Plan <span className="text-[#CCAC4E]">ORO</span></p>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#CCAC4E]/70">Vecy Avalúos S.A.S. · Data Inmobiliaria</p>
+                        <p className="text-white font-black text-lg print:text-stone-900">Avalúo Inversionista <span className="text-[#CCAC4E]">ORO</span></p>
                         <span className={`inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 ${GB} text-[#CCAC4E] font-bold text-[9px] uppercase tracking-widest rounded-full`}>
-                            <FontAwesomeIcon icon={faShieldHalved} className="text-xs" />Certificación Pericial Activa
+                            <FontAwesomeIcon icon={faShieldHalved} className="text-xs" />Reporte de Grado Financiero
                         </span>
                     </div>
                 </div>
@@ -535,6 +535,40 @@ const OroDocument = ({ data, chatId }) => {
                     </div>
                 </Sec>
 
+                {/* NUEVO: INTELIGENCIA FINANCIERA AVANZADA (EXCLUSIVO PLAN ORO) */}
+                <section className="relative overflow-hidden border border-[#CCAC4E]/40 rounded-2xl p-8 print:bg-stone-50 print:border-[#B8860B]/30 bg-gradient-to-br from-black/80 to-[#1a1400]">
+                    <h2 className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] ${G} mb-6`}>
+                        <FontAwesomeIcon icon={faChartBar} /><span className="opacity-50 mr-1">5.</span>Inteligencia Financiera Avanzada (Inversionistas)
+                    </h2>
+                    
+                    <p className="text-stone-300 text-xs leading-relaxed print:text-stone-700 mb-6 font-light">
+                        El Plan <strong className={G}>Oro King</strong> correlaciona factores de riesgo e hiper-crecimiento para determinar el viabilidad financiera del activo. Asumiendo un canon de arrendamiento esperado mensual del <strong className="text-white">0.5% al 0.6%</strong> sobre el valor comercial y una apreciación histórica validada, exponemos el modelo probabilístico a 5 años.
+                    </p>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className={`${GB} p-4 rounded-xl text-center border-l-4 border-l-emerald-500`}>
+                            <p className={LABEL}>Cap Rate (Tasa de Capitalización)</p>
+                            <p className="text-2xl font-black text-emerald-400">{(data.cap_rate || 6.2)}% <span className="text-[9px] text-stone-500 uppercase font-bold">/año</span></p>
+                        </div>
+                        <div className={`${GB} p-4 rounded-xl text-center border-l-4 border-l-[#CCAC4E]`}>
+                            <p className={LABEL}>ROI Bruto Proyectado (5 Años)</p>
+                            <p className={`text-2xl font-black ${G}`}>{(data.roi_5_years || 38.5)}% <span className="text-[9px] text-stone-500 uppercase font-bold">Global</span></p>
+                        </div>
+                        <div className={`${GB} p-4 rounded-xl text-center border-l-4 border-l-orange-500`}>
+                            <p className={LABEL}>Ingreso Operativo Neto (NOI)</p>
+                            <p className="text-base md:text-lg font-black text-orange-400 mt-2">{fmt(valor * 0.0055 * 12 * 0.9)} <span className="text-[9px] text-stone-500 uppercase font-bold">/año</span></p>
+                        </div>
+                        <div className={`${GB} p-4 rounded-xl text-center border-l-4 border-l-blue-500`}>
+                            <p className={LABEL}>Proyección Valor (Año 5)</p>
+                            <p className="text-base md:text-lg font-black text-blue-400 mt-2">{fmt(valor * Math.pow(1.062, 5))}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-[10px] text-stone-400 leading-relaxed">
+                        <strong className="text-white">Nota para Flippers e Inversionistas:</strong> La tasa de absorción actual del mercado para este segmento es de <em>{data.absorcion || '3 a 5 meses'}</em>. Un precio de toma un <span className="text-red-400 font-bold">12% por debajo del Valor Comercial ({fmt(valor * 0.88)})</span> garantiza una liquidación acelerada en menos de 45 días, maximizando la Tasa Interna de Retorno (TIR) en operaciones de compra-remodelación-venta.
+                    </div>
+                </section>
+
                 {/* FIRMAS */}
                 <section className={`${CARD} border-double border-2 border-[#CCAC4E]/40`}>
                     <div className="flex items-center gap-4 mb-8">
@@ -584,8 +618,8 @@ const OroDocument = ({ data, chatId }) => {
 
                 {/* LEGAL */}
                 <div className="text-[9px] text-stone-500 text-justify leading-relaxed tracking-wider px-1">
-                    <p className="uppercase font-bold text-[#CCAC4E]/40 mb-1">Aviso Legal — Res. 620/08 IGAC · Art. 289 C.P.</p>
-                    Este informe pericial corporativo «PLAN ORO» ha sido elaborado con base en la Resolución 620 de 2008 del IGAC y las normas del Consejo Profesional Nacional de Avaluadores (CPNAA). El valor aquí estipulado refleja las condiciones del mercado inmobiliario a la fecha de emisión y tiene una vigencia máxima de 12 meses. Su validez jurídica ante entidades bancarias, notariales y judiciales está condicionada a la firma presencial del perito RAA/RNA habilitado, tras inspección ocular. La alteración digital de este documento constituye fraude penado por la Ley 527/99 y el Artículo 289 del Código Penal Colombiano.
+                    <p className="uppercase font-bold text-[#CCAC4E]/40 mb-1">Aviso Legal — Inteligencia Financiera IA Vecy</p>
+                    Este informe Premium «PLAN ORO» ha sido generado procesando miles de datos con modelos de inteligencia artificial propios de Vecy Avalúos, estableciendo proyecciones financieras para uso especulativo y comercial. Las métricas de Cap Rate y ROI son estimaciones modeladas basadas en el comportamiento histórico del mercado inmobiliario. Este informe refleja el valor probabilístico más alto de mercado. Las decisiones de inversión finales deben considerar riesgos sistémicos del mercado. Su copia, distribución no autorizada o manipulación están prohibidos. Protegido en la nube de Vecy.
                 </div>
             </div>
 

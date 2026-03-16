@@ -69,7 +69,7 @@ export const initiateCheckout = async (planData) => {
 
         } catch (error) {
             console.error('ePayco Checkout Error:', error);
-            alert('Hubo un error al iniciar la pasarela de pagos. Por favor intenta nuevamente.');
+            // alert('Hubo un error al iniciar la pasarela de pagos. Por favor intenta nuevamente.');
             reject(error);
         }
     });

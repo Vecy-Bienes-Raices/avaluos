@@ -334,9 +334,10 @@ const Perfil = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('network')}
-                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'network' ? 'bg-gradient-to-r from-brand-gold to-amber-500 text-black shadow-lg shadow-brand-gold/20' : 'text-stone-400 hover:text-white'}`}
+                            className={`px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'network' ? 'bg-gradient-to-r from-brand-gold to-amber-500 text-black shadow-lg shadow-brand-gold/20' : 'text-stone-400 hover:text-white'}`}
                         >
-                            💎 Vecy Network
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" /></svg>
+                            Vecy Network
                         </button>
                     </div>
 
@@ -474,7 +475,9 @@ const Perfil = () => {
                                 <div className="space-y-4">
                                     <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-brand-gold/20 to-transparent p-6 rounded-2xl border border-brand-gold/30 relative overflow-hidden group">
                                         <div className="relative z-10">
-                                            <h3 className="text-2xl font-bold text-brand-gold mb-1">Rango: {referrals.rank} 🚀</h3>
+                                            <h3 className="text-2xl font-bold text-brand-gold mb-1 flex items-center gap-2">
+                                                Rango: {referrals.rank}
+                                            </h3>
                                             <p className="text-sm text-stone-300">Tu influencia está creciendo. ¡Sigue así!</p>
                                         </div>
                                         <div className="mt-4 md:mt-0 text-right relative z-10">
@@ -522,7 +525,7 @@ const Perfil = () => {
 
                                     <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
                                         <div className="flex items-start gap-3">
-                                            <span className="text-xl">💡</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-emerald-400 mt-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.829 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.487 1.508 1.333 1.508 2.316V18" /></svg>
                                             <div className="space-y-3 w-full">
                                                 <div>
                                                     <p className="text-sm font-bold text-emerald-400 mb-1">Modelo de Ganancias Ilimitadas</p>
@@ -537,7 +540,10 @@ const Perfil = () => {
 
                                                     {/* CAFÉ */}
                                                     <div>
-                                                        <p className="font-bold text-brand-gold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">☕ Plan Café Express</p>
+                                                        <p className="flex items-center gap-1.5 font-bold text-brand-gold uppercase tracking-wider mb-2 border-b border-white/10 pb-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                                                            Plan Café Express
+                                                        </p>
                                                         <div className="space-y-1.5 text-stone-300">
                                                             <div className="flex justify-between items-center">
                                                                 <span>Estratos 1-3</span>
@@ -552,7 +558,10 @@ const Perfil = () => {
 
                                                     {/* ESMERALDA */}
                                                     <div>
-                                                        <p className="font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">💎 Plan Esmeralda Plus</p>
+                                                        <p className="flex items-center gap-1.5 font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
+                                                            Plan Esmeralda Plus
+                                                        </p>
                                                         <div className="space-y-1.5 text-stone-300">
                                                             <div className="flex justify-between items-center">
                                                                 <span>Estratos 1-3</span>
@@ -567,7 +576,10 @@ const Perfil = () => {
 
                                                     {/* ORO */}
                                                     <div>
-                                                        <p className="font-bold text-amber-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">👑 Plan Oro King</p>
+                                                        <p className="flex items-center gap-1.5 font-bold text-amber-500 uppercase tracking-wider mb-2 border-b border-white/10 pb-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" /></svg>
+                                                            Plan Oro King
+                                                        </p>
                                                         <div className="text-stone-300">
                                                             <div className="flex justify-between items-center">
                                                                 <span>Cada Referido genera:</span>
@@ -609,8 +621,8 @@ const Perfil = () => {
                                             }}
                                             className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
                                         >
-                                            <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🔗</span>
-                                            <span className="font-bold text-white text-xs">Copiar Link</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>
+                                            <span className="font-bold text-white text-[10px] uppercase">Copiar Link</span>
                                         </button>
 
                                         <button
@@ -622,8 +634,8 @@ const Perfil = () => {
                                             {referrals.balance >= 50000 && (
                                                 <span className="absolute inset-0 bg-emerald-500/20 animate-pulse pointer-events-none"></span>
                                             )}
-                                            <span className={`text-xl mb-1 group-hover:scale-110 transition-transform ${referrals.balance >= 50000 ? 'animate-bounce' : ''}`}>💸</span>
-                                            <span className={`font-bold text-xs ${referrals.balance > 0 ? 'text-emerald-400' : 'text-stone-500'}`}>Canjear</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-6 h-6 mb-1 text-emerald-400 group-hover:scale-110 transition-transform ${referrals.balance >= 50000 ? 'animate-bounce' : ''}`}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                            <span className={`font-bold text-[10px] uppercase tracking-wider ${referrals.balance > 0 ? 'text-emerald-400' : 'text-stone-500'}`}>Canjear</span>
                                         </button>
                                     </div>
                                 </div>

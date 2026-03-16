@@ -10,6 +10,7 @@ export default {
         outfit: ['Outfit', 'sans-serif'],
         jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
         playfair: ['"Playfair Display"', 'serif'],
+        inter: ['"Inter"', 'system-ui', 'sans-serif'],
         sans: ['"Plus Jakarta Sans"', 'Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
@@ -54,6 +55,27 @@ export default {
             '100%': { opacity: '1', transform: 'scale(1)' },
         }
       },
+      typography: (theme) => ({
+        DEFAULT: {
+          css: {
+            fontFamily: theme('fontFamily.outfit'),
+            color: 'inherit',
+            a: {
+              color: 'inherit',
+            },
+            strong: {
+              color: 'inherit',
+            },
+            h1: { color: 'inherit' },
+            h2: { color: 'inherit' },
+            h3: { color: 'inherit' },
+            h4: { color: 'inherit' },
+            p: { color: 'inherit' },
+            span: { color: 'inherit' },
+            li: { color: 'inherit' },
+          },
+        },
+      }),
     },
   },
   plugins: [

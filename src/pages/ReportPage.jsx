@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilePdf, faShareNodes, faArrowLeft, faPrint, faEnvelope, faXmark, faLink, faBriefcase, faClipboard, faShieldHalved, faMicrochip } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp, faFacebook, faXTwitter, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 
-const ReportPage = () => {
+const ReportPage = ({ planRoute }) => {
     const { id: chatId } = useParams();
     const navigate = useNavigate();
     const [reportData, setReportData] = useState(null);
@@ -19,8 +19,8 @@ const ReportPage = () => {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     // --- DEMO DATA (para previsualización sin BD) ---
-    const isDemo = chatId?.startsWith('demo-');
-    const demoPlan = chatId?.replace('demo-', '') || 'cafe';
+    const isDemo = chatId?.startsWith('demo-') || !!planRoute;
+    const demoPlan = planRoute || chatId?.replace('demo-', '') || 'cafe';
 
     const DEMO_DATA = {
         planType: demoPlan,
@@ -93,9 +93,33 @@ const ReportPage = () => {
 
     useEffect(() => {
         const fetchReportData = async () => {
-            // ✅ MODO DEMO: Si el ID empieza con "demo-", cargamos datos de muestra
+            // ✅ MODO RUTA GENÉRICA (/avaluo-oro, etc.) o MODO DEMO VIEJO
+            if (planRoute) {
+                // Intentamos buscar un reporte real en memoria de la sesión actual
+                const localMem = localStorage.getItem('janIA_temp_memory');
+                let foundData = null;
+                if (localMem) {
+                    try {
+                        const parsed = JSON.parse(localMem);
+                        foundData = parsed.memory || parsed;
+                    } catch(e) {}
+                }
+                // Mostrar su reporte si coincide plan, o si hay un reporte generado recientemente y el plan corresponde
+                const matchPlan = foundData?.planType?.toLowerCase() === planRoute.toLowerCase() || foundData?.plan_filter?.[0]?.toLowerCase() === planRoute.toLowerCase();
+                if (foundData && foundData.property_data && Object.keys(foundData.property_data).length > 2 && matchPlan) {
+                    foundData.planType = planRoute.toUpperCase();
+                    setReportData(foundData);
+                } else {
+                    // Falls back a DEMO global para ese link
+                    console.log("No report found in memory for this plan, showing demo.");
+                    setReportData({ ...DEMO_DATA, planType: planRoute });
+                }
+                setLoading(false);
+                return;
+            }
+
             if (chatId?.startsWith('demo-')) {
-                setReportData(DEMO_DATA);
+                setReportData({ ...DEMO_DATA, planType: demoPlan });
                 setLoading(false);
                 return;
             }
@@ -132,8 +156,8 @@ const ReportPage = () => {
             }
         };
 
-        if (chatId) fetchReportData();
-    }, [chatId]);
+        if (chatId || planRoute) fetchReportData();
+    }, [chatId, planRoute]);
 
     const handlePrint = () => { window.print(); };
 
