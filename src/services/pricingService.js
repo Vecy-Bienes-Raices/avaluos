@@ -65,7 +65,7 @@ export const liquidarServiciosVecy = ({
     
     // --- LÓGICA PLAN ORO KING (COTIZACIÓN REAL) ---
     else if (planNormalized === 'oro' || planNormalized === 'oro king') {
-        mensajeLegal = "Avalúo Corporativo Certificado RAA por Perito Avaluador.";
+        mensajeLegal = "Avalúo Corporativo Certificado RAA mediante Algoritmos de Precisión.";
         
         // Gran Activo Límite (Más de 5 Mil Millones)
         if (safeValor > CONSTANTS.LIMIT_GRAN_ACTIVO) {
@@ -75,7 +75,7 @@ export const liquidarServiciosVecy = ({
                 total_a_pagar: 0,
                 mensaje_legal: "Gran Activo Comercial",
                 moneda: "COP",
-                special_messsage: "Debido a que el valor estimado del inmueble supera los topes automáticos, este avalúo requiere una junta de peritos. Te enviaré un enlace para agendar una reunión ejecutiva."
+                special_messsage: "Debido a que el valor estimado del inmueble supera los topes automáticos, este avalúo requiere un procesamiento de Red Neuronal Profunda. Te enviaré un enlace para la validación técnica avanzada."
             }
         }
 

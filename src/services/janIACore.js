@@ -66,21 +66,47 @@ export const handleInitialGreeting = (user) => {
     const { name, title } = getNeighborGreeting(rawName);
 
     // Si ya tiene nombre (Usuario Retornado/Logueado o Memoria Persistente)
-    if (name) return `¡Hola de nuevo, ${title} ${name}! Qué gusto saludarte. Soy JanIA y ya tengo listo tu panel de análisis. ¿Qué nivel de precisión buscamos para tu inmueble hoy? **Elige uno de mis planes aquí abajo** y dime la dirección para empezar. 🤝✨`;
+    if (name) return `¡Hola de nuevo, ${title} ${name}! Qué gusto saludarte. Soy JanIA y ya tengo listo tu panel de análisis digital. 
+
+¿Qué nivel de precisión buscamos hoy? Tienes **5 DISPAROS GRATUITOS** 🎁 (úsalos hoy, los precios de abajo son solo referencia para el futuro). 
+
+- **Café Express ($29k)**: Sondeo de mercado relámpago.
+- **Esmeralda Plus ($99k)**: Analítica PRO con mapas de calor.
+- **Oro King ($250k)**: Máxima precisión con algoritmos RAA y POT.
+
+**Elige uno aquí abajo** y dime la dirección para empezar. 🤝✨`;
     
     // SALUDOS "REVOLUCIÓN VECY" (Inspiradores y Técnicos)
     const variaciones = [
         `¡Bienvenido a Vecy Avalúos! 🚀
-Estás ante el **primer sistema inteligente de valuación técnica e inmobiliaria** en Bogotá.
-Tengo un regalo para ti: **5 Avalúos de Oro Gratuitos** 🎁. Para empezar con el pie derecho, **elige el plan que prefieras aquí abajo** y dime tu nombre para activar tu panel de experto. 👇`,
+Estás ante el **primer sistema inteligente de valuación 100% autónomo** en Bogotá. Genero tus reportes al instante, sin llamadas ni esperas.
 
-        `¡Hola! Soy JanIA. Bienvenido a la evolución del análisis inmobiliario. 💎
-He sido entrenada para darte la máxima **precisión técnica** usando datos del POT y Catastro.
-Para inaugurar tu cuenta, te he cargado **5 créditos de cortesía** 🎁. ¿Con qué nivel de detalle te gustaría empezar? **Elige un plan y dime tu nombre** para conocerte. 👇`,
+Te regalo **5 Avalúos PRO Gratuitos** 🎁. Mira mis planes:
+- **Café ($29k)**: Rápido y efectivo.
+- **Esmeralda ($99k)**: Datos profundos y mapas.
+- **Oro ($250k)**: El estándar más alto de precisión digital.
+
+**Elige el plan que prefieras aquí abajo** y dime tu nombre para activar tu panel. 👇`,
+
+        `¡Hola! Soy JanIA. Bienvenido a la evolución del análisis inmobiliario digital. 💎
+He sido entrenada para darte la máxima **precisión técnica** de forma inmediata.
+
+Para inaugurar tu cuenta, tienes **5 créditos de cortesía** 🎁 (los precios que ves son para cuando agotes tu regalo). 
+- **Plan Oro ($250k)**: Incluye cruce algorítmico con el POT.
+- **Plan Esmeralda ($99k)**: Visión de mercado avanzada.
+- **Plan Café ($29k)**: Tu primer paso estratégico.
+
+**Elige un plan y dime tu nombre** para conocerte. 👇`,
 
         `¡Un saludo! Bienvenido a Vecy Avalúos. 🌟
-Aquí tus avalúos son el resultado de cruzar miles de datos del mercado de Bogotá.
-Tienes **5 oportunidades de regalo** 🎁 para probar mi poderío. **Elige el plan que más te guste** y cuéntame cómo te llamas para iniciar de inmediato. 👇`
+Aquí tus avalúos son el resultado de cruzar miles de datos de Bogotá en segundos. No agendamos citas, ¡te damos el reporte YA!
+
+Tienes **5 oportunidades de regalo** 🎁. Estos son mis niveles:
+- **Oro**: Inteligencia Financiera ($250k).
+- **Esmeralda**: Analítica de Datos ($99k).
+- **Café**: Sondeo Express ($29k).
+
+**Elige el plan que más te guste** y cuéntame cómo te llamas para iniciar de inmediato. 👇`
     ];
 
     return variaciones[Math.floor(Math.random() * variaciones.length)];
@@ -555,7 +581,7 @@ export class JanIACore {
                 return "SISTEMA: Tarjeta de registro desplegada. Dile: 'Vecino, para que mi algoritmo RAG pueda cruzar los datos de tu predio con el POT y darte un avalúo precisión Oro, necesito que iniciemos sesión. Es rápido y blinda tu información.'";
             
             case 'offer_plans':
-                return "SISTEMA: Tarjetas de precios desplegadas en pantalla. Dile: 'Aquí tienes nuestros planes diseñados para propietarios inteligentes. El Plan Oro es el más completo (Incluye Perito Oficial) para lo que buscas.'";
+                return "SISTEMA: Tarjetas de precios desplegadas en pantalla. Dile: 'Aquí tienes mis niveles de análisis digital. El Plan Oro es el más potente para lo que buscas.'";
 
             case 'pricing_calculator':
                 try {
@@ -627,9 +653,9 @@ export class JanIACore {
                      INSTRUCCIÓN:
                      1. Guarda este VALOR en memoria usando [update_property_metadata].
                      2. SI ES PLAN ORO/ESMERALDA: Ejecuta [deep_research_property] AHORA para llenar la tabla de comparables. No preguntes.
-                     3. Si es PLAN ORO: Resalta que incluye "Certificación RAA, Visita Técnica y Validez Jurídica". Justifica el valor.
+                     3. Si es PLAN ORO: Resalta que incluye "Certificación Algorítmica RAA y Validación Jurídica Digital". Justifica el valor.
                      4. Si es PLAN ESMERALDA: Véndelo como "Velocidad y Precisión de Mercado Instantánea".
-                     5. ¡CIERRA LA VENTA! Pregunta: "¿Procedemos a generar tu link de pago para iniciar ya mismo?"`;
+                     5. ¡CIERRA LA VENTA! Pregunta: "¿Procedemos a generar tu informe profesional ahora mismo?"`;
 
                 } catch (e) {
                     return "Error calculando precios. Verifica que tengas todos los datos (Area, Estrato, Valor Estimado). Pídelos de nuevo si hace falta.";
