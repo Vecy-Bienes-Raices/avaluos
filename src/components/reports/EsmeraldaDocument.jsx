@@ -216,27 +216,29 @@ const EsmeraldaDocument = ({ data }) => {
                 {/* COMPARABLES TABLE */}
                 {data.comparables && data.comparables.length > 0 && (
                     <section className="bg-white/5 border border-white/10 rounded-2xl p-6 print:bg-stone-50 print:border-stone-200">
-                        <h2 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-teal-400 mb-5 print:text-teal-700">
+                        <h2 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#CCAC4E] mb-5 print:text-[#B8860B]">
                             <FontAwesomeIcon icon={faChartBar} />
-                            Comparativa de Mercado (CMA) — {data.comparables.length} Transacciones Analizadas
+                            Comparativa de Mercado (CMA)
                         </h2>
 
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-white/10 print:border-stone-300">
-                                        {['Dirección Comparable', 'Área m²', 'Precio Total', '$/m²', 'Días Mercado'].map((h, i) => (
-                                            <th key={i} className={`text-[9px] font-bold uppercase tracking-wider text-stone-400 pb-3 print:text-stone-500 ${i === 0 ? 'text-left' : i < 2 ? 'text-center' : 'text-right'}`}>{h}</th>
-                                        ))}
+                                        <th className="text-left text-[9px] font-bold uppercase tracking-wider text-stone-400 pb-3 print:text-stone-500">Dirección Comparable</th>
+                                        <th className="text-center text-[9px] font-bold uppercase tracking-wider text-stone-400 pb-3 print:text-stone-500">Área m²</th>
+                                        <th className="text-right text-[9px] font-bold uppercase tracking-wider text-stone-400 pb-3 print:text-stone-500">Precio Total</th>
+                                        <th className="text-right text-[9px] font-bold uppercase tracking-wider text-stone-400 pb-3 print:text-stone-500">$/m²</th>
+                                        <th className="text-center text-[9px] font-bold uppercase tracking-wider text-stone-400 pb-3 print:text-stone-500">Días mercado</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5 print:divide-stone-200">
-                                    {data.comparables.map((comp, i) => (
-                                        <tr key={i} className="hover:bg-white/3 transition-colors">
+                                    {(data.comparables || data.comps || []).map((comp, i) => (
+                                        <tr key={i} className="hover:bg-white/5 transition-colors">
                                             <td className="py-3 text-stone-300 font-medium print:text-stone-700">{comp.address}</td>
                                             <td className="py-3 text-center text-stone-300 print:text-stone-700">{comp.area}</td>
                                             <td className="py-3 text-right text-stone-200 font-bold print:text-stone-800">{formatPrice(comp.price)}</td>
-                                            <td className="py-3 text-right text-teal-400 font-bold print:text-teal-700">{formatPrice(comp.price_m2)}</td>
+                                            <td className="py-3 text-right text-[#CCAC4E] font-bold print:text-[#B8860B]">{formatPrice(comp.price_m2)}</td>
                                             <td className="py-3 text-center text-stone-400 print:text-stone-600">{comp.days_on_market}d</td>
                                         </tr>
                                     ))}

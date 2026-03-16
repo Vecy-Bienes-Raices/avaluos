@@ -156,7 +156,7 @@ const CafeDocument = ({ data }) => {
                 </section>
 
                 {/* COMPARABLES TABLE */}
-                {data.comparables && data.comparables.length > 0 && (
+                {(data.comparables || data.comps || []).length > 0 && (
                     <section className="bg-white/5 border border-white/10 rounded-2xl p-6 print:bg-stone-50 print:border-stone-200">
                         <h2 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#CCAC4E] mb-5 print:text-[#B8860B]">
                             <FontAwesomeIcon icon={faChartBar} />
@@ -175,7 +175,7 @@ const CafeDocument = ({ data }) => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5 print:divide-stone-200">
-                                    {data.comparables.map((comp, i) => (
+                                    {(data.comparables || data.comps || []).map((comp, i) => (
                                         <tr key={i} className="hover:bg-white/5 transition-colors">
                                             <td className="py-3 text-stone-300 font-medium print:text-stone-700">{comp.address}</td>
                                             <td className="py-3 text-center text-stone-300 print:text-stone-700">{comp.area}</td>

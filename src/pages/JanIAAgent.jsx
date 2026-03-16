@@ -219,7 +219,7 @@ const JanIAAgent = () => {
                 // Force complete reset
                 janIACore.reset();
                 const greeting = handleInitialGreeting(user);
-                setMessages([{ type: 'bot', text: greeting, component: 'greeting' }]);
+                setMessages([{ type: 'bot', text: greeting, component: 'plan_card' }]);
                 localStorage.removeItem('janIA_chat_messages');
             }
             
@@ -257,7 +257,7 @@ const JanIAAgent = () => {
             janIACore.reset();
 
             const greeting = handleInitialGreeting(user);
-            setMessages([{ type: 'bot', text: greeting, component: 'greeting' }]);
+            setMessages([{ type: 'bot', text: greeting, component: 'plan_card' }]);
             localStorage.removeItem('janIA_chat_messages');
 
             
@@ -287,7 +287,7 @@ const JanIAAgent = () => {
         // Determinar saludo inicial dinámico
         const initialText = handleInitialGreeting(null);
         return [
-            { type: 'bot', text: initialText, component: 'greeting' }
+            { type: 'bot', text: initialText, component: 'plan_card' }
         ];
     });
 
@@ -339,18 +339,24 @@ const JanIAAgent = () => {
     const persistMemory = () => {
         const currentMem = janIACore.getMemory();
         if (currentMem && Object.keys(currentMem).length > 0) {
-            // Wrap with 'memory' key so ReportPage.jsx can read it correctly
             localStorage.setItem('janIA_temp_memory', JSON.stringify({ memory: currentMem }));
             console.log("🧠 JanIA Memory Bridge: Saved to LocalStorage", currentMem);
         }
     };
-
-    // Supabase Auth Listener (Robust Persistence & Guest Guard)
+    // --- AUTOMATIC SYNC BRIDGE ---
     useEffect(() => {
-        // 1. Setup Listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            // console.log("Auth Event:", event); 
+        janIACore.onMemoryUpdate = (updatedMem) => {
+            if (updatedMem && Object.keys(updatedMem).length > 0) {
+                localStorage.setItem('janIA_temp_memory', JSON.stringify({ memory: updatedMem }));
+                console.log("⚡ [JanIA Core -> Bridge]: AUTO-SYNC SUCCESS");
+            }
+        };
+        return () => { janIACore.onMemoryUpdate = null; };
+    }, []);
 
+    // 1. Supabase Auth Listener (Robust Persistence & Guest Guard)
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_OUT') {
                 setUser(null);
                 setAuthLoading(false);
@@ -359,156 +365,58 @@ const JanIAAgent = () => {
                 navigate('/');
                 return;
             }
-
             if (session?.user) {
-                // IMMEDIATE UI UPDATE for responsiveness
                 setUser(session.user);
-
-                // MEMORY RESTORATION BRIDGE (The "Lobotomy" Fix)
                 const savedMem = localStorage.getItem('janIA_temp_memory');
                 if (savedMem) {
                     try {
-                        const parsedMem = JSON.parse(savedMem);
+                        const parsedMem = JSON.parse(savedMem).memory || JSON.parse(savedMem);
                         janIACore.memory = { ...janIACore.memory, ...parsedMem };
-
-                        // NAME MISMATCH CHECK (User Request)
-                        const chatName = parsedMem.user_name;
-                        const authName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
-
-                        if (chatName && authName && chatName.toLowerCase() !== authName.toLowerCase()) {
-                            // Check if similarity is low (simple check)
-                            if (!authName.toLowerCase().includes(chatName.toLowerCase())) {
-                                janIACore.memory.detected_auth_name = authName;
-                                janIACore.memory.name_mismatch = true;
-                            }
-                        }
-
-                        console.log("🧠 JanIA Memory Bridge: Restored after Login", janIACore.memory);
+                        console.log("🧠 JanIA Memory Bridge: Restored after Event", janIACore.memory);
                         localStorage.removeItem('janIA_temp_memory');
                     } catch (e) { console.error("Memory Restore Fail:", e); }
                 }
-
-                janIACore.updateUserIdentity(session.user, false, chatId); // Phase 1: Identity initial sync
-                localStorage.setItem('janIA_has_logged_in', 'true');
-
-                // Async Profile Sync (Non-blocking for UI)
+                
+                janIACore.updateUserIdentity(session.user, false, chatId);
+                
                 const syncProfile = async () => {
-                    // Fetch policies_accepted (New Phase 6) AND accepted_terms (Legacy)
                     const { data: profile } = await supabase.from('profiles').select('policies_accepted, accepted_terms').eq('id', session.user.id).maybeSingle();
-
                     const hasAccepted = profile?.policies_accepted || profile?.accepted_terms;
-
-                    // SYNC CORE IDENTITY WITH POLICIES
                     janIACore.updateUserIdentity(session.user, hasAccepted, chatId);
-
-                    // 🔗 REFERRAL SYSTEM: Check & Link
-                    const refCode = localStorage.getItem('vecy_referral_code');
-                    if (refCode && refCode !== session.user.id) {
-                        console.log("🔗 [REFERRAL] Linking user to referrer:", refCode);
-                        // Attempt update without blocking flow
-                        supabase.from('profiles')
-                            .update({ referred_by: refCode })
-                            .eq('id', session.user.id)
-                            .is('referred_by', null) // Only set if empty (First Touch attribution)
-                            .then(({ error }) => {
-                                if (!error) {
-                                    console.log("✅ Referral Linked Success");
-                                    localStorage.removeItem('vecy_referral_code'); // Consume code
-                                } else {
-                                    console.warn("⚠️ Referral Link Failed (Maybe already set):", error);
-                                }
-                            });
-                    }
-
-                    if (hasAccepted) {
-                        setHasAcceptedTerms(true);
-                        setTermsModalOpen(false); // Ensure closed if accepted in DB
-                        localStorage.setItem('janIA_guest_terms_accepted', 'true'); // Sync local
-                    } else if (localStorage.getItem('janIA_guest_terms_accepted')) {
-                        // Conflict resolution: Local says yes, DB says no? Trust local and sync up.
-                        setHasAcceptedTerms(true);
-                        setTermsModalOpen(false);
-                        supabase.from('profiles').update({ policies_accepted: true, accepted_terms: true }).eq('id', session.user.id);
-                        janIACore.updateUserIdentity(session.user, true, chatId);
-                    } else {
-                        // Neither local nor DB has it -> Open Gate
-                        setHasAcceptedTerms(false);
-                        setTermsModalOpen(true);
-                    }
+                    setHasAcceptedTerms(!!hasAccepted);
+                    if (hasAccepted) setTermsModalOpen(false);
                 };
                 syncProfile();
-            } else {
-                // GUEST LOGIC: If no user, Check LocalStorage for Terms
-                const guestAccepted = localStorage.getItem('janIA_guest_terms_accepted');
-                if (!guestAccepted) {
-                    setTermsModalOpen(true); // GATE: Guests must accept too
-                } else {
-                    setHasAcceptedTerms(true);
-                    setTermsModalOpen(false); // Ensure closed if accepted
-                }
             }
-
             setAuthLoading(false);
         });
 
-        // 2. Initial Check (Ensure strict state on load)
-        // 2. Initial Check (Ensure strict state on load)
+        return () => subscription.unsubscribe();
+    }, [chatId, navigate]);
+
+    // 2. Initial Check (Ensure strict state on load)
+    useEffect(() => {
         const checkCurrentSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-
                 if (session?.user) {
                     setUser(session.user);
-                    // Fetch Profile FIRST to sync Core correctly
                     const { data: profile } = await supabase.from('profiles').select('accepted_terms, policies_accepted').eq('id', session.user.id).maybeSingle();
-
-                    const dbAccepted = profile?.accepted_terms || profile?.policies_accepted;
-                    const localAccepted = localStorage.getItem('janIA_guest_terms_accepted');
-                    const finalAccepted = dbAccepted || !!localAccepted;
-
-                    // Sync Core Identity WITH Policy State
+                    const finalAccepted = profile?.accepted_terms || profile?.policies_accepted || !!localStorage.getItem('janIA_guest_terms_accepted');
                     janIACore.updateUserIdentity(session.user, finalAccepted, chatId);
-                    localStorage.setItem('janIA_has_logged_in', 'true');
-
-                    if (finalAccepted) {
-                        setHasAcceptedTerms(true);
-                        setTermsModalOpen(false);
-                        if (!localAccepted) localStorage.setItem('janIA_guest_terms_accepted', 'true');
-                    } else {
-                        setHasAcceptedTerms(false);
-                        setTermsModalOpen(true);
-                    }
+                    setHasAcceptedTerms(finalAccepted);
+                    setTermsModalOpen(!finalAccepted);
                 } else {
-                    // Guest Check
-                    const guestName = localStorage.getItem('janIA_guest_name');
-                    janIACore.updateUserIdentity(null, false, chatId); // Reset to Guest with Current ChatId
-
-                    if (guestName) {
-                        const { name, title } = getNeighborGreeting(guestName);
-                        janIACore.memory.user_name = name;
-                        janIACore.memory.user_title = title;
-                        console.log("🧠 JanIA: Identidad de invitado recuperada de disco:", name);
-                    }
-
-                    const guestAccepted = localStorage.getItem('janIA_guest_terms_accepted');
-                    if (!guestAccepted) {
-                        setTermsModalOpen(true);
-                    } else {
-                        setHasAcceptedTerms(true);
-                        setTermsModalOpen(false);
-                    }
+                    janIACore.updateUserIdentity(null, false, chatId);
+                    const guestAccepted = !!localStorage.getItem('janIA_guest_terms_accepted');
+                    setHasAcceptedTerms(guestAccepted);
+                    setTermsModalOpen(!guestAccepted);
                 }
-            } catch (e) {
-                console.warn("Auth init error:", e);
-            } finally {
-                setAuthLoading(false);
-            }
+            } catch (e) { console.warn("Auth init error:", e); }
+            finally { setAuthLoading(false); }
         };
-
         checkCurrentSession();
-
-        return () => subscription.unsubscribe();
-    }, []);
+    }, [chatId]);
 
     // Auto-scroll and Persistence
     // Auto-save and Persistence
@@ -633,27 +541,16 @@ const JanIAAgent = () => {
         const freeCount = parseInt(localStorage.getItem(freeCountKey) || '0', 10);
 
         if (freeCount < 5) {
-            const newCount = freeCount + 1;
-            localStorage.setItem(freeCountKey, newCount.toString());
-            console.log(`🎁 [Free Appraisals] Uso de cupo gratis: ${newCount}/5`);
+            console.log(`🎁 [Free Appraisals] Cupo disponible: ${5 - freeCount}/5`);
             
+            // 1. Persistir selección en memoria para el Cortex
+            janIACore.memory.selected_plan = plan.id;
             
-            
-            // Simular flujo de éxito e invocar a JanIA para el PDF
-            setTimeout(() => {
-                localStorage.setItem('janIA_pending_action', "SISTEMA_CONFIRMACION_PAGO_EXITOSA");
-                
-                // Disparamos la generación de fondo
-                const planType = plan.id;
-                import('../services/reportService.jsx').then(({ generateAndSendReport }) => {
-                    generateAndSendReport(planType, janIACore.memory || {}, user).then(res => {
-                        if (res.success) console.log("✅ [JanIA] Reporte PDF gratuito generado.");
-                    });
-                });
-
-                // Notificar al Agent que responda (simulando que volvió de Epayco)
-                window.dispatchEvent(new Event('trigger_jania_payment_success'));
-            }, 500);
+            // 2. Notificar a JanIA para que valide REQUERIMIENTOS (Fotos, etc)
+            // No incrementamos el contador aquí, sino cuando se genere el reporte realmente.
+            handleSendMessage(`SISTEMA: El usuario ha seleccionado el **PLAN ${plan.id.toUpperCase()}** de cortesía. 
+            Valida si tienes los requerimientos técnicos (Dirección, Estrato y FOTOS si es Oro). 
+            Si falta algo, pídelo con carisma. Si tienes todo, confirma que empezarás a elaborar el informe y activa [generate_report_download].`);
             
             return;
         }
@@ -1008,12 +905,7 @@ const JanIAAgent = () => {
 
                     // NO RENDERIZAMOS PDF AQUÍ (Se enviará al Dashboard)
 
-                } else if (toolName === 'start_bogota_flow') {
-                    botMsg.component = 'options';
-                    botMsg.options = ["Ver Políticas", "Aceptar y Continuar"];
                 } else if (toolName === 'get_location_details') {
-                    // STREET VIEW TRIGGER
-                    // If we found a location, show it visualy to prove "vision"
                     if (janIACore.memory.property_data?.lat) {
                         botMsg.component = 'street_view';
                         botMsg.location = {
@@ -1023,34 +915,58 @@ const JanIAAgent = () => {
                     }
                 } else if (toolName === 'generate_report_download') {
                     // 📄 WEB REPORT TRIGGER from JanIA
-                    console.log("📄 [WEB REPORT TRIGGER]: Saving final data for Web Report...", step?.args);
+                    console.log("📄 [WEB REPORT TRIGGER]: Preparing Snapshot...", step?.args);
                     const incomingPlan = step?.args?.plan || janIACore.memory.plan_filter?.[0] || 'esmeralda';
-                    
-                    const reportObject = {
-                        address: janIACore.memory.property_data?.direccion_normalizada || 'Bogotá D.C.',
-                        area: janIACore.memory.property_data?.area || 50,
-                        value: janIACore.memory.property_data?.precio_estimado || 0,
-                        date: new Date().toLocaleDateString(),
+
+                    // 💾 CRITICAL SYNC: Generate UNIQUE ID for this Specific Appraisal (Snapshot)
+                    const snapshotId = crypto.randomUUID();
+                    console.log("📄 [SNAPSHOT]: Creating unique record for report:", snapshotId);
+
+                    const finalData = {
+                        ...janIACore.memory,
+                        property_data: janIACore.memory.property_data,
                         planType: incomingPlan,
-                        property_data: janIACore.memory.property_data, // COMPLETO PARA EL FALLBACK
-                        plan_filter: [incomingPlan]
+                        plan_filter: [incomingPlan],
+                        report_created_at: new Date().toISOString(),
+                        is_snapshot: true
                     };
 
-                    setReportData(reportObject);
-                    setPaidPlan(incomingPlan); // UNLOCK REPORT ACCESS
-                    
-                    // 💾 CRITICAL SYNC: Always persist report data (no value gate)
-                    localStorage.setItem('janIA_temp_memory', JSON.stringify({
-                        memory: {
-                            ...janIACore.memory,
-                            property_data: janIACore.memory.property_data,
-                            planType: incomingPlan,
-                            plan_filter: [incomingPlan]
+                    // Persist locally for immediate access (ReportPage reads this)
+                    localStorage.setItem('janIA_temp_memory', JSON.stringify({ memory: finalData }));
+                    localStorage.setItem(`janIA_snapshot_${snapshotId}`, JSON.stringify(finalData));
+
+                    // Persist to Cloud if user is logged in
+                    if (user) {
+                        saveChatToHistory(user.id, snapshotId, `Avalúo ${incomingPlan.toUpperCase()}: ${janIACore.memory.property_data?.barrio || 'Bogotá'}`, [], finalData)
+                            .then(() => console.log("☁️ [Snapshot]: Saved to Cloud History"))
+                            .catch(e => console.error("❌ Snapshot Cloud Save Fail:", e));
+                    }
+
+                    setReportData({ ...finalData, id: snapshotId });
+                    setPaidPlan(incomingPlan);
+
+                    // 🎁 LOGICA 5 AVALÚOS GRATIS: Descontar crédito si aplica
+                    if (user) {
+                        const freeCountKey = `vecy_free_appraisals_${user.id}`;
+                        const freeCount = parseInt(localStorage.getItem(freeCountKey) || '0', 10);
+                        if (freeCount < 5) {
+                            const newCount = freeCount + 1;
+                            localStorage.setItem(freeCountKey, newCount.toString());
+                            console.log(`🎯 [Crédito Consumido]: ${newCount}/5`);
+                            
+                            // Inyectar mensaje de JanIA celebrando el uso del regalo
+                            setTimeout(() => {
+                                setMessages(prev => [...prev, {
+                                    id: Date.now(),
+                                    type: 'bot',
+                                    text: `🎁 ¡Disfruta tu **Avalúo Regalado**! Has usado **${newCount} de tus 5 créditos gratuitos**. Te quedan **${5 - newCount}** disparos de oro. ¡Úsalos con inteligencia! ⚡`
+                                }]);
+                            }, 1000);
                         }
-                    }));
-                    console.log("💾 [Persistencia]: Datos de reporte guardados en LocalStorage.");
+                    }
 
                     botMsg.component = 'report_download'; // FORCE BUTTON COMPONENT
+
 
                 } else if (toolName === 'trigger_reward_card') {
                     // 🎁 VIRAL HOOK TRIGGER
@@ -1380,7 +1296,8 @@ const JanIAAgent = () => {
                                         localStorage.removeItem('janIA_current_chat_id');
                                         const newId = crypto.randomUUID();
                                         setChatId(newId);
-                                        setMessages([{ type: 'bot', text: 'Soy JanIA, tu experta en análisis inmobiliario. ¿Qué quieres descubrir hoy?', component: 'greeting' }]);
+                                        const greeting = handleInitialGreeting(null);
+                                        setMessages([{ type: 'bot', text: greeting, component: 'plan_card' }]);
                                         setProfileOpen(false);
                                     }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-red-400 group-hover:scale-110 transition-all"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
@@ -1531,7 +1448,7 @@ const JanIAAgent = () => {
                                     text.includes('EVENTO_PAGO_') || 
                                     text.includes('trigger_auth') ||
                                     text.includes('generate_report_download') ||
-                                    text.startsWith('SISTEMA_') ||
+                                    text.startsWith('SISTEMA') ||
                                     text.includes('{"action"'); // Only hide if it looks like raw JSON action blocks, not normal text with {}
 
                                 if (isTechnical) return false;

@@ -84,12 +84,7 @@ const OroDocument = ({ data, chatId }) => {
     const dictId = (chatId || '').substring(0, 8).toUpperCase() || 'VECY-8832';
     const gallery = data.gallery || [];
 
-    const comparables = data.comparables || [
-        { label: 'Cmp 1', address: 'Cra 52 # 127-15', area: 135, price: 1180000000, price_m2: 8740000, days_on_market: 62 },
-        { label: 'Cmp 2', address: 'Cl 124 # 51B-26', area: 162, price: 1490000000, price_m2: 9197000, days_on_market: 41 },
-        { label: 'Cmp 3', address: 'Cl 126 # 125-42', area: 144, price: 1390000000, price_m2: 9658000, days_on_market: 71 },
-        { label: 'Cmp 4', address: 'Cra 48 # 119-30', area: 158, price: 1520000000, price_m2: 9620000, days_on_market: 28 },
-    ];
+    const comparables = data.comparables || data.comps || [];
 
     const barItems = [
         ...comparables.map(c => ({ label: c.label, value: c.price })),
@@ -285,16 +280,16 @@ const OroDocument = ({ data, chatId }) => {
                         ))}
                     </div>
                     <div className="space-y-1">
-                        {(data.programa_arquitectonico || [
-                            'Sala-Comedor amplio con chimenea y acceso a jardín interior',
-                            'Cocina integral tipo gourmet con isla central y zona de onces',
-                            'Habitación principal con baño privado, walk-in closet y terraza propia',
-                            '3 habitaciones adicionales con closets empotrados',
-                            'Baño social + 2 baños de habitación con enchapes premium',
-                            'Garaje cubierto para 2 vehículos con nivelación',
-                            'Jardín antejardín + patio posterior con zonas verdes',
-                            'Estudio / Home Office en nivel superior',
-                            'Cuarto de servicio + baño auxiliar + zona de ropas independiente',
+                        {(data.programa_arquitectonico || data.features || [
+                            `Distribución eficiente en ${data.area_construida} m²`,
+                            `${data.habitaciones || 3} Habitaciones con iluminación natural`,
+                            `${data.banos || 2} Baños con acabados tipo ${data.acabados >= 80 ? 'Premium' : 'Estándar'}`,
+                            `${data.garajes || 1} Puestos de estacionamiento privado`,
+                            'Zona social integrada con excelente ventilación',
+                            'Cocina equipada según estándares del sector',
+                            'Área de lavandería independiente',
+                            `Ubicación estratégica en ${data.barrio}`,
+                            'Estructura sismo-resistente certificada'
                         ]).map((item, i) => (
                             <div key={i} className="flex items-start gap-2 py-1">
                                 <FontAwesomeIcon icon={faCircleCheck} className={`${G} text-xs mt-0.5 shrink-0`} />
@@ -353,16 +348,12 @@ const OroDocument = ({ data, chatId }) => {
                             </thead>
                             <tbody className="divide-y divide-[#CCAC4E]/5 print:divide-stone-200">
                                 {(data.materiales || [
-                                    { elemento: 'Estructura', descripcion: 'Concreto reforzado — vigas y columnas en acero estructural', calidad: 'Alta' },
-                                    { elemento: 'Muros / Mampostería', descripcion: 'Bloque de arcilla cocida No. 4 — revoque y estuco liso interior', calidad: 'Alta' },
-                                    { elemento: 'Cubierta', descripcion: 'Losa de concreto plana con impermeabilización — sin entretecho visible', calidad: 'Alta' },
-                                    { elemento: 'Pisos', descripcion: 'Porcelanato 60×60 cm rectificado sociales — madera laminada habitaciones', calidad: 'Alta' },
-                                    { elemento: 'Fachada', descripcion: 'Ladrillo prensado a la vista — ventanería aluminio anodizado negro', calidad: 'Alta' },
-                                    { elemento: 'Carpintería Madera', descripcion: 'Puertas en madera sólida cedro — closets en MDF lacado blanco mate', calidad: 'Media-Alta' },
-                                    { elemento: 'Carpintería Metálica', descripcion: 'Ventanas aluminio línea 3" con vidrio templado 6mm', calidad: 'Alta' },
-                                    { elemento: 'Hidrosanitarias', descripcion: 'Red en CPVC — sanitarios Briggs / Edesa línea top mount', calidad: 'Media-Alta' },
-                                    { elemento: 'Instalaciones Eléctricas', descripcion: 'Conduit EMT — tablero 24 circuitos breakers Siemens', calidad: 'Alta' },
-                                    { elemento: 'Cocina / Baños', descripcion: 'Mesones mármol sintético — enchapes Porcelanosa 30×60 cm', calidad: 'Alta' },
+                                    { elemento: 'Estructura', descripcion: 'Concreto reforzado / Mampostería estructural', calidad: 'Alta' },
+                                    { elemento: 'Muros', descripcion: 'Bloque de arcilla / Ladrillo con acabados lisos', calidad: 'Alta' },
+                                    { elemento: 'Pisos', descripcion: 'Porcelanato / Cerámica / Madera laminada', calidad: 'Media-Alta' },
+                                    { elemento: 'Fachada', descripcion: 'Ladrillo a la vista / Pañete pintado / Graniplast', calidad: 'Alta' },
+                                    { elemento: 'Carpintería', descripcion: 'Madera y aluminio estándar del sector', calidad: 'Media-Alta' },
+                                    { elemento: 'Instalaciones', descripcion: 'Redes normalizadas según NTC', calidad: 'Alta' },
                                 ]).map((m, i) => {
                                     const cl = m.calidad === 'Alta' ? `bg-[#CCAC4E]/15 text-[#CCAC4E] print:bg-yellow-50 print:text-[#B8860B]`
                                         : `bg-teal-500/10 text-teal-300 print:bg-teal-50 print:text-teal-700`;

@@ -66,21 +66,21 @@ export const handleInitialGreeting = (user) => {
     const { name, title } = getNeighborGreeting(rawName);
 
     // Si ya tiene nombre (Usuario Retornado/Logueado o Memoria Persistente)
-    if (name) return `¡Hola de nuevo, ${title} ${name}! Qué gusto saludarte. Soy JanIA. Vamos a analizar el valor de tu predio en Bogotá con precisión técnica. 🤝✨`;
+    if (name) return `¡Hola de nuevo, ${title} ${name}! Qué gusto saludarte. Soy JanIA y ya tengo listo tu panel de análisis. ¿Qué nivel de precisión buscamos para tu inmueble hoy? **Elige uno de mis planes aquí abajo** y dime la dirección para empezar. 🤝✨`;
     
     // SALUDOS "REVOLUCIÓN VECY" (Inspiradores y Técnicos)
     const variaciones = [
         `¡Bienvenido a Vecy Avalúos! 🚀
-Estás ante el <strong>primer sistema inteligente de valuación técnica e inmobiliaria</strong>.
-Dime, para explicarte cómo determinar el valor exacto de tu predio en Bogotá: <strong>¿Cuál es tu nombre?</strong>`,
+Estás ante el **primer sistema inteligente de valuación técnica e inmobiliaria** en Bogotá.
+Tengo un regalo para ti: **5 Avalúos de Oro Gratuitos** 🎁. Para empezar con el pie derecho, **elige el plan que prefieras aquí abajo** y dime tu nombre para activar tu panel de experto. 👇`,
 
-        `¡Hola! Soy JanIA. Bienvenido a la evolución del análisis inmobiliario en Bogotá. 💎
-He sido entrenada con datos del POT y Catastro para darte la máxima <strong>precisión técnica</strong>.
-Para darte acceso a tu panel de socio avaluador, primero dime: <strong>¿Con quién tengo el gusto?</strong>`,
+        `¡Hola! Soy JanIA. Bienvenido a la evolución del análisis inmobiliario. 💎
+He sido entrenada para darte la máxima **precisión técnica** usando datos del POT y Catastro.
+Para inaugurar tu cuenta, te he cargado **5 créditos de cortesía** 🎁. ¿Con qué nivel de detalle te gustaría empezar? **Elige un plan y dime tu nombre** para conocerte. 👇`,
 
         `¡Un saludo! Bienvenido a Vecy Avalúos. 🌟
 Aquí tus avalúos son el resultado de cruzar miles de datos del mercado de Bogotá.
-¿Listo para conocer el valor real de tu inversión? Regálame tu nombre para mostrarte el camino al éxito. 👇`
+Tienes **5 oportunidades de regalo** 🎁 para probar mi poderío. **Elige el plan que más te guste** y cuéntame cómo te llamas para iniciar de inmediato. 👇`
     ];
 
     return variaciones[Math.floor(Math.random() * variaciones.length)];
@@ -107,8 +107,15 @@ export class JanIACore {
         this.memory = { ...INITIAL_MEMORY };
         this.history = [];
         this.vision_buffer = []; // MEMORIA VISUAL PERMANENTE
-        this.chatId = null; // ID de conversación persistente
+        this.chatId = null; 
         this.uid = null;
+        this.onMemoryUpdate = null; // Callback for persistence
+    }
+
+    _notifyUpdate() {
+        if (this.onMemoryUpdate) {
+            this.onMemoryUpdate(this.getMemory());
+        }
     }
 
     /**
@@ -441,29 +448,32 @@ export class JanIACore {
 
             case 'update_property_metadata':
                 try {
-                    // Herramienta heurística: Asimila correcciones del usuario sin depender de APIs de terceros
                     if (!this.memory.property_data) this.memory.property_data = {};
                     
-                    let memoryUpdated = [];
-                    for (const [key, value] of Object.entries(args)) {
-                        if (value !== undefined && value !== null && value !== "") {
-                            this.memory.property_data[key] = value;
-                            memoryUpdated.push(`${key}: ${value}`);
+                    const fields = [
+                        'area', 'area_construida', 'area_terreno', 'estrato', 'barrio', 
+                        'localidad', 'ciudad', 'habitaciones', 'banos', 'garajes', 
+                        'antiguedad', 'tipo_inmueble', 'precio_m2', 'valor',
+                        'comps', 'comparables', 'materiales', 'features', 'uso_suelo',
+                        'zona_catastral', 'norma_vigente', 'analisis_mercado_texto',
+                        'cliente_nombre', 'cliente_fecha', 'lat', 'lng'
+                    ];
+
+                    let updated = [];
+                    Object.keys(args).forEach(k => {
+                        if (fields.includes(k)) {
+                            this.memory.property_data[k] = args[k];
+                            updated.push(k);
                         }
-                    }
-                    
-                    if (memoryUpdated.length === 0) return "No se recibió información válida para actualizar.";
-                    
-                    console.log("🧠 [JanIA Heuristics] Memoria actualizada por instrucción:", memoryUpdated);
-                    
-                    return `[SISTEMA - MEMORIA SOBRESCRITA]: 
-                    He forzado la actualización de mi base de datos interna con lo siguiente: ${memoryUpdated.join(', ')}
-                    
-                    INSTRUCCIÓN:
-                    Responde cortésmente al usuario dándole TODA la razón. Dile que ya has asimilado la ubicación/dato que te dio y que procederás con el análisis correcto basado en su experta indicación.`;
-                } catch(e) {
-                    return "Error al actualizar la memoria de propiedades internas.";
-                }
+                    });
+
+                    if (args.comparables) this.memory.property_data.comps = args.comparables;
+                    if (args.comps) this.memory.property_data.comps = args.comps;
+
+                    this._notifyUpdate();
+
+                    return `[MEMORIA ACTUALIZADA]: He sincronizado ${updated.length} campos técnicos. Mi análisis ahora es más preciso.`;
+                } catch (e) { return "Error actualizando metadata técnico."; }
 
             case 'get_location_details':
                 try {
@@ -583,8 +593,9 @@ export class JanIACore {
                      if (params.areaM2 > 0) this.memory.property_data.area = params.areaM2;
                      if (params.estrato > 0) this.memory.property_data.estrato = params.estrato;
                      if (params.valorEstimadoJanIA > 0) {
-                         this.memory.property_data.precio_estimado = params.valorEstimadoJanIA;
-                         this.memory.property_data.valor_final_avaluador = params.valorEstimadoJanIA; // Sync for components
+                         this.memory.property_data.valor = params.valorEstimadoJanIA; // GLOBAL SYNC
+                         this.memory.property_data.price_estimate = params.valorEstimadoJanIA; 
+                         this.memory.property_data.valor_final_avaluador = params.valorEstimadoJanIA;
                      }
                      this.memory.property_data.tipo_inmueble = params.tipoInmueble;
                      
@@ -594,10 +605,8 @@ export class JanIACore {
                      } else if (params.plan === 'esmeralda') {
                         this.memory.plan_filter = ['esmeralda'];
                      } else {
-                        // Default comparison or explicit 'all'
                         this.memory.plan_filter = ['oro', 'esmeralda']; 
                      }
-                     // -----------------------------
 
                      console.log("💰 [Pricing Tool] Calculando con:", params);
                      const result = liquidarServiciosVecy(params);
@@ -615,11 +624,12 @@ export class JanIACore {
                      - TOTAL A PAGAR: ${formatter.format(result.total_a_pagar)}
                      - MENSAJE LEGAL OBLIGATORIO: "${result.mensaje_legal}"
                      
-                     INSTRUCCIÓN DE VENTA PERSUASIVA:
-                     1. Presenta el precio con autoridad.
-                     2. Si es PLAN ORO: Resalta que incluye "Certificación RAA, Visita Técnica y Validez Jurídica". Justifica el valor.
-                     3. Si es PLAN ESMERALDA: Véndelo como "Velocidad y Precisión de Mercado Instantánea".
-                     4. ¡CIERRA LA VENTA! Pregunta: "¿Procedemos a generar tu link de pago para iniciar ya mismo?"`;
+                     INSTRUCCIÓN:
+                     1. Guarda este VALOR en memoria usando [update_property_metadata].
+                     2. SI ES PLAN ORO/ESMERALDA: Ejecuta [deep_research_property] AHORA para llenar la tabla de comparables. No preguntes.
+                     3. Si es PLAN ORO: Resalta que incluye "Certificación RAA, Visita Técnica y Validez Jurídica". Justifica el valor.
+                     4. Si es PLAN ESMERALDA: Véndelo como "Velocidad y Precisión de Mercado Instantánea".
+                     5. ¡CIERRA LA VENTA! Pregunta: "¿Procedemos a generar tu link de pago para iniciar ya mismo?"`;
 
                 } catch (e) {
                     return "Error calculando precios. Verifica que tengas todos los datos (Area, Estrato, Valor Estimado). Pídelos de nuevo si hace falta.";
@@ -714,9 +724,18 @@ export class JanIACore {
                 return `[SISTEMA]: Botón de pago generado para Plan ${args.plan.toUpperCase()}. Dile: "Aquí tienes el botón de pago seguro para iniciar de inmediato. 👇"`;
 
             case 'generate_report_download':
-                // Triggers the UI to render the PDF Download Link with current Property Data
-                // args: { plan: 'cafe'|'esmeralda'|'oro' }
-                return `[SISTEMA]: Link de descarga generado con éxito. Dile: "¡Todo listo! He procesado los datos. Aquí tienes tu informe oficial. 👇"`;
+                try {
+                    // Create a permanent snapshot for this report to ensure unique links
+                    // We'll perform the actual DB insert in the frontend for better session handling
+                    // but we signal the need for a Snapshot ID.
+                    return `[SISTEMA]: Link de descarga generado con éxito. Triggering SNAPSHOT_ID_REQUIRED. Dile: "¡Todo listo! He procesado los datos. Aquí tienes tu informe oficial. 👇"`;
+                } catch (e) { return "Error preparando descarga."; }
+
+            case 'snapshot_current_appraisal':
+                try {
+                    // This tool allows JanIA to explicitly "Finalize" and save
+                    return `[SISTEMA]: Snapshot solicitado. Se generará un enlace inmutable.`;
+                } catch (e) { return "Error en snapshot."; }
 
             case 'consult_solar_potential':
                 try {

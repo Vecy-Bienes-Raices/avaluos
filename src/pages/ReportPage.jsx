@@ -93,9 +93,19 @@ const ReportPage = ({ planRoute }) => {
 
     useEffect(() => {
         const fetchReportData = async () => {
-            // ✅ MODO RUTA GENÉRICA (/avaluo-oro, etc.) o MODO DEMO VIEJO
+            // ✅ PRIORITY 1: Check Local Snapshots (Immediate access)
+            const localSnapshot = localStorage.getItem(`janIA_snapshot_${chatId}`);
+            if (localSnapshot) {
+                try {
+                    const parsed = JSON.parse(localSnapshot);
+                    setReportData(parsed.memory || parsed);
+                    setLoading(false);
+                    return;
+                } catch(e) { console.error("Snapshot parse fail", e); }
+            }
+
+            // ✅ PRIORITY 2: MODO RUTA GENÉRICA (/avaluo-oro, etc.)
             if (planRoute) {
-                // Intentamos buscar un reporte real en memoria de la sesión actual
                 const localMem = localStorage.getItem('janIA_temp_memory');
                 let foundData = null;
                 if (localMem) {
@@ -104,56 +114,44 @@ const ReportPage = ({ planRoute }) => {
                         foundData = parsed.memory || parsed;
                     } catch(e) {}
                 }
-                // Mostrar su reporte si coincide plan, o si hay un reporte generado recientemente y el plan corresponde
                 const matchPlan = foundData?.planType?.toLowerCase() === planRoute.toLowerCase() || foundData?.plan_filter?.[0]?.toLowerCase() === planRoute.toLowerCase();
                 if (foundData && foundData.property_data && Object.keys(foundData.property_data).length > 2 && matchPlan) {
                     foundData.planType = planRoute.toUpperCase();
                     setReportData(foundData);
                 } else {
-                    // Falls back a DEMO global para ese link
-                    console.log("No report found in memory for this plan, showing demo.");
                     setReportData({ ...DEMO_DATA, planType: planRoute });
                 }
                 setLoading(false);
                 return;
             }
 
-            if (chatId?.startsWith('demo-')) {
-                setReportData({ ...DEMO_DATA, planType: demoPlan });
-                setLoading(false);
-                return;
-            }
+            // ✅ PRIORITY 3: Fetch from Supabase (Persistent Chats/Snapshots)
+            if (chatId && !chatId.startsWith('demo-')) {
+                try {
+                    const { data, error } = await supabase
+                        .from('chats')
+                        .select('metadata')
+                        .eq('id', chatId)
+                        .single();
 
-            try {
-                // Prioridad 1: Fetch from Supabase (Chats)
-                const { data, error } = await supabase
-                    .from('chats')
-                    .select('metadata')
-                    .eq('id', chatId)
-                    .single();
-
-                if (data && data.metadata) {
-                    setReportData(data.metadata);
-                } else {
-                    // Prioridad 2: Local Storage fallback
-                    const localMem = localStorage.getItem('janIA_temp_memory');
-                    if (localMem) {
-                        const parsed = JSON.parse(localMem);
-                        setReportData(parsed.memory || parsed);
+                    if (data && data.metadata) {
+                        setReportData(data.metadata);
+                    } else {
+                        // Priority 4: Old Local Storage fallback
+                        const localMem = localStorage.getItem('janIA_temp_memory');
+                        if (localMem) {
+                            const parsed = JSON.parse(localMem);
+                            setReportData(parsed.memory || parsed);
+                        }
                     }
+                } catch (err) {
+                    console.warn("DB fetch failed, fallback to LocalStorage:", err);
                 }
-            } catch (err) {
-                console.warn("DB fetch failed, fallback to LocalStorage:", err);
-                const localMem = localStorage.getItem('janIA_temp_memory');
-                if (localMem) {
-                    try {
-                        const parsed = JSON.parse(localMem);
-                        setReportData(parsed.memory || parsed);
-                    } catch(e) {}
-                }
-            } finally {
-                setLoading(false);
+            } else if (chatId?.startsWith('demo-')) {
+                setReportData({ ...DEMO_DATA, planType: demoPlan });
             }
+
+            setLoading(false);
         };
 
         if (chatId || planRoute) fetchReportData();

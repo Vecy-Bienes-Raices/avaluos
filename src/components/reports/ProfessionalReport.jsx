@@ -381,14 +381,23 @@ const ProfessionalReport = ({
                                 <Text style={{ ...styles.tableColHead, width: '30%' }}>Precio Lista</Text>
                                 <Text style={{ ...styles.tableColHead, width: '30%' }}>Valor m²</Text>
                             </View>
-                            {/* Mock Rows (In real app, map through propertyData.comps) */}
-                            {[1, 2, 3].map(i => (
-                                <View key={i} style={styles.tableRow}>
-                                    <Text style={{ ...styles.tableCol, width: '40%' }}>Apto Similar - Sector {propertyData.barrio || 'Zona'}</Text>
-                                    <Text style={{ ...styles.tableCol, width: '30%' }}>{formatPrice(propertyData.valor * (0.9 + (i * 0.05)))}</Text>
-                                    <Text style={{ ...styles.tableCol, width: '30%' }}>{formatPrice((propertyData.valor / propertyData.area) || 5000000)}/m²</Text>
+                            {/* DYNAMIC COMPARABLES: Map through real data from JanIA Research */}
+                            {propertyData.comps && propertyData.comps.length > 0 ? (
+                                propertyData.comps.slice(0, 4).map((comp, i) => (
+                                    <View key={i} style={styles.tableRow}>
+                                        <Text style={{ ...styles.tableCol, width: '40%' }}>{comp.title || 'Inmueble Similar'}</Text>
+                                        <Text style={{ ...styles.tableCol, width: '30%' }}>{formatPrice(comp.price)}</Text>
+                                        <Text style={{ ...styles.tableCol, width: '30%' }}>{formatPrice(comp.price_m2 || 0)}/m²</Text>
+                                    </View>
+                                ))
+                            ) : (
+                                // Fallback if no comps yet
+                                <View style={styles.tableRow}>
+                                    <Text style={{ ...styles.tableCol, width: '100%', fontStyle: 'italic' }}>
+                                        Análisis detallado de zona en proceso... Se han tomado referencias de {propertyData.barrio || 'Bogotá'}.
+                                    </Text>
                                 </View>
-                            ))}
+                            )}
                         </View>
                     </View>
                 )}
