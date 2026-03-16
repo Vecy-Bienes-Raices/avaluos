@@ -26,11 +26,11 @@ export const VecyStyles = {
 
 export const VecyTypography = {
     // 2. Estilos de Texto Obligatorios
-    gradientTitle: 'bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent font-outfit font-bold',
+    gradientTitle: 'bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent font-inter font-bold',
     buttonBackText: 'Volver con JanIA',
 
     // Helpers
-    h1: 'text-3xl md:text-5xl font-bold font-outfit text-white',
+    h1: 'text-3xl md:text-5xl font-bold font-inter text-white',
     p: 'text-lg md:text-xl text-stone-300 font-light',
 };
 

@@ -4,26 +4,18 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
     const [selectionStep, setSelectionStep] = useState(null); // 'cafe' | 'esmeralda' | null
 
     const handleBuy = (plan) => {
-        // 1. Caso Oro: Cotización Directa
-        if (plan.id === 'oro') {
-            onSelect({ ...plan, amount: 0 }); // Valida con backend/janIA
-            return;
-        }
-
-        // 2. Si ya hay estrato en la data (JanIA lo sabe), cobramos directo
+        // Si ya hay estrato en la data (JanIA lo sabe), cobramos directo
         const foundStratum = propertyData.estrato || propertyData.stratum;
         if (foundStratum) {
             const stratum = parseInt(foundStratum);
-            let finalAmount = plan.amount; // Base (High) ?? No, logic required.
-
-            // Logic Remapped:
-            // Cafe: 1-3 (29997), 4-6 (49997)
-            // Esmeralda: 1-3 (99997), 4-6 (149997)
+            let finalAmount = plan.amount;
 
             if (plan.id === 'cafe') {
                 finalAmount = stratum <= 3 ? 29997 : 49997;
             } else if (plan.id === 'esmeralda') {
                 finalAmount = stratum <= 3 ? 99997 : 149997;
+            } else if (plan.id === 'oro') {
+                finalAmount = stratum <= 3 ? 250000 : 350000;
             }
 
             onSelect({ ...plan, amount: finalAmount });
@@ -38,8 +30,10 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
         let finalAmount;
         if (plan.id === 'cafe') {
             finalAmount = range === 'low' ? 29997 : 49997;
-        } else {
+        } else if (plan.id === 'esmeralda') {
             finalAmount = range === 'low' ? 99997 : 149997;
+        } else if (plan.id === 'oro') {
+            finalAmount = range === 'low' ? 250000 : 350000;
         }
         onSelect({ ...plan, amount: finalAmount, stratumRange: range });
         setSelectionStep(null);
@@ -75,15 +69,15 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
         {
             id: 'oro',
             name: 'Oro King',
-            subtitle: 'Avalúo Corporativo Certificado',
+            subtitle: 'Inteligencia Financiera Avanzada',
             image: '/oro.png',
-            price: 'COTIZAR',
+            price: 'Desde $250.000',
             amount: 0,
             features: [
-                'Cotización Personalizada (Tipo Uber).',
-                'Visita Técnica Presencial.',
-                'Firmado por Perito RAA.',
-                'Soporte Jurídico Total.',
+                'Análisis para Inversionistas PRO.',
+                'Valor Estratificado (E1-3: $250k | E4-6: $350k).',
+                'Cálculo de Cap Rate y ROI.',
+                'Absorción y Proyecciones de Mercado.',
                 '👑 Gana 10% Comisión por Referido.'
             ],
             isPopular: true,
@@ -164,7 +158,7 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
                                 >
                                     Estrato 1, 2 o 3
                                     <span className="block text-[10px] opacity-80 font-normal">
-                                        ${plan.id === 'cafe' ? '29.997' : '99.997'}
+                                        ${plan.id === 'cafe' ? '29.997' : plan.id === 'esmeralda' ? '99.997' : '250.000'}
                                     </span>
                                 </button>
 
@@ -174,7 +168,7 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
                                 >
                                     Estrato 4, 5 o 6
                                     <span className="block text-[10px] opacity-60 font-normal">
-                                        ${plan.id === 'cafe' ? '49.997' : '149.997'}
+                                        ${plan.id === 'cafe' ? '49.997' : plan.id === 'esmeralda' ? '149.997' : '350.000'}
                                     </span>
                                 </button>
 
@@ -188,7 +182,7 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
                         ) : null}
 
                         <div className="relative z-10 mb-3 text-center">
-                            <h3 className={`text-xl font-bold font-outfit mb-2 ${plan.style.textColor} tracking-tight drop-shadow-sm`}>
+                            <h3 className={`text-xl font-bold font-inter mb-2 ${plan.style.textColor} tracking-tight drop-shadow-sm`}>
                                 {plan.name}
                             </h3>
 
@@ -206,7 +200,7 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
                             </p>
 
                             <div className={`flex items-baseline justify-center gap-1 ${genericMode ? 'animate-pulse' : ''}`}>
-                                <span className={`text-2xl md:text-3xl font-bold font-outfit ${plan.style.priceColor}`}>
+                                <span className={`text-2xl md:text-3xl font-bold font-inter ${plan.style.priceColor}`}>
                                     {genericMode ? '' : '$'}{plan.price}
                                 </span>
                                 {!genericMode && <span className="text-white/40 text-[8px] font-bold uppercase tracking-wider">COP</span>}
@@ -232,7 +226,7 @@ const PricingCards = ({ onSelect, propertyData = {}, filter = ['all'], genericMo
                             className={`relative w-full py-2.5 rounded-xl text-[10px] font-bold transition-all duration-300 uppercase tracking-widest transform active:scale-95 ${plan.style.buttonBg} ${plan.style.buttonText} ${plan.style.buttonGlow} border border-white/10 z-10 shadow-lg mt-auto`}
                         >
                             <span className={`relative z-10 ${plan.style.buttonTextShadow}`}>
-                                {plan.id === 'oro' ? 'SOLICITAR COTIZACIÓN' : 'SELECCIONAR ESTRATO'}
+                                SELECCIONAR ESTRATO
                             </span>
                         </button>
                     </div>

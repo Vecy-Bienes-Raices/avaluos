@@ -34,7 +34,7 @@ const Planes = () => {
             </div>
 
             <div className="max-w-5xl w-full text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700 mt-20 md:mt-0">
-                <h1 className="text-3xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-4 pb-2">
+                <h1 className="text-3xl md:text-5xl font-bold font-inter bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-4 pb-2">
                     Selecciona tu nivel de inteligencia
                 </h1>
                 <p className="text-lg text-stone-300 font-light max-w-2xl mx-auto">
@@ -58,125 +58,209 @@ const Planes = () => {
                 <PricingCards onSelect={handlePlanSelect} genericMode={true} filter={['all']} />
             </div>
 
-            {/* VECY NETWORK BUSINESS MODEL SECTION */}
-            <div className="w-full max-w-6xl mt-24 mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                <div className="text-center mb-12">
-                    <h2 className="text-2xl md:text-4xl font-bold font-outfit text-brand-gold mb-4 uppercase tracking-widest drop-shadow-md">
-                        ¿Quieres que tu avalúo te salga GRATIS? 💸
+            {/* DETAILED EXPLANATION SECTION */}
+            <div className="w-full max-w-6xl mt-16 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl md:text-5xl font-bold font-inter text-white mb-4 drop-shadow-md">
+                        ¿Qué incluye exactamente cada plan?
                     </h2>
                     <p className="text-stone-300 max-w-3xl mx-auto text-sm md:text-base font-light leading-relaxed">
-                        Únete a <strong>Vecy Network</strong>. El primer modelo de <em>Real Estate Network Marketing</em> impulsado por IA.
-                        Convierte tus contactos en una fuente de ingresos pasivos y recupera tu inversión en tiempo récord.
+                        En Vecy no hay letras pequeñas. Queremos que sepas exactamente qué vas a recibir, en cuánto tiempo y para qué te sirve cada nivel de inteligencia artificial o servicio profesional.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                    {/* CARD 1: COMISIONES DIRECTAS */}
-                    <div className="bg-black/40 backdrop-blur-xl border border-brand-gold/30 rounded-2xl p-6 relative overflow-hidden group hover:border-brand-gold/60 transition-all duration-300">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <span className="text-6xl">💰</span>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Explicación Café */}
+                    <div className="bg-gradient-to-b from-[#5D493A]/20 to-black/40 backdrop-blur-xl border border-[#A1887F]/30 rounded-3xl p-8 hover:border-[#A1887F]/60 transition-all duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 rounded-xl bg-[#5D493A]/50 flex items-center justify-center border border-[#A1887F]/30">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-[#A1887F]"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-[#A1887F] font-inter">Sondeo Café</h3>
+                                <p className="text-xs text-stone-400">Rápido y preciso para uso personal</p>
+                            </div>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            <span className="text-emerald-400">1.</span> Ganancias Directas
-                        </h3>
-                        <p className="text-xs text-stone-400 mb-4">Gana dinero de forma inteligente según el estrato del inmueble referido.</p>
-
-                        <div className="space-y-4 font-mono text-[10px]">
-                            {/* CAFE */}
-                            <div className="space-y-1">
-                                <p className="text-brand-gold uppercase font-bold text-[9px]">☕ Plan Café</p>
-                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
-                                    <span className="text-stone-300">Estratos 1-3</span>
-                                    <span className="text-emerald-400 font-bold">+ $4.997 COP</span>
-                                </div>
-                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
-                                    <span className="text-stone-300">Estratos 4-6</span>
-                                    <span className="text-emerald-400 font-bold">+ $7.499 COP</span>
-                                </div>
+                        <div className="space-y-5 text-sm font-light text-stone-300">
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-[#A1887F]">⚡</span> Tiempo de Entrega</h4>
+                                <p><strong>Inmediato (Segundos).</strong> Tras el pago, JanIA procesa la data al instante.</p>
                             </div>
-
-                            {/* ESMERALDA */}
-                            <div className="space-y-1">
-                                <p className="text-emerald-500 uppercase font-bold text-[9px]">💎 Plan Esmeralda</p>
-                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
-                                    <span className="text-stone-300">Estratos 1-3</span>
-                                    <span className="text-emerald-400 font-bold">+ $9.997 COP</span>
-                                </div>
-                                <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
-                                    <span className="text-stone-300">Estratos 4-6</span>
-                                    <span className="text-emerald-400 font-bold">+ $12.499 COP</span>
-                                </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-[#A1887F]">📄</span> Formato de Entrega</h4>
+                                <p>Reporte digital dinámico en pantalla y exportable a <strong>PDF básico</strong> para compartir fácilmente por WhatsApp o correo.</p>
                             </div>
-
-                            {/* ORO */}
-                            <div className="flex justify-between items-center bg-gradient-to-r from-brand-gold/10 to-transparent p-2 rounded-lg border border-brand-gold/20">
-                                <span className="text-brand-gold font-bold">👑 Oro King</span>
-                                <span className="text-emerald-400 font-bold">10% Neto</span>
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-[#A1887F]">🎯</span> Casos de Uso Ideales</h4>
+                                <p>Perfecto para propietarios curiosos, compradores que quieren saber si un precio es justo antes de ofertar, o arrendatarios negociando el canon.</p>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-[#A1887F]">⚠️</span> Limitaciones</h4>
+                                <p>No incluye mapa de calor, análisis socioeconómico profundo ni es válido para trámites legales.</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* CARD 2: ROI (BREAK-EVEN) */}
-                    <div className="bg-gradient-to-br from-brand-gold/10 to-black/60 backdrop-blur-xl border border-brand-gold/50 rounded-2xl p-6 relative overflow-hidden transform md:-translate-y-4 shadow-[0_0_30px_rgba(204,172,78,0.15)]">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <span className="text-6xl">🚀</span>
+                    {/* Explicación Esmeralda */}
+                    <div className="bg-gradient-to-b from-[#0DBB83]/10 to-black/60 backdrop-blur-xl border border-[#0DBB83]/40 rounded-3xl p-8 hover:border-[#0DBB83]/70 transition-all duration-300 lg:-translate-y-4 shadow-[0_0_40px_rgba(13,187,131,0.1)] relative">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-[#0DBB83] text-black text-[10px] font-black px-4 py-1 rounded-b-lg uppercase tracking-widest shadow-lg">
+                            El Más Popular
                         </div>
-                        <h3 className="text-xl font-bold text-brand-gold mb-4 flex items-center gap-2">
-                            <span className="text-white">2.</span> Autosostenibilidad
-                        </h3>
-                        <p className="text-xs text-stone-300 mb-6 font-light">
-                            ¿Cómo recuperar tu inversión? Si tus amigos compran un Plan Café (Estratos 1-3), solo necesitas:
-                        </p>
-
-                        <div className="flex flex-col items-center justify-center gap-2 mb-4">
-                            <div className="text-4xl font-bold text-white">6 <span className="text-sm font-normal text-stone-400">AMIGOS</span></div>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-400 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                            <div className="text-lg font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-4 py-1 rounded-full border border-emerald-500/30">
-                                ¡AVALÚO GRATIS!
+                        <div className="flex items-center gap-3 mb-6 mt-2">
+                            <div className="w-12 h-12 rounded-xl bg-[#0DBB83]/20 flex items-center justify-center border border-[#0DBB83]/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-[#0DBB83]"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-[#0DBB83] font-inter drop-shadow-md">Inteligencia Esmeralda</h3>
+                                <p className="text-xs text-stone-300">Data PRO para negociaciones reales</p>
                             </div>
                         </div>
-                        <p className="text-[10px] text-stone-500 text-center italic leading-tight">
-                            * 6 Referidos x $4.997 = $29.982<br />
-                            (Break-even instantáneo)
-                        </p>
+                        <div className="space-y-5 text-sm font-light text-stone-300">
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-[#0DBB83]">⚡</span> Tiempo de Entrega</h4>
+                                <p><strong>~1 Minuto.</strong> JanIA realiza un análisis exhaustivo de miles de datos concurrentes.</p>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-[#0DBB83]">📊</span> Formato de Entrega</h4>
+                                <p><strong>Web Dashboard Interactivo</strong> (con mapas y gráficos dinámicos) y un <strong>PDF Profesional Premium</strong> altamente estético con marca Vecy, listo para presentar a clientes.</p>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-[#0DBB83]">🎯</span> Casos de Uso Ideales</h4>
+                                <p>Indispensable para <strong>Agentes Inmobiliarios (Brokers)</strong>, inversionistas fijando precios de mercado, constructoras analizando zonas, y sustento robusto de valor (Incluye POT, Zonas de Riesgo y Calor).</p>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* CARD 3: VECY LEGACY */}
-                    <div className="bg-black/40 backdrop-blur-xl border border-brand-gold/30 rounded-2xl p-6 relative overflow-hidden group hover:border-brand-gold/60 transition-all duration-300">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <span className="text-6xl">💎</span>
+                    {/* Explicación Oro */}
+                    <div className="bg-gradient-to-br from-[#CCAC4E]/10 to-black/40 backdrop-blur-xl border border-brand-gold/40 rounded-3xl p-8 hover:border-brand-gold/70 transition-all duration-300">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 rounded-xl bg-brand-gold/20 flex items-center justify-center border border-brand-gold/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-brand-gold"><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" /></svg>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-brand-gold font-inter drop-shadow-md">Avalúo Oro King</h3>
+                                <p className="text-xs text-stone-300">Inteligencia Financiera Avanzada</p>
+                            </div>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            <span className="text-purple-400">3.</span> Regalías Eternas
-                        </h3>
-                        <p className="text-xs text-stone-400 mb-4">No es solo recuperar, es construir riqueza. Tu ID de Vecy es vitalicio.</p>
+                        <div className="space-y-5 text-sm font-light text-stone-300">
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-brand-gold">⏱️</span> Tiempo de Entrega</h4>
+                                <p><strong>~3 Minutos.</strong> Análisis deep-learning masivo procesado en tiempo récord por JanIA.</p>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-brand-gold">📊</span> Formato de Entrega</h4>
+                                <p><strong>Dashboard Financiero PRO + Reporte Ejecutivo Técnico.</strong> Data cruzada en tiempo real de absorción, tendencias y rentabilidad.</p>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2"><span className="text-brand-gold">🎯</span> Casos de Uso Ideales</h4>
+                                <p>Exclusivo para <strong>Inversionistas, Flippers y Brókers Top</strong>. Incluye cálculo de ROI, Cap Rate, proyecciones a 5 años y análisis de proyectos comerciales complejos.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                        <ul className="space-y-3 text-xs text-stone-300">
-                            <li className="flex gap-2">
-                                <span className="text-brand-gold">✓</span>
-                                Sin límites de referidos (Infinito).
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-brand-gold">✓</span>
-                                Pagos semanales a tu cuenta.
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-brand-gold">✓</span>
-                                <span>Ganas incluso si tú <span className="text-white font-bold">NO</span> compras avalúos. Solo necesitas compartir.</span>
-                            </li>
-                        </ul>
+            {/* SAAS MEMBERSHIPS SECTION */}
+            <div className="w-full max-w-6xl mt-20 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="text-center mb-10">
+                    <div className="inline-block py-1 px-3 rounded-full bg-brand-gold/10 border border-brand-gold/30 text-brand-gold text-xs font-bold tracking-widest uppercase mb-4 shadow-[0_0_15px_rgba(204,172,78,0.2)]">
+                        Software as a Service (SaaS)
+                    </div>
+                    <h2 className="text-3xl md:text-5xl font-bold font-inter text-white mb-4 drop-shadow-md">
+                        Membresías para Profesionales
+                    </h2>
+                    <p className="text-stone-300 max-w-2xl mx-auto text-sm md:text-base font-light leading-relaxed">
+                        Ten el Analista Financiero de Inteligencia Artificial más avanzado del mundo Inmobiliario directamente en tu bolsillo. Evaluaciones ilimitadas, rentabilidad instantánea.
+                    </p>
+                </div>
 
-                        <button
-                            onClick={() => navigate('/')}
-                            className="w-full mt-6 py-2 bg-white/5 hover:bg-brand-gold hover:text-black border border-white/10 rounded-lg transition-all text-xs font-bold uppercase tracking-widest"
-                        >
-                            Empezar Ahora
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {/* Suscripción PRO */}
+                    <div className="bg-black/60 backdrop-blur-2xl border border-white/10 hover:border-brand-accent/50 rounded-3xl p-8 relative overflow-hidden transition-all duration-500 group">
+                        <div className="text-center mb-6">
+                            <h3 className="text-2xl font-bold text-white font-inter">Suscripción PRO</h3>
+                            <p className="text-sm text-stone-400 mt-1">Para el Agente Inmobiliario Top</p>
+                        </div>
+                        
+                        <div className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/5 text-center transition-colors group-hover:bg-white/10">
+                            <p className="text-sm font-bold text-brand-accent mb-2 uppercase tracking-widest">Incluye</p>
+                            <p className="text-4xl font-black text-white mb-1">20 Avalúos</p>
+                            <p className="text-xs text-stone-400 font-mono">Café, Esmeralda u Oro al Mes</p>
+                        </div>
+
+                        <div className="space-y-4 mb-8">
+                            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                <span className="text-stone-300 text-sm">Plan Mensual</span>
+                                <span className="font-bold text-white">$100.000 <span className="text-[10px] text-stone-400 font-normal uppercase">COP/mes</span></span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-stone-300 text-sm flex items-center gap-1">Plan Anual <span className="text-[10px] bg-brand-accent/20 text-brand-accent px-1.5 py-0.5 rounded-md font-bold uppercase">(1 mes GRATIS)</span></span>
+                                <span className="font-bold text-brand-gold">$1.100.000 <span className="text-[10px] text-stone-400 font-normal uppercase">COP/año</span></span>
+                            </div>
+                        </div>
+
+                        <button onClick={() => navigate('/')} className="w-full py-3.5 rounded-xl bg-white/10 hover:bg-brand-accent hover:text-black border border-white/10 font-bold transition-all text-xs uppercase tracking-widest shadow-lg">
+                            Seleccionar PRO
                         </button>
                     </div>
 
+                    {/* Suscripción AGENCIA */}
+                    <div className="bg-gradient-to-b from-[#0DBB83]/10 to-black/80 backdrop-blur-2xl border border-[#0DBB83]/40 hover:border-[#0DBB83]/70 rounded-3xl p-8 relative overflow-hidden transition-all duration-500 shadow-[0_0_40px_rgba(13,187,131,0.1)] group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#0DBB83]/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                        <div className="text-center mb-6 relative z-10">
+                            <h3 className="text-2xl font-bold text-[#0DBB83] font-inter drop-shadow-md">Suscripción AGENCIA</h3>
+                            <p className="text-sm text-stone-400 mt-1">Para Inmobiliarias y Equipos</p>
+                        </div>
+                        
+                        <div className="bg-black/40 rounded-2xl p-6 mb-6 border border-white/5 text-center relative z-10 transition-colors group-hover:border-[#0DBB83]/30">
+                            <p className="text-sm font-bold text-[#0DBB83] mb-2 uppercase tracking-widest">Incluye</p>
+                            <p className="text-4xl font-black text-white mb-1">70 Avalúos</p>
+                            <p className="text-xs text-stone-400 font-mono">Café, Esmeralda u Oro al Mes (60 Anual)</p>
+                        </div>
+
+                        <div className="space-y-4 mb-8 relative z-10">
+                            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                <span className="text-stone-300 text-sm">Plan Mensual</span>
+                                <span className="font-bold text-white">$300.000 <span className="text-[10px] text-stone-400 font-normal uppercase">COP/mes</span></span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-stone-300 text-sm flex items-center gap-1">Plan Anual <span className="text-[10px] bg-brand-gold/20 text-brand-gold px-1.5 py-0.5 rounded-md font-bold uppercase">(1 mes GRATIS)</span></span>
+                                <span className="font-bold text-[#0DBB83] drop-shadow-[0_0_10px_rgba(13,187,131,0.5)]">$3.300.000 <span className="text-[10px] text-stone-400 font-normal uppercase">COP/año</span></span>
+                            </div>
+                        </div>
+
+                        <button onClick={() => navigate('/')} className="relative w-full py-3.5 rounded-xl bg-gradient-to-r from-[#0DBB83] to-[#0aa674] hover:to-[#0DBB83] text-white font-bold transition-all text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(13,187,131,0.4)] z-10">
+                            Seleccionar Agencia
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {/* STRIPPED: NETWORK MODEL is now in /referidos */}
+
+            {/* CTA Redirección a Modelo de Ganancias en Red */}
+            <div className="w-full max-w-5xl mt-12 mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                <div className="bg-gradient-to-r from-brand-gold/5 via-brand-gold/10 to-brand-gold/5 border border-brand-gold/20 rounded-3xl p-8 md:p-12 shadow-[0_0_30px_rgba(204,172,78,0.1)] text-center relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500">
+                        <span className="text-9xl">💰</span>
+                    </div>
+                    
+                    <h2 className="text-2xl md:text-4xl font-bold font-inter text-brand-gold mb-4 uppercase tracking-widest drop-shadow-md">
+                        ¿Quieres que tu avalúo te salga GRATIS?
+                    </h2>
+                    <p className="text-stone-300 max-w-2xl mx-auto text-sm md:text-base font-light leading-relaxed mb-8">
+                        Conoce el primer modelo de <em>Real Estate Network Marketing</em> impulsado por IA. Convierte tus contactos en una fuente de ingresos pasivos.
+                    </p>
+                    
+                    <button
+                        onClick={() => navigate('/referidos')}
+                        className="px-8 py-4 bg-white/5 hover:bg-brand-gold hover:text-black border border-white/10 rounded-xl transition-all duration-300 text-sm font-bold uppercase tracking-widest shadow-lg hover:shadow-[0_0_30px_rgba(204,172,78,0.4)] relative z-10"
+                    >
+                        Ver Modelo de Ganancias en Red
+                    </button>
+                </div>
+            </div>
+
             <Footer />
         </div>
     );

@@ -30,7 +30,7 @@ const Terms = () => {
 
                     {/* Header */}
                     <header className="mb-10 border-b border-white/10 pb-8">
-                        <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent font-outfit mb-4">
+                        <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent font-inter mb-4">
                             Términos y Condiciones
                         </h1>
                         <p className="text-stone-400 text-sm md:text-base">
@@ -41,14 +41,14 @@ const Terms = () => {
                     {/* Content */}
                     <div className="space-y-8 text-stone-200 leading-relaxed text-sm md:text-base font-light">
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">1. Aceptación de los Términos</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-inter text-brand-accent">1. Aceptación de los Términos</h2>
                             <p>
                                 Al acceder y utilizar <strong>Vecy Avalúos</strong>, usted acepta cumplir con estos Términos y Condiciones. Si no está de acuerdo con alguno de estos términos, no utilice nuestra plataforma.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">2. Servicios Ofrecidos</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-inter text-brand-accent">2. Servicios Ofrecidos</h2>
                             <p>
                                 Vecy Avalúos proporciona una plataforma de valuación inmobiliaria asistida por Inteligencia Artificial (JanIA). Nuestros servicios incluyen:
                             </p>
@@ -61,14 +61,14 @@ const Terms = () => {
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">3. Limitaciones de Responsabilidad</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-inter text-brand-accent">3. Limitaciones de Responsabilidad</h2>
                             <p>
                                 <strong>JanIA es una herramienta de asistencia</strong>. Aunque nuestros algoritmos proporcionan estimaciones basadas en datos del mercado, <strong>el avalúo final siempre es realizado y firmado por un profesional certificado</strong>. Vecy Avalúos no se hace responsable por decisiones comerciales tomadas únicamente con base en las estimaciones preliminares de la IA.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">4. Uso Aceptable</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-inter text-brand-accent">4. Uso Aceptable</h2>
                             <p>
                                 Usted se compromete a:
                             </p>
@@ -81,21 +81,21 @@ const Terms = () => {
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">5. Propiedad Intelectual</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-inter text-brand-accent">5. Propiedad Intelectual</h2>
                             <p>
                                 Todo el contenido, algoritmos, diseño y funcionalidad de la plataforma son propiedad exclusiva de Vecy Avalúos. Los modelos de IA y bases de datos de propiedades están protegidos por derechos de autor y secretos comerciales.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">6. Modificaciones</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-inter text-brand-accent">6. Modificaciones</h2>
                             <p>
                                 Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios entrarán en vigor inmediatamente después de su publicación en la plataforma. El uso continuado del servicio constituye la aceptación de los términos modificados.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-outfit text-brand-accent">7. Contacto Legal</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 font-inter text-brand-accent">7. Contacto Legal</h2>
                             <p>
                                 Para consultas legales o reclamos, contáctenos en: <a href="mailto:legal@vecyavaluos.com" className="text-brand-accent hover:underline">legal@vecyavaluos.com</a>
                             </p>

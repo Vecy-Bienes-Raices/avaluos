@@ -19,7 +19,7 @@ const RewardModelCard = ({ onSelect, user }) => {
                     <span className="text-4xl text-brand-gold">💰</span>
                 </div>
 
-                <h2 className="text-xl md:text-2xl font-black font-outfit text-brand-gold mb-2 uppercase tracking-widest">
+                <h2 className="text-xl md:text-2xl font-black font-inter text-brand-gold mb-2 uppercase tracking-widest">
                     ¿Quieres que tu avalúo sea GRATIS? 💸
                 </h2>
                 <p className="text-stone-300 text-xs md:text-sm font-light leading-relaxed mb-6">

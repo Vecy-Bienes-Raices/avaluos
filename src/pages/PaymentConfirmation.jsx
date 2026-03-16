@@ -44,7 +44,7 @@ const PaymentConfirmation = () => {
                         </div>
                     </div>
 
-                    <h2 className="text-4xl font-outfit font-bold text-white mb-4 tracking-tighter drop-shadow-lg">Procesando Pago</h2>
+                    <h2 className="text-4xl font-inter font-bold text-white mb-4 tracking-tighter drop-shadow-lg">Procesando Pago</h2>
                     <p className="text-stone-300 mb-10 leading-relaxed font-light text-lg">Estamos sincronizando con la red bancaria. No cierres esta ventana.</p>
 
                     <div className="space-y-4">

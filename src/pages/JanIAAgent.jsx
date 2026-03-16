@@ -10,7 +10,7 @@ import PricingCards from '../components/PricingCards';
 import { initiateCheckout, verifyPayment } from '../services/epaycoService';
 import { saveChatToHistory, getUserChats, getChatDetail, uploadChatFile, deleteChat, clearUserHistory, generateSmartTitle } from '../services/historyService';
 import { liquidarServiciosVecy } from '../services/pricingService';
-import { GlassToast, GlassConfirm } from '../components/VecyAlerts';
+import { GlassConfirm, GlassToast } from '../components/VecyAlerts';
 import { GlassAvatar } from '../components/GlassAvatar';
 import { sendAdminNotification } from '../services/notificationService';
 // reportService loaded dynamically on payment success to avoid react-pdf circular dep crash
@@ -36,7 +36,6 @@ const JanIAAgent = () => {
     const [user, setUser] = useState(null);
 
     // 🔔 ALERTS STATE
-    const [toast, setToast] = useState({ message: null, type: 'info' });
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
         title: '',
@@ -44,6 +43,8 @@ const JanIAAgent = () => {
         onConfirm: () => { },
         isDanger: false
     });
+
+    const [toast, setToast] = useState({ message: null, type: '' });
 
     const [authLoading, setAuthLoading] = useState(true); // Prevent flicker
     const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar closed by default
@@ -221,7 +222,7 @@ const JanIAAgent = () => {
                 setMessages([{ type: 'bot', text: greeting, component: 'greeting' }]);
                 localStorage.removeItem('janIA_chat_messages');
             }
-            setToast({ message: 'Chat eliminado correctamente', type: 'success' });
+            
         } else {
             // RLS Fail Logic handled in service, but we show toast too
             setToast({ message: 'No se pudo eliminar. Verifica permisos RLS.', type: 'error' });
@@ -259,7 +260,7 @@ const JanIAAgent = () => {
             setMessages([{ type: 'bot', text: greeting, component: 'greeting' }]);
             localStorage.removeItem('janIA_chat_messages');
 
-            setToast({ message: 'Historial limpio y sesión nueva.', type: 'success' });
+            
         } else {
             setToast({ message: 'Error de permisos (RLS). No se pudo borrar.', type: 'error' });
         }
@@ -587,7 +588,7 @@ const JanIAAgent = () => {
                 console.log("🔓 User Authenticated. Executing pending action:", pendingMsg);
                 handleSendMessage(pendingMsg);
                 localStorage.removeItem('janIA_pending_action');
-                setToast({ message: "¡Registro exitoso! Continuando conversación...", type: "success" });
+            
             }
         }
     }, [user]);
@@ -617,20 +618,53 @@ const JanIAAgent = () => {
         // We removed the strict hasBasicInfo check that blocked checkout falsely.
         // We now rely purely on the amount validation below to ensure a valid quote exists.
 
-        // 2. Validate Amount (Fixes "Zero Amount" Error)
-        // If the property data wasn't sufficient to calculate a price, amount might be 0.
-        // In that case, we can't charge. We should prompt for data or contact.
+        // SMART VALIDATION: Require area and estrato to prevent $29.997 bug on higher strata
         if (!plan.amount || plan.amount < 1000) {
-            console.warn("⚠️ [JanIA Payment] Precio Invalido/Cero:", plan);
-            // Fallback: Notify user that calculation is needed
+            console.warn("⚠️ [JanIA Payment] Precio Invalido/Cero o Falta Estrato:", plan);
             setToast({
-                message: "JanIA necesita más datos de tu inmueble (Área/Estrato) para calcular el precio exacto antes de cobrar. Por favor indícaselos en el chat.",
+                message: "Por favor confírmale primero a JanIA tu estrato para que cruce el valor exacto de tu plan en el mercado.",
                 type: 'error'
             });
-            // Optionally: Send a system framing message to chat? 
-            // For now, toast is safe.
             return;
         }
+
+        // 🎁 LOGICA 5 AVALÚOS GRATIS (NUEVA)
+        const freeCountKey = `vecy_free_appraisals_${user.id}`;
+        const freeCount = parseInt(localStorage.getItem(freeCountKey) || '0', 10);
+
+        if (freeCount < 5) {
+            const newCount = freeCount + 1;
+            localStorage.setItem(freeCountKey, newCount.toString());
+            console.log(`🎁 [Free Appraisals] Uso de cupo gratis: ${newCount}/5`);
+            
+            
+            
+            // Simular flujo de éxito e invocar a JanIA para el PDF
+            setTimeout(() => {
+                localStorage.setItem('janIA_pending_action', "SISTEMA_CONFIRMACION_PAGO_EXITOSA");
+                
+                // Disparamos la generación de fondo
+                const planType = plan.id;
+                import('../services/reportService.jsx').then(({ generateAndSendReport }) => {
+                    generateAndSendReport(planType, janIACore.memory || {}, user).then(res => {
+                        if (res.success) console.log("✅ [JanIA] Reporte PDF gratuito generado.");
+                    });
+                });
+
+                // Notificar al Agent que responda (simulando que volvió de Epayco)
+                window.dispatchEvent(new Event('trigger_jania_payment_success'));
+            }, 500);
+            
+            return;
+        }
+
+        // 💳 SI YA NO HAY CUPOS GRATIS:
+        // Si viene desde un botón de texto plano incrustado por JanIA en el chat, le mandamos los planes completos.
+        if (freeCount >= 5 && plan.fromChat) {
+            handleSendMessage("Ya he usado mis 5 avalúos de cortesía, por favor muéstrame los planes completos para pagar este nuevo reporte o suscribirme.");
+            return;
+        }
+
 
         // 3. Set State
         setPaidPlan(plan.id);
@@ -652,7 +686,7 @@ const JanIAAgent = () => {
                 console.log("🎉 [Epayco Callback Data]:", pData);
                 // x_cod_response: 1 = Aceptada, 2 = Rechazada, 3 = Pendiente, 4 = Fallida
                 if (pData.x_cod_response === 1 || pData.x_cod_response === 3) {
-                    setToast({ message: "¡Validando tu pago!", type: 'success' });
+            
                     setPaidPlan(plan.id);
 
                     // Infer plan details for backend
@@ -717,14 +751,14 @@ const JanIAAgent = () => {
                     }
 
                 } else {
-                    setToast({ message: `Pago no aprobado. (Estado: ${pData.x_response})`, type: 'error' });
+                    
                 }
             } else if (result && result.status === 'closed') {
                 console.log("Usuario cerró el modal de ePayco.");
             }
         } catch (err) {
             console.error("Payment Trigger Error:", err);
-            setToast({ message: "Error al iniciar pago. Intenta de nuevo.", type: 'error' });
+            
         }
     };
 
@@ -1154,7 +1188,7 @@ const JanIAAgent = () => {
                             const greeting = handleInitialGreeting(user);
                             setMessages([{ type: 'bot', text: greeting, component: 'greeting' }]);
                             localStorage.removeItem('janIA_chat_messages');
-                            setToast({ message: 'Nuevo chat iniciado', type: 'info' }); // User feedback
+
 
                             // 5. CLOSE SIDEBAR
                             if (window.innerWidth < 768) setSidebarOpen(false);
@@ -1331,6 +1365,11 @@ const JanIAAgent = () => {
                                         <button onClick={() => navigate('/planes')} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors border-t border-white/5 mt-1">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-brand-gold"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                             <span className="text-sm text-stone-300 group-hover:text-brand-gold font-medium">Ver Planes y Precios</span>
+                                        </button>
+
+                                        <button onClick={() => navigate('/referidos')} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 text-left group transition-colors border-t border-white/5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-stone-400 group-hover:text-emerald-400"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+                                            <span className="text-sm text-stone-300 group-hover:text-emerald-400 font-medium">Modelo de Ganancias</span>
                                         </button>
                                     </>
                                 ) : (
@@ -1536,7 +1575,7 @@ const JanIAAgent = () => {
                                                 <div className="h-[20vh] md:h-[30vh] max-h-[350px] min-h-[150px] flex items-center justify-center mb-4">
                                                     <img src="/jania.png" alt="JanIA" className="h-full w-auto object-contain drop-shadow-2xl" />
                                                 </div>
-                                                <h1 className="text-3xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">
+                                                <h1 className="text-3xl md:text-5xl font-bold font-inter bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-2">
                                                     Hola, soy JanIA
                                                 </h1>
                                                 <p className="text-lg md:text-xl text-stone-300 font-light max-w-2xl mx-auto px-4">
@@ -1559,7 +1598,7 @@ const JanIAAgent = () => {
                                             <div className="w-full pt-4 pb-4">
                                                 <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 max-w-4xl mx-auto px-4">
                                                     {[
-                                                        { icon: 'home', text: 'Avaluar Propiedad', cmd: 'Quiero un avalúo profesional' },
+                                                        { icon: 'home', text: 'Avaluar Propiedad', cmd: 'Quiero un avalúo' },
                                                         { icon: 'doc', text: 'Cargar Archivos', cmd: 'Necesito procesar archivos' },
                                                         { 
                                                             icon: 'user', 
@@ -1627,9 +1666,9 @@ const JanIAAgent = () => {
 
                                             {/* STANDARD BUBBLE WITH MARKDOWN */}
                                             {msg?.text && msg.text.trim() !== '' && (
-                                                <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-[0_8px_30px_rgb(0,0,0,0.5)] md:shadow-lg md:backdrop-blur-sm break-words overflow-hidden ${msg?.type === 'user'
+                                                <div className={`p-4 rounded-2xl max-w-[90%] md:max-w-[75%] shadow-[0_8px_30px_rgb(0,0,0,0.5)] md:shadow-lg md:backdrop-blur-sm break-words overflow-hidden font-inter ${msg?.type === 'user'
                                                     ? 'bg-brand-accent text-black font-medium rounded-tr-sm border-t border-brand-accent/50 shadow-[0_4px_15px_-3px_rgba(0,0,0,0.3)]'
-                                                    : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm'
+                                                    : 'bg-white/10 text-stone-200 border border-white/10 rounded-tl-sm font-light'
                                                     }`}>
     
                                                     {/* MARKDOWN RENDERING SAFEGUARD - Simplified to avoid plugin crashes */}
@@ -1637,14 +1676,15 @@ const JanIAAgent = () => {
                                                     {(() => {
 
                                                     const text = String(msg.text);
-                                                    // Specialized Pre-processing
-                                                    let processed = text
-                                                        // 1. Limpieza de comandos internos filtrados (fugas de Cortex/Reflex)
-                                                        .replace(/`?trigger_[a-z_]+`?/gi, '')
-                                                        .replace(/`?generate_[a-z_]+`?/gi, '')
-                                                        // 2. Mapeo de Enlaces Legales
-                                                        .replace(/{{Política de Privacidad}}/gi, '[Política de Privacidad](/privacidad)')
-                                                        .replace(/{{Términos y Condiciones}}/gi, '[Términos y Condiciones](/terminos)')
+                                                        let processed = text
+                                                                // 1. Limpieza de comandos internos filtrados (fugas de Cortex/Reflex)
+                                                                .replace(/`?trigger_[a-z_]+`?/gi, '')
+                                                                .replace(/`?generate_[a-z_]+`?/gi, '')
+                                                                // 2. Mapeo de Enlaces Legales
+                                                                .replace(/{{Política de Privacidad}}/gi, '[Política de Privacidad](/privacidad)')
+                                                                .replace(/{{Términos y Condiciones}}/gi, '[Términos y Condiciones](/terminos)')
+                                                                .replace(/{{Políticas?}}/gi, '[Políticas](/privacidad)')
+                                                                .replace(/{{Condiciones}}/gi, '[Condiciones](/terminos)')
                                                         .replace(/{{Mi Perfil}}/gi, '[Mi Perfil](/perfil)')
                                                         .replace(/{{Vecy Network}}/gi, '[Vecy Network](/perfil)')
                                                         // 3. Mapeo de Comandos Dinámicos (Encoding Robusto para evitar rotura de markdown)
@@ -1680,11 +1720,10 @@ const JanIAAgent = () => {
                                                         });
 
                                                     return (
-                                                        <div className={`prose prose-sm max-w-none ${msg?.type === 'user' ? 'text-black prose-p:text-black prose-headings:text-black prose-strong:text-black' : 'prose-invert'}`}>
+                                                        <div className={`prose prose-sm max-w-none font-inter ${msg?.type === 'user' ? 'text-black prose-p:text-black prose-headings:text-black prose-strong:text-black' : 'prose-invert'}`}>
                                                             <ReactMarkdown
                                                                 remarkPlugins={[remarkGfm]}
                                                                 components={{
-                                                                    strong: ({ children }) => <span className={`font-bold ${msg?.type === 'user' ? 'text-black' : 'text-brand-accent'}`}>{children}</span>,
                                                                     a: ({ node, ...props }) => {
                                                                         const href = props.href || '';
                                                                         const isInternalCmd = href.startsWith('/cmd/');
@@ -1745,7 +1784,9 @@ const JanIAAgent = () => {
 
                                                                                         if (fullCmd.startsWith('VIEW_REPORT_')) {
                                                                                             // NUEVO EVENTO MAGICO DE REPORTE WEB!!
-                                                                                            navigate(`/reporte/${chatId}`);
+                                                                                            const planType = fullCmd.replace('VIEW_REPORT_', '').toLowerCase();
+                                                                                            const finalPlan = ['café', 'cafe'].includes(planType) ? 'cafe' : planType;
+                                                                                            navigate(`/avaluo-${finalPlan}`);
                                                                                             return;
                                                                                         }
 
@@ -1779,8 +1820,8 @@ const JanIAAgent = () => {
 
                                                                                             console.log("💳 [Smart Checkout] Triggering with Dynamic Price:", directPlan);
 
-                                                                                            // CALL CHECKOUT DIRECTLY
-                                                                                            handlePlanClick(directPlan);
+                                                                                            // CALL CHECKOUT DIRECTLY OR PASS TO GRID
+                                                                                            handlePlanClick({ ...directPlan, fromChat: true });
 
                                                                                         } else if (isMsg) {
                                                                                             const msgText = fullCmd.replace('SEND_MESSAGE_', '');
@@ -1798,7 +1839,7 @@ const JanIAAgent = () => {
                                                                                                 const cleanId = planKey === 'CAFÉ' || planKey === 'CAFE' ? 'cafe' : planKey.toLowerCase();
                                                                                                 const userStratum = janIACore.memory.property_data?.estrato || 3;
                                                                                                 const calc = liquidarServiciosVecy({ plan: cleanId, estrato: userStratum, areaM2: janIACore.memory.property_data?.area || 0 });
-                                                                                                handlePlanClick({ id: cleanId, name: `Plan ${planKey}`, amount: calc.total_a_pagar });
+                                                                                                handlePlanClick({ id: cleanId, name: `Plan ${planKey}`, amount: calc.total_a_pagar, fromChat: true });
                                                                                                 return;
                                                                                             }
 
@@ -1828,6 +1869,7 @@ const JanIAAgent = () => {
                                                                         }
                                                                         return <a {...props} className={`underline ${msg?.type === 'user' ? 'text-black font-bold hover:text-stone-800' : 'text-brand-gold font-bold hover:text-white underline-offset-4'}`} target="_blank" rel="noopener noreferrer" />;
                                                                     },
+                                                                    strong: ({ children }) => <strong className={`${msg?.type === 'user' ? 'text-black font-bold' : 'text-brand-gold font-bold'}`}>{children}</strong>,
                                                                     ul: ({ children }) => <ul className={`list-disc pl-4 space-y-1 my-2 ${msg?.type === 'user' ? 'marker:text-black' : 'marker:text-stone-500'}`}>{children}</ul>,
                                                                     li: ({ children }) => <li className={`${msg?.type === 'user' ? 'text-black' : 'text-stone-300'}`}>{children}</li>,
                                                                     p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
@@ -2017,55 +2059,47 @@ const JanIAAgent = () => {
                                         </div>
                                     )}
 
-                                    {/* --- INTEGRATED POLICY GATE (Refined Flow) --- */}
+                                    {/* --- POLICY GATE --- */}
                                     {msg.component === 'policy_gate' && (
-                                        <div className="mt-4 p-6 rounded-[28px] bg-white/5 md:bg-white/[0.03] border border-white/10 md:backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-fade-in-up max-w-[92%] relative overflow-hidden group">
-                                            {/* Subtle background glow */}
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00c58d]/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-[#00c58d]/10 transition-all duration-700"></div>
-
-                                            <div className="flex items-center gap-2 mb-4 text-brand-gold">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.744c0 5.621 3.436 10.794 8.5 12.44a11.959 11.959 0 008.5-12.44 11.959 11.959 0 00-6.598-3.758c-1.63-.505-3.37-.505-5 0z" /></svg>
-                                                <span className="text-[12px] font-black uppercase tracking-[0.2em] font-outfit">PORTAL DE SEGURIDAD & IDENTIDAD</span>
-                                            </div>
-
-                                            <p className="text-[14px] text-stone-200 leading-relaxed mb-6 font-outfit font-light">
-                                                Para activar mi <strong className="text-white font-semibold italic">Red Neuronal de Razonamiento</strong> y mostrarte el valor real de tu propiedad en Bogotá —además de revelarte cómo puedes empezar a facturar con nuestro <strong className="text-brand-gold">modelo de ganancias compartidas</strong>—, necesito que formalicemos tu ingreso al ecosistema. 🤝✨
-                                                <br /><br />
-                                                Por favor revisa nuestras <Link to="/politicas" target="_blank" className="text-brand-gold underline underline-offset-4 hover:text-white transition-colors">Políticas</Link> y <Link to="/terminos" target="_blank" className="text-brand-gold underline underline-offset-4 hover:text-white transition-colors">Condiciones</Link>.
+                                        <div className="mt-3 px-5 py-4 rounded-2xl bg-white/[0.06] border border-white/[0.12] shadow-[0_6px_24px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.06)] animate-fade-in-up max-w-[88%]">
+                                            <p className="text-[14px] text-stone-300 leading-relaxed mb-4">
+                                                Solo necesito que revises brevemente nuestras{' '}
+                                                <Link to="/privacidad" target="_blank" className="text-[#CCAC4E] underline underline-offset-2">Políticas</Link>
+                                                {' '}y{' '}
+                                                <Link to="/terminos" target="_blank" className="text-[#CCAC4E] underline underline-offset-2">Condiciones</Link>
+                                                {' '}— es un momento rápido.
                                             </p>
-
-                                            <div className="flex flex-col gap-3">
+                                            <div className="flex gap-2">
                                                 <button
                                                     onClick={() => {
-                                                        const userName = janIACore.memory.user_name || 'socio';
                                                         setMessages(prev => [...prev, {
                                                             type: 'bot',
-                                                            text: `¡Excelente decisión! 💎 Por favor, elige cómo prefieres registrarte para continuar:`,
+                                                            text: `¡Perfecto! ¿Cómo prefieres continuar?`,
                                                             component: 'auth_options'
                                                         }]);
                                                         setAuthModalOpen(true);
                                                     }}
-                                                    className="w-full py-4 bg-[#00c58d] hover:bg-[#00e0a1] text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all shadow-[0_10px_30px_rgba(0,197,141,0.25)] hover:shadow-[0_15px_40px_rgba(0,197,141,0.4)] active:scale-95 border border-white/10"
+                                                    className="px-4 py-1.5 text-sm font-medium rounded-full text-white bg-gradient-to-r from-emerald-500 to-emerald-700 ring-1 ring-emerald-400/50 shadow-[0_8px_20px_rgba(0,0,0,0.4),0_4px_16px_rgba(16,185,129,0.25),inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-110 transition-all"
                                                 >
-                                                    SÍ, ACEPTO Y QUIERO REGISTRARME 💎
+                                                    Acepto y continúo
                                                 </button>
-
                                                 <button
                                                     onClick={() => {
-                                                        const userName = janIACore.memory.user_name || 'socio';
                                                         setMessages(prev => [...prev, {
                                                             type: 'bot',
-                                                            text: `La oportunidad que acabas de perder es grande. Piénsalo muy bien antes de irte **${userName}**... 😔💔`
+                                                            text: `Sin problema, aquí estaré si cambias de opinión. 😊`
                                                         }]);
                                                         janIACore.reset();
                                                     }}
-                                                    className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl font-bold text-xs transition-all border border-red-500/20 hover:border-red-500/50"
+                                                    className="px-4 py-1.5 text-sm font-medium rounded-full text-white bg-gradient-to-r from-red-500 to-red-700 ring-1 ring-red-400/50 shadow-[0_8px_20px_rgba(0,0,0,0.4),0_4px_16px_rgba(239,68,68,0.25),inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-110 transition-all"
+
                                                 >
-                                                    No, Acepto
+                                                    Ahora no
                                                 </button>
                                             </div>
                                         </div>
                                     )}
+
                                 </div>
                             ))}
 
@@ -2131,54 +2165,49 @@ const JanIAAgent = () => {
 
                             {/* Text Area */}
                             <textarea
-                                id="jania-textarea"
-                                value={input}
-                                onChange={(e) => {
-                                    setInput(e.target.value);
-                                    // Auto-resize
-                                    e.target.style.height = 'auto';
-                                    e.target.style.height = e.target.scrollHeight + 'px';
-                                }}
-                                onKeyDown={(e) => {
-                                    // Mobile Logic: Enter = New Line
-                                    const isMobile = window.innerWidth < 768;
-
-                                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                                        if (isMobile) return; // Allow default (newline)
-
-                                        e.preventDefault();
-                                        if (input.trim() || attachments.length > 0) {
-                                            handleSendMessage(input, attachments.map(a => a.file));
-                                            setInput(''); // Clear input
-                                            setTimeout(() => {
-                                                const el = document.getElementById('jania-textarea');
-                                                if (el) el.style.height = 'auto';
-                                            }, 10);
+                                    id="jania-textarea"
+                                    value={input}
+                                    onChange={(e) => {
+                                        setInput(e.target.value);
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                    }}
+                                    onKeyDown={(e) => {
+                                        // ...
+                                        const isMobile = window.innerWidth < 768;
+                                        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                                            if (isMobile) return;
+                                            e.preventDefault();
+                                            if (input.trim() || attachments.length > 0) {
+                                                handleSendMessage(input, attachments.map(a => a.file));
+                                                setInput('');
+                                                setTimeout(() => {
+                                                    const el = document.getElementById('jania-textarea');
+                                                    if (el) el.style.height = 'auto';
+                                                }, 10);
+                                            }
                                         }
-                                    }
-                                }}
-                                onPaste={(e) => {
-                                    // Lógica de pegado de imágenes (Ctrl+V)
-                                    const items = e.clipboardData?.items;
-                                    if (items) {
-                                        let hasImage = false;
-                                        for (let i = 0; i < items.length; i++) {
-                                            if (items[i].type.indexOf('image') !== -1) {
-                                                const file = items[i].getAsFile();
-                                                if (file) {
-                                                    e.preventDefault();
-                                                    hasImage = true;
-                                                    // Usar la función de adjuntar archivos ya existente
-                                                    const fakeEvent = { target: { files: [file] } };
-                                                    handleFileSelect(fakeEvent);
+                                    }}
+                                    onPaste={(e) => {
+                                        const items = e.clipboardData?.items;
+                                        if (items) {
+                                            let hasImage = false;
+                                            for (let i = 0; i < items.length; i++) {
+                                                if (items[i].type.indexOf('image') !== -1) {
+                                                    const file = items[i].getAsFile();
+                                                    if (file) {
+                                                        e.preventDefault();
+                                                        hasImage = true;
+                                                        const fakeEvent = { target: { files: [file] } };
+                                                        handleFileSelect(fakeEvent);
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                }}
-                                placeholder="Escribe un mensaje, o pega [Ctrl+V] una imagen..."
-                                className="w-full bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-[15px] resize-none px-4 py-4 max-h-[150px] overflow-y-auto font-sans leading-relaxed"
-                                rows={1}
+                                    }}
+                                    placeholder="Pregúntale a JanIA..."
+                                    className="w-full bg-transparent border-none focus:outline-none text-white placeholder-stone-400 text-[15px] font-inter font-light resize-none px-4 py-4 max-h-[150px] overflow-y-auto leading-relaxed [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                                    rows={1}
                                 onFocus={() => { setProfileOpen(false); setSettingsOpen(false); }}
                             />
 
@@ -2207,7 +2236,7 @@ const JanIAAgent = () => {
 
                                     <div className="hidden md:flex ml-2 items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 cursor-default hover:bg-white/10 transition-colors">
                                         <div className="w-2 h-2 rounded-full bg-[#00ff22] animate-pulse shadow-[0_0_8px_rgba(0,255,34,0.8)]"></div>
-                                        <span className="text-[10px] font-semibold text-stone-300 tracking-wider font-outfit uppercase">JanIA 2.5 Beta</span>
+                                        <span className="text-[10px] font-semibold text-stone-300 tracking-wider font-inter uppercase">JanIA 2.5 Beta</span>
                                     </div>
                                 </div>
 
@@ -2355,7 +2384,7 @@ const JanIAAgent = () => {
                                 </div>
                             </div>
 
-                            <h3 className="text-2xl font-bold font-outfit bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-4 text-center">¡Bienvenido/a a Vecy Avalúos!</h3>
+                            <h3 className="text-2xl font-bold font-inter bg-gradient-to-r from-brand-accent via-white to-brand-accent bg-clip-text text-transparent mb-4 text-center">¡Bienvenido/a a Vecy Avalúos!</h3>
                             <p className="text-stone-300 text-sm leading-relaxed px-2 font-light text-center mb-6">
                                 Antes de iniciar, te invitamos a leer y aceptar nuestras <strong className="text-brand-gold font-medium">políticas de privacidad</strong> para la protección de tus datos y las <strong className="text-brand-gold font-medium">condiciones</strong> de nuestro uso y servicios.
                             </p>
@@ -2418,7 +2447,8 @@ const JanIAAgent = () => {
                                 className="group relative w-full py-4 bg-gradient-to-r from-brand-accent to-brand-gold text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(204,172,78,0.6)] hover:brightness-110 shadow-lg shadow-brand-accent/30 relative overflow-hidden z-10"
                             >
                                 <span className="relative z-10 drop-shadow-sm flex items-center justify-center gap-2">
-                                    ACEPTAR Y CONTINUAR 🚀
+                                    ACEPTAR Y CONTINUAR 
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
                                 </span>
                                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"></div>
                             </button>
@@ -2430,7 +2460,7 @@ const JanIAAgent = () => {
             <GlassToast
                 message={toast.message}
                 type={toast.type}
-                onClose={() => setToast({ ...toast, message: null })}
+                onClose={() => setToast({ message: null, type: '' })}
             />
             <GlassConfirm
                 isOpen={confirmModal.isOpen}

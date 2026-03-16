@@ -29,16 +29,20 @@ export const RESEARCH_MODEL = "gemini-2.5-pro"; // Búsqueda profunda en portale
 // UX: Dynamic Thinking States
 // UX: Dynamic Thinking States (SuperAppraiser Persona)
 export const THINKING_MESSAGES = {
-    INITIAL: "JanIA está analizando tu caso",
-    FILES: "JanIA está escaneando la documentación técnica",
-    WEB: "JanIA está consultando bases de datos inmobiliarias",
-    COMPARING: "JanIA está investigando precios en el sector",
-    PRICING: "JanIA está calculando tu presupuesto Oro",
-    WRITING: "JanIA está redactando su criterio técnico",
-    REPORT: "JanIA está certificando tu informe final",
-    MAPS: "JanIA está activando la visión satelital",
-    AUTH: "JanIA está blindando tu identidad"
+    INITIAL:        "Analizando...",
+    GREETING_GUEST: "Preparando bienvenida...",
+    GREETING_USER:  "Preparando saludo...",
+    FILES:          "Leyendo documentos...",
+    WEB:            "Consultando mercado...",
+    COMPARING:      "Comparando ofertas...",
+    VALUATION:      "Calculando valor...",
+    PRICING:        "Generando pago...",
+    WRITING:        "Redactando...",
+    REPORT:         "Creando informe...",
+    MAPS:           "Ubicando predio...",
+    AUTH:           "Verificando acceso..."
 };
+
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const SEARCH_CX = import.meta.env.VITE_GOOGLE_SEARCH_CX;
@@ -173,8 +177,15 @@ export class JanIACore {
     }
 
     async processUserMessage(userText, onThinkingUpdate, fileDatas = [], uploadedAttachments = [], abortSignal = null, onStreamUpdate = null) {
-        // 0. INITIAL STATE UX
-        if (onThinkingUpdate) onThinkingUpdate(THINKING_MESSAGES.INITIAL);
+        // 0. INITIAL STATE UX — detectar si es saludo
+        const isGreeting = /^(hola|buen[ao]s?|buenas\s*(tardes|noches|días?)?|qué tal|hey|saludos|hola de nuevo|hi|hello)[\s!,.¿?]*$/i.test((userText || '').trim());
+        if (onThinkingUpdate) {
+            if (isGreeting) {
+                onThinkingUpdate(this.memory.is_registered ? THINKING_MESSAGES.GREETING_USER : THINKING_MESSAGES.GREETING_GUEST);
+            } else {
+                onThinkingUpdate(THINKING_MESSAGES.INITIAL);
+            }
+        }
 
         if (uploadedAttachments.length > 0 || fileDatas.length > 0) {
             if (onThinkingUpdate) onThinkingUpdate(THINKING_MESSAGES.FILES);
@@ -216,14 +227,17 @@ export class JanIACore {
                     this.memory.policy_card_shown = true; // Mark as shown to avoid loop
                     return {
                         text: "Para garantizar la *precisión técnica* y *proteger tu información*, por favor revisalas primero y luego acepta las {{Políticas}} y {{Condiciones}} de *Vecy*, antes de iniciar el registro. 🤝✨",
-                        thought_process: "Usuario necesita registro. Activando tarjeta de políticas (Primera vez).",
-                        suggested_response_tone: "Profesional y Sutil",
-                        next_step: { 
-                            type: 'tool', 
-                            name: 'trigger_policy_card', 
-                            args: {} 
+                        plan: {
+                            thought_process: "Usuario necesita registro. Activando tarjeta de políticas (Primera vez).",
+                            suggested_response_tone: "Profesional y Sutil",
+                            next_step: { 
+                                type: 'tool', 
+                                name: 'trigger_policy_card', 
+                                args: {} 
+                            }
                         },
-                        update_memory: { policy_card_shown: true }
+                        memory: this.memory,
+                        component: 'policy_gate'
                     };
                 }
             }
@@ -237,10 +251,12 @@ export class JanIACore {
                     const tool = plan.next_step.name;
                     if (tool === 'read_web_page') onThinkingUpdate(THINKING_MESSAGES.WEB);
                     else if (tool === 'deep_research_property') onThinkingUpdate(THINKING_MESSAGES.COMPARING);
-                    else if (tool === 'pricing_calculator') onThinkingUpdate(THINKING_MESSAGES.PRICING);
+                    else if (tool === 'pricing_calculator') onThinkingUpdate(THINKING_MESSAGES.VALUATION);
+                    else if (tool === 'generate_payment_link') onThinkingUpdate(THINKING_MESSAGES.PRICING);
+                    else if (tool === 'generate_report_download') onThinkingUpdate(THINKING_MESSAGES.REPORT);
                     else if (tool === 'get_location_details') onThinkingUpdate(THINKING_MESSAGES.MAPS);
                     else if (tool === 'trigger_auth_options' || tool === 'trigger_policy_card') onThinkingUpdate(THINKING_MESSAGES.AUTH);
-                    else onThinkingUpdate("JanIA está sincronizando sus sistemas...");
+                    else onThinkingUpdate("Procesando información...");
                 }
                 toolRes = await this._executeTool(plan.next_step.name, plan.next_step.args);
             }
@@ -251,8 +267,10 @@ export class JanIACore {
             }
             
             if (onThinkingUpdate) {
-                if (plan.next_step?.type === 'tool' && ['pricing_calculator', 'deep_research_property', 'read_web_page'].includes(plan.next_step.name)) {
+                if (plan.next_step?.type === 'tool' && ['generate_report_download'].includes(plan.next_step.name)) {
                     onThinkingUpdate(THINKING_MESSAGES.REPORT);
+                } else if (plan.next_step?.type === 'tool' && ['pricing_calculator', 'generate_payment_link'].includes(plan.next_step.name)) {
+                    onThinkingUpdate(THINKING_MESSAGES.PRICING);
                 } else {
                     onThinkingUpdate(THINKING_MESSAGES.WRITING);
                 }
@@ -273,7 +291,7 @@ export class JanIACore {
             
             if (plan.next_step?.type === 'tool') {
                 const toolName = plan.next_step.name;
-                if (toolName === 'offer_plans' || toolName === 'pricing_calculator') uiComponent = 'plan_card';
+                if (toolName === 'offer_plans' || toolName === 'pricing_calculator' || toolName === 'generate_payment_link') uiComponent = 'plan_card';
                 else if (toolName === 'trigger_policy_card') uiComponent = 'policy_gate';
                 else if (toolName === 'trigger_reward_card') uiComponent = 'reward_network_card';
                 else if (toolName === 'trigger_auth_options') uiComponent = 'auth_options';
@@ -455,18 +473,21 @@ export class JanIACore {
                         this.memory.property_data.lng = loc.lng;
                         this.memory.property_data.direccion_normalizada = result.formatted_address;
                         
-                        // Extract Neighborhood/Locality
+                        // Extract Neighborhood/Locality (Optimized for Bogotá)
                         let barrio = '';
                         let localidad = '';
                         
                         result.address_components.forEach(c => {
-                            if (c.types.includes('neighborhood') || c.types.includes('sublocality_level_1')) {
-                                barrio = c.long_name;
+                            // En Bogotá Google suele poner la Localidad en sublocality_level_1
+                            if (c.types.includes('sublocality_level_1')) {
+                                localidad = c.long_name;
                             }
-                            if (c.types.includes('sublocality_level_2') && !barrio) { // Fallback
-                                barrio = c.long_name;
+                            // El Barrio suele estar en neighborhood o sublocality_level_2
+                            if (c.types.includes('neighborhood') || c.types.includes('sublocality_level_2')) {
+                                if (!barrio) barrio = c.long_name; 
                             }
-                            if (c.types.includes('locality')) {
+                            // Si no se ha encontrado localidad, intentamos con administrative_area_level_2 (a veces aparece ahí)
+                            if (!localidad && c.types.includes('administrative_area_level_2') && c.long_name !== 'Bogotá') {
                                 localidad = c.long_name;
                             }
                         });
