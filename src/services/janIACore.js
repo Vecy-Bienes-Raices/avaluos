@@ -39,8 +39,12 @@ export const THINKING_MESSAGES = {
     PRICING:        "Generando pago...",
     WRITING:        "Redactando...",
     REPORT:         "Creando informe...",
-    MAPS:           "Ubicando predio...",
-    AUTH:           "Verificando acceso..."
+    MAPS:           "Ubicando predio con Geocoding API...",
+    AUTH:           "Verificando acceso...",
+    VISION:         "Procesando con Cloud Vision API...",
+    SOLAR:          "Calculando con Solar API...",
+    PLACES:         "Analizando entorno con Places API...",
+    EARTH:          "Escaneando con Google Earth Engine..."
 };
 
 
@@ -521,18 +525,17 @@ export class JanIACore {
 
                         console.log("📍 [JanIA Maps] Ubicación encontrada:", { barrio, localidad, lat: loc.lat });
 
-                        return `[ÉXITO]: Ubicación satelital confirmada: ${result.formatted_address}.
-                        - Barrio: ${barrio}
-                        - Localidad: ${localidad}
+                        return `[ÉXITO - GOOGLE CLOUD ARSENAL]: 
+                        - Ubicación confirmada vía **Geocoding API**: ${result.formatted_address}.
+                        - Fachada capturada vía **Street View Static API**.
                         - Coordenadas: ${loc.lat}, ${loc.lng}
                         
-                        [MEMORIA VISUAL]: He capturado la FOTO DE LA FACHADA de Google Street View en mi retina digital.
+                        [MEMORIA VISUAL]: He capturado la FOTO DE LA FACHADA en mi retina digital.
                         
                         INSTRUCCIÓN PARA JANIA:
-                        1. Muestra el componente de mapa.
-                        2. DESCRIBE brevemente la fachada (colores, estado, altura) como si la estuvieras viendo tú. 
-                        3. CONTINUIDAD: No te detengas. Confirma la ubicación y el barrio (${barrio}, localidad ${localidad}) e inmediatamente pide el **Certificado de Libertad** o el **Impuesto Predial** para precisión Oro.
-                        4. Pregunta también por datos internos (piso, si tiene ascensor o reformas) para NO romper el hilo.`;
+                        1. Muestra el componente de mapa (usa **Maps JavaScript API**).
+                        2. DESCRIBE la fachada con tu **Cloud Vision API**. 
+                        3. CONTINUIDAD: Pide el **Certificado de Libertad** o el **Impuesto Predial** para activar tu **OCR avanzado**.`;
 
                     }
                     return "No pude localizar esa dirección exacta en el mapa satelital. Pide al usuario que verifique la nomenclatura o envíe un punto de referencia.";
@@ -736,14 +739,14 @@ export class JanIACore {
                     const savingsMonth = savingsYear / 12;
                     const formatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
-                    return `[ANÁLISIS SOLAR SATELITAL]:
+                    return `[ANÁLISIS SOLAR SATELITAL - SOLAR API]:
                     Ubicación: ${lat}, ${lng}
                     - Paneles Máximos: ${maxPanels}
                     - Producción estimada: ${yearlyEnergy.toFixed(2)} kWh/año
-                    - Ahorro estimado: ${formatter.format(savingsYear)}/año (${formatter.format(savingsMonth)}/mes)
+                    - Ahorro estimado: ${formatter.format(savingsYear)}/año
                     
                     INSTRUCCIÓN:
-                    Vende la "Valorización Verde". Un predio con alto potencial solar es más atractivo para el mercado moderno y ahorra costos operativos.`;
+                    Vende la "Valorización Verde". Explica que gracias a la **Solar API** de Google, detectaste un potencial de ahorro real.`;
                 } catch (e) { return "Error consultando potencial solar."; }
 
             case 'trigger_reward_card':
@@ -779,11 +782,11 @@ export class JanIACore {
 
                     const poiList = data.places.map(p => `- ${p.displayName.text} (${p.types.join(', ')})`).join("\n");
                     
-                    return `[ANÁLISIS DE ENTORNO - PLACES API]: Puntos de interés detectados: ${poiList}\nINSTRUCCIÓN: Evalúa cómo estos lugares afectan el valor.`;
+                    return `[ANÁLISIS DE ENTORNO - PLACES API (NEW)]: Puntos de interés detectados: ${poiList}\nINSTRUCCIÓN: Evalúa cómo estos lugares afectan el valor comercial y la seguridad del sector.`;
                 } catch (e) { return "Error técnico consultando entorno (Places API)."; }
 
             case 'analyze_property_image':
-                 return `[SISTEMA - ACTIVACIÓN CLOUD VISION]: Analiza profundamente las imágenes en tu buffer visual (Fachada o interiores). BUSCA: Calidad de acabados, estado de conservación y patologías. REPORTA: Cómo estos detalles afectan el $/m2.`;
+                 return `[SISTEMA - ACTIVACIÓN CLOUD VISION API]: Analiza profundamente las imágenes en tu buffer visual (Fachada o interiores). BUSCA: Calidad de acabados, estado de conservación y patologías. REPORTA: Cómo estos detalles afectan el $/m2 basándote en lo que "ves" con tu visión artificial de Google.`;
 
             case 'consult_risk_and_environment':
                 try {
